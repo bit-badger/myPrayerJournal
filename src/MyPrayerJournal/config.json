@@ -1,0 +1,17 @@
+{
+  // https://www.grc.com/passwords.htm is a great source of high-entropy passwords for these first 4 settings.
+  // Although what is there looks strong, keep in mind that it's what's in source control, so all instances of
+  // MyPrayerJournal could be using these values; that severly decreases their usefulness. :)
+  //
+  // WARNING: Changing this first one will render every single user's login inaccessible, including yours.  Only do
+  //          this if you are editing this file before setting up an instance, or if that is what you intend to do.
+  "password-salt": "oIvatPlrBh5DjeBVWvX3vvePHAgbbzUm7BazZM2IKlUsTtDuPJFbF3KvIiQPdLt",
+  // Changing any of these next 3 will render all current logins invalid, and the user will be force to reauthenticate.
+  "auth-salt": "oQnn82bjs1WysxU0buIdG0DOzsfqIH1pGUnzoavrSDkBIyhWqHffYksRXEAfCup",
+  "encryption-passphrase": "iIIPDrOfke6xP0ElRPMpyMci49CEqBqjmhoxvCiYHZTPSgkTnG2s2m8UOejcFE2",
+  "hmac-passphrase": "0UTc2QfbnHoq4sgTtfkk5JCjoBI2nfm5o0gQsINsBHzwIkU7mAVp61R7UQ1HVrv",
+  "data": {
+    "database": "MyPrayerJournal",
+    "hostname": "severus-server"
+  }
+}

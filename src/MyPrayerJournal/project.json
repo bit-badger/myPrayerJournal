@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "debugType": "portable",
+    "emitEntryPoint": true,
+    "compilerName": "fsc",
+    "compile": {
+      "includeFiles": [
+        "Entities.fs",
+        "Config.fs",
+        "Data.fs",
+        "App.fs"
+      ]
+    }
+  },
+  "dependencies": {
+    "Nancy": "2.0.0-barneyrubble",
+    "Nancy.Authentication.Forms": "2.0.0-barneyrubble",
+    "Nancy.Session.Persistable": "0.9.1-pre",
+    "Nancy.Session.RethinkDB": "0.9.1-pre",
+    "Newtonsoft.Json": "9.0.1",
+    "RethinkDb.Driver": "2.3.15",
+    "Suave": "2.0.0-alpha5"
+  },
+  "tools": {
+    "dotnet-compile-fsc":"1.0.0-preview2-*"
+  },
+  "frameworks": {
+    "netcoreapp1.0": {
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.0.1"
+        },
+        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-160831"
+      }
+    }
+  }
+}
