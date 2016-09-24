@@ -1,8 +1,10 @@
 [<AutoOpen>]
 module Data
 
+open MyPrayerJournal
 open Newtonsoft.Json
 open RethinkDb.Driver
+open RethinkDb.Driver.Ast
 open RethinkDb.Driver.Net
 open System
 
@@ -20,6 +22,17 @@ module DataTable =
 /// Extensions for the RethinkDB connection
 type IConnection with
   
+  /// Log on a user
+  member this.LogOnUser (email : string) (passwordHash : string) =
+    async {
+      let! user = r.Table(DataTable.User)
+                    .GetAll(email).OptArg("index", "Email")
+                    .Filter(ReqlFunction1(fun usr -> upcast usr.["PasswordHash"].Eq(passwordHash)))
+                    .RunResultAsync<User>(this)
+                  |> Async.AwaitTask
+      return match box user with null -> None | _ -> Some user
+    }
+
   /// Set up the environment for MyPrayerJournal
   member this.EstablishEnvironment () =
     /// Shorthand for the database
@@ -29,45 +42,45 @@ type IConnection with
     /// Ensure the database exists
     let checkDatabase () =
       async {
-        logStep "|> Checking database..."
+        logStep "|> Checking database"
         let! dbList = r.DbList().RunResultAsync<string list>(this) |> Async.AwaitTask 
         match dbList |> List.contains "MyPrayerJournal" with
         | true -> ()
-        | _ -> logStep "     Database not found - creating..."
+        | _ -> logStep "   Database not found - creating..."
                do! r.DbCreate("MyPrayerJournal").RunResultAsync(this) |> Async.AwaitTask |> Async.Ignore
-               logStep "       ...done"
+               logStep "     ...done"
       }
     /// Ensure all tables exit
     let checkTables () =
       async {
-        logStep "|> Checking tables..."
+        logStep "|> Checking tables"
         let! tables = db().TableList().RunResultAsync<string list>(this) |> Async.AwaitTask
         [ DataTable.Request; DataTable.User ]
         |> List.filter (fun tbl -> not (tables |> List.contains tbl))
         |> List.map (fun tbl ->
             async {
-              logStep <| sprintf "     %s table not found - creating..." tbl
+              logStep <| sprintf "   %s table not found - creating..." tbl
               do! db().TableCreate(tbl).RunResultAsync(this) |> Async.AwaitTask |> Async.Ignore
-              logStep "       ...done"
+              logStep "     ...done"
             })
         |> List.iter Async.RunSynchronously
       }
     /// Ensure the proper indexes exist
     let checkIndexes () =
       async {
-        logStep "|> Checking indexes..."
+        logStep "|> Checking indexes"
         let! reqIdx = db().Table(DataTable.Request).IndexList().RunResultAsync<string list>(this) |> Async.AwaitTask
         match reqIdx |> List.contains "UserId" with
         | true -> ()
-        | _ -> logStep <| sprintf "     %s.UserId index not found - creating..." DataTable.Request
+        | _ -> logStep <| sprintf "   %s.UserId index not found - creating..." DataTable.Request
                do! db().Table(DataTable.Request).IndexCreate("UserId").RunResultAsync(this) |> Async.AwaitTask |> Async.Ignore
-               logStep "       ...done"
+               logStep "     ...done"
         let! usrIdx = db().Table(DataTable.User).IndexList().RunResultAsync<string list>(this) |> Async.AwaitTask
         match usrIdx |> List.contains "Email" with
         | true -> ()
-        | _ -> logStep <| sprintf "     %s.Email index not found - creating..." DataTable.User
+        | _ -> logStep <| sprintf "   %s.Email index not found - creating..." DataTable.User
                do! db().Table(DataTable.User).IndexCreate("Email").RunResultAsync(this) |> Async.AwaitTask |> Async.Ignore
-               logStep "       ...done"
+               logStep "     ...done"
       }
     async {
       logStep "Database checks starting"

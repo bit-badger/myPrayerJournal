@@ -13,10 +13,22 @@ type User = {
   PasswordHash : string
   /// The user's name
   Name : string
+  /// The time zone in which the user resides
+  TimeZone : string
   /// The last time the user logged on
   LastSeenOn : int64
 }
+  with
+    /// An empty User
+    static member Empty =
+      { Id           = ""
+        Email        = ""
+        PasswordHash = ""
+        Name         = ""
+        TimeZone     = ""
+        LastSeenOn   = int64 0 }
 
+        
 /// Request history entry
 type History = {
   /// The instant at which the update was made

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width" />
+  <meta name="generator" content="@Model.Generator" />
+  <title>@Model.DisplayPageTitle</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <style>
+    body {
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
+    }
+    .material-icons.md-18 {
+      font-size: 18px;
+    }
+    .material-icons.md-24 {
+      font-size: 24px;
+    }
+    .material-icons.md-36 {
+      font-size: 36px;
+    }
+    .material-icons.md-48 {
+      font-size: 48px;
+    }
+    .material-icons {
+      vertical-align: middle;
+    }
+  </style>
+  @Section['Head'];
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/"><span style="font-weight:100;">My</span><span style="font-weight:600;">Prayer</span><span style="font-weight:700;">Journal</span></a>
+        </div>
+        <ul class="nav navbar-nav navbar-right">
+          @If.IsAuthenticated
+            <li><a href="/user/change-password">@Translate.ChangeYourPassword</a></li>
+            <li><a href="/user/log-off">@Translate.LogOff</a></li>
+          @EndIf
+          @IfNot.IsAuthenticated
+            <li><a href="/user/log-on">@Translate.LogOn</a></li>
+          @EndIf
+        </ul>
+      </div>
+    </nav>
+  </header>
+  <div class="container">
+    @Section['Content'];
+  </div>
+  @Section['Footer'];
+  <script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-2.1.3.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  @Section['Scripts'];
+</body>
+</html>
