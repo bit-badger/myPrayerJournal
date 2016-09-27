@@ -1,127 +1,79 @@
-﻿module MyPrayerJournal.App
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
-open Nancy
-open Nancy.Authentication.Forms
-open Nancy.Bootstrapper
-open Nancy.Cryptography
-open Nancy.Owin
-open Nancy.Security
-open Nancy.Session.Persistable
-open Nancy.Session.RethinkDB
-open Nancy.TinyIoc
-open Nancy.ViewEngines.SuperSimpleViewEngine
-open NodaTime
-open RethinkDb.Driver.Net
+open Microsoft.AspNetCore.Localization
+open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Logging
+open Microsoft.Extensions.Options
 open System
-open System.Reflection
-open System.Security.Claims
-open System.Text.RegularExpressions
+open System.IO
 
-/// Establish the configuration
-let cfg = AppConfig.FromJson (System.IO.File.ReadAllText "config.json")
-
-do
-  cfg.DataConfig.Conn.EstablishEnvironment () |> Async.RunSynchronously
-
-/// Support i18n/l10n via the @Translate SSVE alias
-type TranslateTokenViewEngineMatcher() =
-  static let regex = Regex("@Translate\.(?<TranslationKey>[a-zA-Z0-9-_]+);?", RegexOptions.Compiled)
-  interface ISuperSimpleViewEngineMatcher with
-    member this.Invoke (content, model, host) =
-      let translate (m : Match) = Strings.get m.Groups.["TranslationKey"].Value
-      regex.Replace(content, translate)
-
-/// Handle forms authentication
-type AppUser(name, claims) =
-  inherit ClaimsPrincipal()
-  member this.UserName with get() = name
-  member this.Claims   with get() = claims
- 
-type AppUserMapper(container : TinyIoCContainer) =
+/// Startup class for myPrayerJournal
+type Startup(env : IHostingEnvironment) =
   
-  interface IUserMapper with
-    member this.GetUserFromIdentifier (identifier, context) =
-      match context.Request.PersistableSession.GetOrDefault(Keys.User, User.Empty) with
-      | user when user.Id = string identifier -> upcast AppUser(user.Name, [ "LoggedIn" ])
-      | _ -> null
+  /// Configuration for this application
+  member this.Configuration =
+    let builder =
+      ConfigurationBuilder()
+        .SetBasePath(env.ContentRootPath)
+        .AddJsonFile("appsettings.json", optional = true, reloadOnChange = true)
+        .AddJsonFile(sprintf "appsettings.%s.json" env.EnvironmentName, optional = true)
+    // For more details on using the user secret store see https://go.microsoft.com/fwlink/?LinkID=532709
+    match env.IsDevelopment () with true -> ignore <| builder.AddUserSecrets () | _ -> ()
+    ignore <| builder.AddEnvironmentVariables ()
+    builder.Build ()
 
+  // This method gets called by the runtime. Use this method to add services to the container.
+  member this.ConfigureServices (services : IServiceCollection) =
+    ignore <| services.AddOptions ()
+    ignore <| services.Configure<AppConfig>(this.Configuration.GetSection("MyPrayerJournal"))
+    ignore <| services.AddLocalization (fun options -> options.ResourcesPath <- "Resources")
+    ignore <| services.AddMvc ()
+    ignore <| services.AddDistributedMemoryCache ()
+    ignore <| services.AddSession ()
+    // RethinkDB connection
+    async {
+      let cfg = services.BuildServiceProvider().GetService<IOptions<AppConfig>>().Value
+      let! conn = DataConfig.Connect cfg.DataConfig
+      do! conn.EstablishEnvironment cfg
+      ignore <| services.AddSingleton conn
+    } |> Async.RunSynchronously
 
-/// Set up the application environment
-type AppBootstrapper() =
-  inherit DefaultNancyBootstrapper()
-  
-  override this.ConfigureRequestContainer (container, context) =
-    base.ConfigureRequestContainer (container, context)
-    /// User mapper for forms authentication
-    ignore <| container.Register<IUserMapper, AppUserMapper>()
+  // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+  member this.Configure (app : IApplicationBuilder, env : IHostingEnvironment, loggerFactory : ILoggerFactory) =
+    ignore <| loggerFactory.AddConsole(this.Configuration.GetSection "Logging")
+    ignore <| loggerFactory.AddDebug ()
 
-  override this.ConfigureApplicationContainer (container) =
-    base.ConfigureApplicationContainer container
-    ignore <| container.Register<AppConfig>(cfg)
-    ignore <| container.Register<IConnection>(cfg.DataConfig.Conn)
-    // NodaTime
-    ignore <| container.Register<IClock>(SystemClock.Instance)
-    // I18N in SSVE
-    ignore <| container.Register<seq<ISuperSimpleViewEngineMatcher>>
-                (fun _ _ -> 
-                  Seq.singleton (TranslateTokenViewEngineMatcher() :> ISuperSimpleViewEngineMatcher))
-  
-  override this.ApplicationStartup (container, pipelines) =
-    base.ApplicationStartup (container, pipelines)
-    // Forms authentication configuration
-    let auth =
-      FormsAuthenticationConfiguration(
-        CryptographyConfiguration =
-          CryptographyConfiguration(
-            AesEncryptionProvider(PassphraseKeyGenerator(cfg.AuthEncryptionPassphrase, cfg.AuthSalt)),
-            DefaultHmacProvider(PassphraseKeyGenerator(cfg.AuthHmacPassphrase, cfg.AuthSalt))),
-        RedirectUrl = "~/user/log-on",
-        UserMapper  = container.Resolve<IUserMapper>())
-    FormsAuthentication.Enable (pipelines, auth)
-    // CSRF
-    Csrf.Enable pipelines
-    // Sessions
-    let sessions = RethinkDBSessionConfiguration(cfg.DataConfig.Conn)
-    sessions.Database <- cfg.DataConfig.Database
-    PersistableSessions.Enable (pipelines, sessions)
-    ()
+    match env.IsDevelopment () with
+    | true -> ignore <| app.UseDeveloperExceptionPage ()
+              ignore <| app.UseBrowserLink ()
+    | _ -> ignore <| app.UseExceptionHandler("/error")
 
-  override this.Configure (environment) =
-    base.Configure environment
-    environment.Tracing(true, true)
+    ignore <| app.UseStaticFiles ()
 
+    // Add external authentication middleware below. To configure them please see https://go.microsoft.com/fwlink/?LinkID=532715
 
-let version = 
-  let v = typeof<AppConfig>.GetType().GetTypeInfo().Assembly.GetName().Version
-  match v.Build with
-  | 0 -> match v.Minor with 0 -> string v.Major | _ -> sprintf "%d.%d" v.Major v.Minor
-  | _ -> sprintf "%d.%d.%d" v.Major v.Minor v.Build
-  |> sprintf "v%s"
+    ignore <| app.UseMvc(fun routes ->
+      ignore <| routes.MapRoute(name = "default", template = "{controller=Home}/{action=Index}/{id?}"))
 
-/// Set up the request environment
-type RequestEnvironment() =
-  interface IRequestStartup with
-    member this.Initialize (pipelines, context) =
-      pipelines.BeforeRequest.AddItemToStartOfPipeline
-        (fun ctx ->
-          ctx.Items.[Keys.RequestStart] <- DateTime.Now.Ticks
-          ctx.Items.[Keys.Version]      <- version
-          null)
-
-type Startup() =
-  member this.Configure (app : IApplicationBuilder) =
-    ignore <| app.UseOwin(fun x -> x.UseNancy(fun opt -> opt.Bootstrapper <- new AppBootstrapper()) |> ignore)
+/// Default to Development environment
+let defaults = seq { yield WebHostDefaults.EnvironmentKey, "Development" }
+               |> dict
 
 [<EntryPoint>]
-let main argv = 
-//  let app = OwinApp.ofMidFunc "/" (NancyMiddleware.UseNancy(fun opt -> opt.Bootstrapper <- new AppBootstrapper()))
-//  startWebServer defaultConfig app
-//  0 // return an integer exit code
+let main argv =
+  let cfg =
+    ConfigurationBuilder()
+      .AddInMemoryCollection(defaults)
+      .AddEnvironmentVariables("ASPNETCORE_")
+      .AddCommandLine(argv)
+      .Build()
+      
   WebHostBuilder()
-    .UseContentRoot(System.IO.Directory.GetCurrentDirectory())
+    .UseConfiguration(cfg)
     .UseKestrel()
+    .UseContentRoot(Directory.GetCurrentDirectory())
     .UseStartup<Startup>()
     .Build()
     .Run()

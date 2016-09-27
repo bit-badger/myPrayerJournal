@@ -1,6 +1,7 @@
 namespace MyPrayerJournal
 
 open Newtonsoft.Json
+open System.Security.Cryptography
 
 /// A user
 type User = {
@@ -27,8 +28,13 @@ type User = {
         Name         = ""
         TimeZone     = ""
         LastSeenOn   = int64 0 }
+    /// Hash a user's password
+    static member HashPassword (pw : string) (salt : byte[]) =
+      use hash = new Rfc2898DeriveBytes(pw, salt, 4096)
+      hash.GetBytes 512
+      |> Seq.fold (fun acc byt -> sprintf "%s%s" acc (byt.ToString "x2")) ""
 
-        
+
 /// Request history entry
 type History = {
   /// The instant at which the update was made
