@@ -1,6 +1,7 @@
 namespace MyPrayerJournal
 
 open Newtonsoft.Json
+open System.Security.Claims
 open System.Security.Cryptography
 
 /// A user
@@ -81,4 +82,11 @@ type Request = {
       |> List.sortBy (fun item -> -item.AsOf)
       |> List.map    (fun item -> item.AsOf)
       |> List.head
-      
+
+/// The user for use with identity
+[<AllowNullLiteral>]
+type AppUser(user : User option) =
+  inherit ClaimsPrincipal()
+
+  /// The current user
+  member val User = user with get

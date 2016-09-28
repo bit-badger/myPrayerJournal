@@ -3,7 +3,6 @@ namespace MyPrayerJournal.ViewModels
 //open MyPrayerJournal
 
 /// Parent view model for all myPrayerJournal view models
-[<AllowNullLiteral>]
 type AppViewModel() =
   member this.Q = "X"
   (*

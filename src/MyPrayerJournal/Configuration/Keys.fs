@@ -2,6 +2,9 @@
 [<RequireQualifiedAccess>]
 module MyPrayerJournal.Keys
 
+/// Instance name for cookie authentication
+let Authentication = "mpj-authentication"
+
 /// The current user
 let CurrentUser = "mpj-user"
 

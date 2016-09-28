@@ -1,6 +1,8 @@
+module MyPrayerJournal.App
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
+open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Localization
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
@@ -31,13 +33,17 @@ type Startup(env : IHostingEnvironment) =
     ignore <| services.AddLocalization (fun options -> options.ResourcesPath <- "Resources")
     ignore <| services.AddMvc ()
     ignore <| services.AddDistributedMemoryCache ()
-    ignore <| services.AddSession ()
     // RethinkDB connection
     async {
       let cfg = services.BuildServiceProvider().GetService<IOptions<AppConfig>>().Value
       let! conn = DataConfig.Connect cfg.DataConfig
       do! conn.EstablishEnvironment cfg
       ignore <| services.AddSingleton conn
+      //ignore <| services.AddDistributedRethinkDBCache (fun options ->
+      //            options.Connection <- conn
+      //            options.Database   <- match cfg.DataConfig.Database with null -> "" | db -> db
+      //            options.TableName  <- "Session")
+      ignore <| services.AddSession ()
     } |> Async.RunSynchronously
 
   // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,8 +58,14 @@ type Startup(env : IHostingEnvironment) =
 
     ignore <| app.UseStaticFiles ()
 
-    // Add external authentication middleware below. To configure them please see https://go.microsoft.com/fwlink/?LinkID=532715
-
+    ignore <| app.UseCookieAuthentication(
+                CookieAuthenticationOptions(
+                  AuthenticationScheme  = Keys.Authentication,
+                  LoginPath             = PathString("/user/log-on"),
+                  AutomaticAuthenticate = true,
+                  AutomaticChallenge    = true,
+                  ExpireTimeSpan        = TimeSpan(2, 0, 0),
+                  SlidingExpiration     = true))
     ignore <| app.UseMvc(fun routes ->
       ignore <| routes.MapRoute(name = "default", template = "{controller=Home}/{action=Index}/{id?}"))
 

@@ -1,5 +1,6 @@
 namespace MyPrayerJournal.Controllers
 
+open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.Mvc
 open Microsoft.Extensions.Options
 open MyPrayerJournal
@@ -7,34 +8,42 @@ open MyPrayerJournal.ViewModels
 open RethinkDb.Driver.Net
 
 /// Controller for all /user URLs
+[<Authorize>]
 [<Route("user")>]
 type UserController(data : IConnection, cfg : IOptions<AppConfig>) =
   inherit ApplicationController(data)
 
+  [<AllowAnonymous>]
   [<HttpGet("log-on")>]
   member this.ShowLogOn () =
     this.View(LogOnViewModel())
 
-  
+  [<AllowAnonymous>]
   [<HttpPost("log-on")>]
   [<ValidateAntiForgeryToken>]
   member this.DoLogOn (form : LogOnViewModel) =
     async {
       let! user = data.LogOnUser form.Email (User.HashPassword form.Password cfg.Value.PasswordSaltBytes)
       match user with
-      | Some usr -> (* this.Session.[Keys.User] <- usr
+      | Some usr -> do! this.HttpContext.Authentication.SignInAsync(Keys.Authentication, AppUser(user))
+                    // TODO: welcome message
+                    (* this.Session.[Keys.User] <- usr
                     { UserMessage.Empty with Level   = Level.Info
                                              Message = Strings.get "LogOnSuccess" }
-                    |> model.AddMessage
-                    this.Redirect "" model |> ignore // Save the messages in the session before the Nancy redirect
-                    // TODO: investigate if addMessage should update the session when it's called
-                    return this.LoginAndRedirect (System.Guid.Parse usr.Id, fallbackRedirectUrl = "/") :> obj
-                    *)
+                    |> model.AddMessage *)
                     return this.Redirect "/" :> IActionResult
       | _ -> (*{ UserMessage.Empty with Level   = Level.Error
                                       Message = Strings.get "LogOnFailure" }
              |> model.AddMessage
              return this.Redirect "/user/log-on" model *)
-             return upcast this.RedirectToAction("ShowLogOn")
+             return upcast this.RedirectToAction "ShowLogOn"
       //return this.View()
+    } |> Async.StartAsTask
+
+  [<HttpGet("log-off")>]
+  member this.LogOff () =
+    async {
+      do! this.HttpContext.Authentication.SignOutAsync(Keys.Authentication)
+      // TODO: goodbye message
+      return this.LocalRedirect "/"
     } |> Async.StartAsTask

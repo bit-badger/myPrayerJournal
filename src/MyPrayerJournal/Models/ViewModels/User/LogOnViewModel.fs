@@ -2,7 +2,6 @@ namespace MyPrayerJournal.ViewModels
 
 open System.ComponentModel.DataAnnotations
 
-[<AllowNullLiteral>]
 type LogOnViewModel() =
   inherit AppViewModel()
 
