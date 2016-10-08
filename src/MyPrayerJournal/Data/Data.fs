@@ -29,7 +29,7 @@ type IConnection with
                     .Filter(ReqlFunction1(fun usr -> upcast usr.["PasswordHash"].Eq(passwordHash)))
                     .RunResultAsync<User list>(this)
       return user |> List.tryHead
-    }
+      }
 
   /// Set up the environment for MyPrayerJournal
   member this.EstablishEnvironment (cfg : AppConfig) =
@@ -50,7 +50,7 @@ type IConnection with
         | _ -> logStepStart "   Database not found - creating..."
                do! r.DbCreate("MyPrayerJournal").RunResultAsync(this)
                logStepEnd ()
-      }
+        }
     /// Ensure all tables exit
     let checkTables () =
       async {
@@ -63,7 +63,7 @@ type IConnection with
               logStepStart <| sprintf "   %s table not found - creating..." tbl
               do! db().TableCreate(tbl).RunResultAsync(this)
               logStepEnd()
-            })
+              })
         |> List.iter Async.RunSynchronously
         // Seed the user table if it is empty
         let! userCount = db().Table(DataTable.User).Count().RunResultAsync<int64>(this)
@@ -75,7 +75,8 @@ type IConnection with
                             Email = "test@example.com"
                             PasswordHash = User.HashPassword "password" cfg.PasswordSaltBytes
                             Name = "Default User"
-                            TimeZone = "America/Chicago" }).RunResultAsync(this)
+                            TimeZone = "America/Chicago"
+                          }).RunResultAsync(this)
                   logStepEnd ()
         | _ -> ()
       }
@@ -95,11 +96,11 @@ type IConnection with
         | _ -> logStepStart <| sprintf "   %s.Email index not found - creating..." DataTable.User
                do! db().Table(DataTable.User).IndexCreate("Email").RunResultAsync(this)
                logStepEnd ()
-      }
+        }
     async {
       logStep "Database checks starting"
       do! checkDatabase ()
       do! checkTables ()
       do! checkIndexes ()
       logStep "Database checks complete"
-    }
+      }

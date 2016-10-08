@@ -8,6 +8,7 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.Options
+open RethinkDB.DistributedCache
 open System
 open System.IO
 
@@ -28,46 +29,45 @@ type Startup(env : IHostingEnvironment) =
 
   // This method gets called by the runtime. Use this method to add services to the container.
   member this.ConfigureServices (services : IServiceCollection) =
-    ignore <| services.AddOptions ()
-    ignore <| services.Configure<AppConfig>(this.Configuration.GetSection("MyPrayerJournal"))
-    ignore <| services.AddLocalization (fun options -> options.ResourcesPath <- "Resources")
-    ignore <| services.AddMvc ()
-    ignore <| services.AddDistributedMemoryCache ()
+    services.AddOptions () |> ignore
+    services.Configure<AppConfig> (this.Configuration.GetSection "MyPrayerJournal") |> ignore
+    services.AddLocalization (fun opt -> opt.ResourcesPath <- "Resources") |> ignore
+    services.AddMvc () |> ignore
+    //ignore <| services.AddDistributedMemoryCache ()
     // RethinkDB connection
     async {
       let cfg = services.BuildServiceProvider().GetService<IOptions<AppConfig>>().Value
       let! conn = DataConfig.Connect cfg.DataConfig
       do! conn.EstablishEnvironment cfg
-      ignore <| services.AddSingleton conn
-      //ignore <| services.AddDistributedRethinkDBCache (fun options ->
-      //            options.Connection <- conn
-      //            options.Database   <- match cfg.DataConfig.Database with null -> "" | db -> db
-      //            options.TableName  <- "Session")
-      ignore <| services.AddSession ()
+      services.AddSingleton conn |> ignore
+      services.AddDistributedRethinkDBCache (fun options ->
+        options.Database  <- match cfg.DataConfig.Database with null -> "" | db -> db
+        options.TableName <- "Session") |> ignore
+      services.AddSession () |> ignore
     } |> Async.RunSynchronously
 
   // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
   member this.Configure (app : IApplicationBuilder, env : IHostingEnvironment, loggerFactory : ILoggerFactory) =
-    ignore <| loggerFactory.AddConsole(this.Configuration.GetSection "Logging")
-    ignore <| loggerFactory.AddDebug ()
+    loggerFactory.AddConsole(this.Configuration.GetSection "Logging") |> ignore
+    loggerFactory.AddDebug () |> ignore
 
     match env.IsDevelopment () with
-    | true -> ignore <| app.UseDeveloperExceptionPage ()
-              ignore <| app.UseBrowserLink ()
-    | _ -> ignore <| app.UseExceptionHandler("/error")
+    | true -> app.UseDeveloperExceptionPage () |> ignore
+              app.UseBrowserLink () |> ignore
+    | _ -> app.UseExceptionHandler "/error" |> ignore
 
-    ignore <| app.UseStaticFiles ()
+    app.UseStaticFiles () |> ignore
 
-    ignore <| app.UseCookieAuthentication(
-                CookieAuthenticationOptions(
-                  AuthenticationScheme  = Keys.Authentication,
-                  LoginPath             = PathString("/user/log-on"),
-                  AutomaticAuthenticate = true,
-                  AutomaticChallenge    = true,
-                  ExpireTimeSpan        = TimeSpan(2, 0, 0),
-                  SlidingExpiration     = true))
-    ignore <| app.UseMvc(fun routes ->
-      ignore <| routes.MapRoute(name = "default", template = "{controller=Home}/{action=Index}/{id?}"))
+    app.UseCookieAuthentication(
+      CookieAuthenticationOptions(
+        AuthenticationScheme  = Keys.Authentication,
+        LoginPath             = PathString "/user/log-on",
+        AutomaticAuthenticate = true,
+        AutomaticChallenge    = true,
+        ExpireTimeSpan        = TimeSpan (2, 0, 0),
+        SlidingExpiration     = true)) |> ignore
+    app.UseMvc(fun routes ->
+      routes.MapRoute(name = "default", template = "{controller=Home}/{action=Index}/{id?}") |> ignore) |> ignore
 
 /// Default to Development environment
 let defaults = seq { yield WebHostDefaults.EnvironmentKey, "Development" }
@@ -81,12 +81,12 @@ let main argv =
       .AddEnvironmentVariables("ASPNETCORE_")
       .AddCommandLine(argv)
       .Build()
-      
-  WebHostBuilder()
-    .UseConfiguration(cfg)
-    .UseKestrel()
-    .UseContentRoot(Directory.GetCurrentDirectory())
-    .UseStartup<Startup>()
-    .Build()
-    .Run()
+  use host =
+     WebHostBuilder()
+      .UseConfiguration(cfg)
+      .UseKestrel()
+      .UseContentRoot(Directory.GetCurrentDirectory())
+      .UseStartup<Startup>()
+      .Build()
+  host.Run()
   0

@@ -25,7 +25,7 @@ type UserController(data : IConnection, cfg : IOptions<AppConfig>) =
     async {
       let! user = data.LogOnUser form.Email (User.HashPassword form.Password cfg.Value.PasswordSaltBytes)
       match user with
-      | Some usr -> do! this.HttpContext.Authentication.SignInAsync(Keys.Authentication, AppUser(user))
+      | Some usr -> do! this.HttpContext.Authentication.SignInAsync (Keys.Authentication, AppUser user)
                     // TODO: welcome message
                     (* this.Session.[Keys.User] <- usr
                     { UserMessage.Empty with Level   = Level.Info
@@ -37,13 +37,13 @@ type UserController(data : IConnection, cfg : IOptions<AppConfig>) =
              |> model.AddMessage
              return this.Redirect "/user/log-on" model *)
              return upcast this.RedirectToAction "ShowLogOn"
-      //return this.View()
-    } |> Async.StartAsTask
+      }
+    |> Async.StartAsTask
 
   [<HttpGet("log-off")>]
   member this.LogOff () =
     async {
-      do! this.HttpContext.Authentication.SignOutAsync(Keys.Authentication)
+      do! this.HttpContext.Authentication.SignOutAsync Keys.Authentication
       // TODO: goodbye message
       return this.LocalRedirect "/"
     } |> Async.StartAsTask
