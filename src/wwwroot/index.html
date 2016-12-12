@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>myPrayerJournal</title>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/content/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <script src="/app.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      var app = Elm.App.embed(document.getElementById('app'))
+      app.ports.documentTitle.subscribe(function (title)
+      {
+        alert("Setting title to " + title)
+        document.title = title
+      })
+    </script>
+  </body>
+</html>

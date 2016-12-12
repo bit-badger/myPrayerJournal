@@ -252,5 +252,5 @@ paket-files/
 .idea/
 *.sln.iml
 
-# wwwroot/lib
-src/MyPrayerJournal/wwwroot/lib
+# Elm temporary files
+src/elm-stuff
