@@ -1,10 +1,11 @@
 module View exposing (view)
 
-import Html exposing (..)
+import Html exposing (Html, button, div, footer, h2, li, p, span, text, ul)
 import Html.Attributes exposing (attribute, class)
 import Messages exposing (Msg(..))
 import Models exposing (..)
 import Routing exposing (Route(..))
+import String exposing (split, trim)
 import Utils.View exposing (documentTitle, navLink)
 
 import Home.Public
@@ -51,10 +52,15 @@ pageHeader =
     ]
 
 
-pageTitle : String -> Html Msg
-pageTitle title =
+pageTitle : Model -> Html Msg
+pageTitle model =
   let
-    x = documentTitle <| title ++ " | myPrayerJournal"
+    title = 
+      case List.head <| split "|" model.title of
+        Just ttl ->
+          trim ttl
+        Nothing ->
+          ""
   in
     h2 [ class "page-title" ] [ text title ]
 
@@ -69,11 +75,11 @@ pageFooter =
     ]
 
 
-layout : Model -> String -> List (Html Msg) -> Html Msg
-layout model pgTitle contents =
+layout : Model -> List (Html Msg) -> Html Msg
+layout model contents =
   let
     pageContent = 
-      [ [ pageTitle pgTitle ]
+      [ [ pageTitle model ]
       , contents
       , [ pageFooter ]
       ]
@@ -93,12 +99,12 @@ view : Model -> Html Msg
 view model =
   case model.route of
     ChangePassword ->
-      layout model "Change Your Password" [ text "password change page goes here" ]
+      layout model [ text "password change page goes here" ]
     Home ->
-      layout model "Welcome" (Home.Public.view model)
+      layout model Home.Public.view
     LogOff ->
-      layout model "Log Off" [ text "Log off page goes hwere" ]
+      layout model [ text "Log off page goes here" ]
     LogOn ->
-      layout model "Log On" [ text "Log On page goes here" ]
+      layout model [ text "Log On page goes here" ]
     NotFound ->
-      layout model "Page Not Found" [ text "404, dude" ]
+      layout model [ text "404, dude" ]

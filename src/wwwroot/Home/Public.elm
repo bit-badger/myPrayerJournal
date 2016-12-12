@@ -6,8 +6,8 @@ import Models exposing (Model)
 import Utils.View exposing (fullRow)
 
 
-view : Model -> List (Html Msg)
-view model =
+view : List (Html Msg)
+view =
   let
     paragraphs =
       [ " "

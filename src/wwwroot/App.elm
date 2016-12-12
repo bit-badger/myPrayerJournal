@@ -10,10 +10,7 @@ import View exposing (view)
 
 init : Location -> (Model, Cmd Msg)
 init location =
-  let
-    currentRoute = Home --parseLocation location
-  in
-    (initialModel currentRoute, Cmd.none)
+  (parseLocation location |> initialModel, Cmd.none)
 
 
 main : Program Never Model Msg

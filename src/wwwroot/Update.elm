@@ -1,9 +1,10 @@
 module Update exposing (..)
 
+import Dict
 import Models exposing (Model)
 import Messages exposing (Msg(..))
 import Navigation exposing (newUrl)
-import Routing exposing (parseLocation)
+import Routing exposing (Route(..), parseLocation)
 import Utils.View exposing (documentTitle)
 
 
@@ -13,9 +14,19 @@ update msg model =
     OnLocationChange location ->
       let
         newRoute = parseLocation location
+        title =
+          case newRoute of
+            ChangePassword -> "Change Your Password"
+            Home -> "Welcome"
+            LogOn -> "Log On"
+            LogOff -> "Log Off"
+            NotFound -> "Page Not Found"
+        pageTitle = title ++ " | myPrayerJournal"
       in
-        ({model | route = newRoute}, Cmd.none)
+        ({ model | route = newRoute, title = pageTitle }, documentTitle model.title)
+    
     NavTo url ->
       (model, newUrl url)
+
     UpdateTitle newTitle ->
-      (model, documentTitle newTitle)
+      (model, documentTitle model.title)

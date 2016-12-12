@@ -1,6 +1,7 @@
 module Messages exposing (..)
 
 import Navigation exposing (Location)
+import Routing exposing (Route)
 
 
 type Msg

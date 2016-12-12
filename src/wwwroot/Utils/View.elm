@@ -33,8 +33,7 @@ navLink url linkText attrs =
   let
     attributes =
       List.concat 
-        [
-          [ title linkText
+        [ [ title linkText
           , onWithOptions
               "click" { defaultOptions | preventDefault = True }
               <| Json.succeed

@@ -14,11 +14,7 @@
     <div id="app"></div>
     <script>
       var app = Elm.App.embed(document.getElementById('app'))
-      app.ports.documentTitle.subscribe(function (title)
-      {
-        alert("Setting title to " + title)
-        document.title = title
-      })
+      app.ports.documentTitle.subscribe(function (title) { document.title = title })
     </script>
   </body>
 </html>
