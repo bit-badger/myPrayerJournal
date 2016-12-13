@@ -1,30 +1,44 @@
 {
-  "version": "1.0.0-*",
   "buildOptions": {
-    "debugType": "portable",
-    "emitEntryPoint": true,
-    "compilerName": "fsc",
     "compile": {
       "includeFiles": [
-        "Program.fs"
+        "Extensions.fs",
+        "Entities.fs",
+        "Dependencies.fs",
+        "Data.fs",
+        "App.fs"
       ]
-    }
+    },
+    "compilerName": "fsc",
+    "debugType": "portable",
+    "emitEntryPoint": true,
+    "outputName": "myPrayerJournal"
   },
   "dependencies": {
+    "Chiron": "6.2.1",
+    "Newtonsoft.Json": "9.0.1",
+    "RethinkDb.Driver": "2.3.15",
     "Suave": "2.0.0-rc2"
-  },
-  "tools": {
-    "dotnet-compile-fsc": "1.0.0-preview2.1-*"
   },
   "frameworks": {
     "netcoreapp1.1": {
       "dependencies": {
+        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-161111",
         "Microsoft.NETCore.App": {
           "type": "platform",
           "version": "1.1.0"
-        },
-        "Microsoft.FSharp.Core.netcore": "1.0.0-alpha-161111"
-      }
+        }
+      },
+      "imports": [
+        "portable-net45+win8+dnxcore50",
+        "portable-net45+win8",
+        "net452",
+        "dnxcore50"
+      ]
     }
-  }
+  },
+  "tools": {
+    "dotnet-compile-fsc": "1.0.0-preview2.1-*"
+  },
+  "version": "0.8.1-*"
 }
