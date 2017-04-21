@@ -1,9 +1,65 @@
 namespace MyPrayerJournal
 
+open Microsoft.EntityFrameworkCore;
 open Newtonsoft.Json
+open System
+open System.Collections.Generic
 
+/// A prayer request
+[<AllowNullLiteral>]
+type Request() =
+  /// The history collection (can be overridden)
+  let mutable historyCollection : ICollection<History> = upcast List<History> () 
+  
+  /// The Id of the prayer request
+  member val RequestId = Guid.Empty with get, set
+  /// The Id of the user to whom the request belongs
+  member val UserId = Guid.Empty with get, set
+  /// The ticks when the request was entered
+  member val EnteredOn = 0L with get, set
+  
+  /// The history for the prayer request
+  abstract History : ICollection<History> with get, set
+  default this.History
+    with get () = historyCollection
+    and set v = historyCollection <- v
+  
+  static member ConfigureEF (mb : ModelBuilder) =
+    mb.Entity<Request>().ToTable "Request"
+    |> ignore
+    mb
+
+
+/// A historial update to a prayer request
+and [<AllowNullLiteral>] History() =
+  /// The request to which this entry applies (may be overridden)
+  let mutable request = null
+
+  /// The Id of the request to which this update applies
+  member val RequestId = Guid.Empty with get, set
+  /// The ticks when this entry was made
+  member val AsOf = 0L with get, set
+  /// The status of the request as of this history entry
+  member val Status = "" with get, set
+  /// The text of this history entry
+  member val Text = "" with get, set
+
+  /// The request to which this entry belongs
+  abstract Request : Request with get, set
+  default this.Request 
+    with get () = request
+    and set v = request <- v
+
+  static member ConfigureEF (mb : ModelBuilder) =
+    mb.Entity<History>().ToTable("History")
+    |> ignore
+    mb.Entity<History>().HasKey(fun e -> (e.RequestId, e.AsOf) :> obj)
+    |> ignore
+    mb
+
+(*
 /// A user
-type User = {
+type Userr = {
   /// The Id of the user
   [<JsonProperty("id")>]
   Id : string
@@ -27,7 +83,7 @@ type User = {
 
 
 /// Request history entry
-type History = {
+type Historyy = {
   /// The instant at which the update was made
   AsOf : int64
   /// The action that was taken on the request
@@ -39,7 +95,7 @@ type History = {
 }
 
 /// A prayer request
-type Request = {
+type Requestt = {
   /// The Id of the request
   [<JsonProperty("id")>]
   Id : string
@@ -48,7 +104,7 @@ type Request = {
   /// The instant this request was entered
   EnteredOn : int64
   /// The history for this request
-  History : History list
+  History : Historyy list
 }
   with
     /// The current status of the prayer request
@@ -72,3 +128,4 @@ type Request = {
       |> List.sortBy (fun item -> -item.AsOf)
       |> List.map    (fun item -> item.AsOf)
       |> List.head
+*)

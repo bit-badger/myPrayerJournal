@@ -1,6 +1,6 @@
 namespace MyPrayerJournal
 
-open RethinkDb.Driver.Net
+//open RethinkDb.Driver.Net
 
 // -- begin code lifted from #er demo --
 type ReaderM<'d, 'out> = 'd -> 'out
@@ -39,10 +39,10 @@ module Reader =
   let reader = ReaderMBuilder()
 // -- end code lifted from #er demo --
 
-type IDependencies =
+(*type IDependencies =
   abstract Conn : IConnection
 
 [<AutoOpen>]
 module DependencyExtraction =
   
-  let getConn (deps : IDependencies) = deps.Conn
+  let getConn (deps : IDependencies) = deps.Conn*)
