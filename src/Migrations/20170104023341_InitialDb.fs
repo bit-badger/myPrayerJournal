@@ -40,7 +40,7 @@ type InitialDb () =
         (fun table ->
           { RequestId = table.Column<Guid>(nullable = false)
             EnteredOn = table.Column<int64>(nullable = false)
-            UserId = table.Column<Guid>(nullable = false)
+            UserId = table.Column<string>(nullable = false)
             }
           ),
       constraints =

@@ -14,7 +14,7 @@ type Request() =
   /// The Id of the prayer request
   member val RequestId = Guid.Empty with get, set
   /// The Id of the user to whom the request belongs
-  member val UserId = Guid.Empty with get, set
+  member val UserId = "" with get, set
   /// The ticks when the request was entered
   member val EnteredOn = 0L with get, set
   

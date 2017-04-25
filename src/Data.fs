@@ -27,12 +27,6 @@ type DataContext =
   /// History
   member this.History with get () = this.history and set v = this.history <- v
 
-  override this.OnConfiguring (optionsBuilder) =
-    base.OnConfiguring optionsBuilder
-    optionsBuilder.UseNpgsql
-      "Host=severus-server;Database=mpj;Username=mpj;Password=devpassword;Application Name=myPrayerJournal"
-    |> ignore
-  
   override this.OnModelCreating (modelBuilder) =
     base.OnModelCreating modelBuilder
 

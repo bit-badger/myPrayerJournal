@@ -3,6 +3,8 @@ module MyPrayerJournal.Views
 //open Suave.Html
 open Suave.Xml
 
+type UserContext = { Id: string option }
+
 [<AutoOpen>]
 module Tags =
   /// Generate a meta tag
@@ -37,13 +39,17 @@ module PageComponents =
   let prependDoctype document = sprintf "<!DOCTYPE html>\n%s" document
   let render = xmlToString >> prependDoctype
 
-  let navigation =
-    [ navLink "/user/password/change" "Change Your Password"
-      navLink "/user/log-off" "Log Off"
-      jsLink "mpj.signIn()" "Log On"
+  let navigation userCtx =
+    [ 
+      match userCtx.Id with
+      | Some _ ->
+          yield navLink Route.journal "Journal"
+          yield navLink Route.User.logOff "Log Off"
+      | _ -> yield jsLink "mpj.signIn()" "Log On"
+      
       ]
     |> List.map (fun x -> tag "li" [] x)
-  let pageHeader =
+  let pageHeader userCtx =
     divAttr [ "class", "navbar navbar-inverse navbar-fixed-top" ] [
       divAttr [ "class", "container" ] [
         divAttr [ "class", "navbar-header" ] [
@@ -56,7 +62,7 @@ module PageComponents =
           navLinkAttr [ "class", "navbar-brand" ] "/" "myPrayerJournal"
           ]
         divAttr [ "class", "navbar-collapse collapse" ] [
-          ulAttr [ "class", "nav navbar-nav navbar-right" ] navigation
+          ulAttr [ "class", "nav navbar-nav navbar-right" ] (navigation userCtx)
           ]
         ]
       ]
@@ -72,7 +78,7 @@ module PageComponents =
     row [ divAttr [ "class", "col-xs-12" ] xml ]
 
 /// Display a page
-let page content somethingElse =
+let page userCtx content =
   html [
     head [
       meta [ "charset", "UTF-8" ]
@@ -83,10 +89,9 @@ let page content somethingElse =
       stylesheet "https://fonts.googleapis.com/icon?family=Material+Icons"
     ]
     body [
-      pageHeader
+      pageHeader userCtx
       divAttr [ "class", "container body-content" ] [
         content
-        div [ text somethingElse ]
         pageFooter
         ]
       js "https://cdn.auth0.com/js/lock/10.14/lock.min.js"
@@ -101,3 +106,8 @@ let home =
     p [ text "myPrayerJournal is a place where individuals can record their prayer requests, record that they prayed for them, update them as God moves in the situation, and record a final answer received on that request.  It will also allow individuals to review their answered prayers." ]
     p [ text "This site is currently in very limited alpha, as it is being developed with a core group of test users.  If this is something you are interested in using, check back around mid-February 2017 to check on the development progress." ]
     ]
+
+let journal =
+  fullRow [
+    p [ text "journal goes here" ]
+  ]

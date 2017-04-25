@@ -41,7 +41,7 @@ type DataContextModelSnapshot () =
         |> ignore
         b.Property<int64>("EnteredOn")
         |> ignore
-        b.Property<Guid>("UserId")
+        b.Property<string>("UserId")
         |> ignore
         b.HasKey("RequestId")
         |> ignore
