@@ -1,6 +1,7 @@
 namespace MyPrayerJournal
 
 open Microsoft.EntityFrameworkCore
+open System.Linq
 open System.Runtime.CompilerServices
 
 /// Data context for myPrayerJournal
@@ -34,3 +35,23 @@ type DataContext =
     |> Request.ConfigureEF
     |> History.ConfigureEF
     |> ignore
+
+/// Data access
+module Data =
+
+  /// Data access for prayer requests
+  module Requests =
+
+    /// Get all prayer requests for a user
+    let allForUser userId (ctx : DataContext) =
+      query {
+        for req in ctx.Requests do
+          where (req.UserId = userId)
+          select req
+      }
+      |> Seq.sortBy
+        (fun req ->
+          match req.History |> Seq.sortBy (fun hist -> hist.AsOf) |> Seq.tryLast with
+          | Some hist -> hist.AsOf
+          | _ -> 0L)
+      |> List.ofSeq

@@ -19,7 +19,7 @@ open Suave.Successful
 
 let utf8 = System.Text.Encoding.UTF8
 
-type JsonNetCookieSerializer() =
+type JsonNetCookieSerializer () =
   interface CookieSerialiser with
     member x.serialise m =
       utf8.GetBytes (JsonConvert.SerializeObject m)
@@ -147,22 +147,34 @@ module Auth =
   
   /// Add the logged on user Id to the context if it exists
   let loggedOn = warbler (fun ctx ->
-      match ctx |> HttpContext.state with
+      match HttpContext.state ctx with
       | Some state -> Writers.setUserData "user" (state.get "auth-token" |> getIdFromToken)
       | _ -> Writers.setUserData "user" None)
 
   /// Create a user context for the currently assigned user
   let userCtx ctx = { Id = ctx.userState.["user"] :?> string option }
+
+/// Read an item from the user state, downcast to the expected type
+let read ctx key : 'value =
+  ctx.userState |> Map.tryFind key |> Option.map (fun x -> x :?> 'value) |> Option.get
     
 /// Create a new data context
 let dataCtx () =
   new DataContext (((DbContextOptionsBuilder<DataContext>()).UseNpgsql cfg.Conn).Options)
 
+/// Return an HTML page
+let html ctx content =
+  Views.page (Auth.userCtx ctx) content
+
 /// Home page
-let viewHome = warbler (fun ctx -> OK (Views.page (Auth.userCtx ctx) Views.home))
+let viewHome = warbler (fun ctx -> OK (Views.home |> html ctx))
 
 /// Journal page
-let viewJournal = warbler (fun ctx -> OK (Views.page (Auth.userCtx ctx) Views.journal))
+let viewJournal =
+  context (fun ctx ->
+    use dataCtx = dataCtx ()
+    let reqs = Data.Requests.allForUser (defaultArg (read ctx "user") "") dataCtx
+    OK (Views.journal reqs |> html ctx))
 
 /// Suave application
 let app =
@@ -180,16 +192,16 @@ let app =
 /// Ensure the EF context is created in the right format
 let ensureDatabase () =
   async {
-    use data = dataCtx()
+    use data = dataCtx ()
     do! data.Database.MigrateAsync ()
-  }
+    }
   |> Async.RunSynchronously
 
 let suaveCfg =
   { defaultConfig with
       homeFolder = Some (Path.GetFullPath "./wwwroot/")
       serverKey = Text.Encoding.UTF8.GetBytes("12345678901234567890123456789012")
-      cookieSerialiser = new JsonNetCookieSerializer()
+      cookieSerialiser = JsonNetCookieSerializer ()
     }
 
 [<EntryPoint>]

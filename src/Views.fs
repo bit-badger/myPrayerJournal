@@ -107,7 +107,7 @@ let home =
     p [ text "This site is currently in very limited alpha, as it is being developed with a core group of test users.  If this is something you are interested in using, check back around mid-February 2017 to check on the development progress." ]
     ]
 
-let journal =
+let journal (reqs : Request list) =
   fullRow [
     p [ text "journal goes here" ]
   ]
