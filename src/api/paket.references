@@ -1,0 +1,6 @@
+Auth0.AuthenticationApi
+jose-jwt
+Newtonsoft.Json
+Npgsql.EntityFrameworkCore.PostgreSQL
+Suave
+Suave.Experimental

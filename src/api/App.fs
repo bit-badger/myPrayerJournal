@@ -176,16 +176,20 @@ let viewJournal =
     let reqs = Data.Requests.allForUser (defaultArg (read ctx "user") "") dataCtx
     OK (Views.journal reqs |> html ctx))
 
+let idx =
+  context (fun ctx ->
+    Console.WriteLine "serving index"
+    succeed)
 /// Suave application
 let app =
   statefulForSession
   >=> Auth.loggedOn
   >=> choose [
-        path Route.home >=> viewHome
+        path Route.home >=> Files.browseFileHome "index.html"
         path Route.journal >=> viewJournal
         path Route.User.logOn >=> Auth.handleSignIn
         path Route.User.logOff >=> Auth.handleSignOut
-        Files.browseHome
+        Writers.setHeader "Cache-Control" "no-cache" >=> Files.browseHome
         NOT_FOUND "Page not found." 
         ]
 
@@ -203,12 +207,18 @@ let suaveCfg =
       serverKey = Text.Encoding.UTF8.GetBytes("12345678901234567890123456789012")
       cookieSerialiser = JsonNetCookieSerializer ()
     }
+open Suave.Utils
 
 [<EntryPoint>]
 let main argv = 
   // Establish the data environment
   //liftDep getConn (Data.establishEnvironment >> Async.RunSynchronously)
   //|> run deps
+  let writeKey key = File.WriteAllText ("key.txt", key)
+  Crypto.generateKey Crypto.KeySize
+  |> Convert.ToBase64String
+  |> writeKey
+  
   ensureDatabase ()
   startWebServer suaveCfg app
   0 

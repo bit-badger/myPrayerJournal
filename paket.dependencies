@@ -1,0 +1,11 @@
+source https://api.nuget.org/v3/index.json
+nuget Auth0.AuthenticationApi
+nuget FAKE
+nuget FSharp.Core
+nuget FSharp.NET.Sdk
+nuget jose-jwt
+nuget Microsoft.EntityFrameworkCore.Tools
+nuget Newtonsoft.Json
+nuget Npgsql.EntityFrameworkCore.PostgreSQL
+nuget Suave
+nuget Suave.Experimental

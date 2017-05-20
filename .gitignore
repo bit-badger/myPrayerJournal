@@ -256,3 +256,4 @@ paket-files/
 src/elm-stuff
 # Compiled application
 src/wwwroot/app.js
+build/

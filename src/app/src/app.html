@@ -1,0 +1,34 @@
+<template>
+  <require from="bootstrap/css/bootstrap.css"></require>
+  <require from="./styles.css"></require>
+
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <button class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a route-href="route: home" class="navbar-brand">myPrayerJournal</a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <loading-indicator loading.bind="router.isNavigating || api.isRequesting"></loading-indicator>
+  <div class="container body-content">
+    <div class="row">
+      <h2 class.bind="'mpj-page-title' + ('' === pageTitle ? ' hidden' : '')" textcontent.bind="pageTitle"></h2>
+      <router-view class="col-xs-12" swap-order="with"></router-view>
+    </div>
+    <div class="row">
+    <footer class="mpj-footer">
+      <p class="text-right">myPrayerJournal v0.8.1</p>
+    </footer>
+    </div>
+  </div>
+</template>
