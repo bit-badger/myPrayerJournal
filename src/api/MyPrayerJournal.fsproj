@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="FSharp.NET.Sdk;Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <VersionPrefix>0.8.1</VersionPrefix>
@@ -17,7 +17,6 @@
     <Compile Include="Migrations/20170104023341_InitialDb.fs" />
     <Compile Include="Migrations/DataContextModelSnapshot.fs" />
     <Compile Include="Route.fs" />
-    <Compile Include="Views.fs" />
     <Compile Include="App.fs" />
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -27,9 +26,31 @@
     </None>
   </ItemGroup>
   
-  <Import Project="..\..\packages\FSharp.NET.Sdk\build\FSharp.NET.Core.Sdk.targets" />
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
-
+  <!-- Import Project="..\..\.paket\Paket.Restore.targets" / -->
+  <ItemGroup>
+    <PackageReference Include="Auth0.AuthenticationApi">
+      <Version>4.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="FSharp.Core">
+      <Version>4.1.17</Version>
+    </PackageReference>
+    <PackageReference Include="FSharp.NET.Sdk">
+      <Version>1.0.5</Version>
+    </PackageReference>
+    <PackageReference Include="jose-jwt">
+      <Version>2.3.0</Version>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>10.0.2</Version>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL">
+      <Version>1.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="Suave">
+      <Version>2.1.0</Version>
+    </PackageReference>
+    
+  </ItemGroup>
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="1.0.0" />
   </ItemGroup>

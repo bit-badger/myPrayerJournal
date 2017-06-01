@@ -15,6 +15,8 @@
       </div>
       <div class="navbar-collapse collapse">
         <ul class="nav navbar-nav navbar-right">
+          <li if.bind="!isAuthenticated()" click.delegate="logon()">Log On</li>
+          <li if.bind="isAuthenticated()" click.delegate="logoff()">Log Off</li>
         </ul>
       </div>
     </div>

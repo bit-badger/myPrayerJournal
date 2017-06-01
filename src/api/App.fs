@@ -78,8 +78,7 @@ let schemeHostPort (req : HttpRequest) =
 /// Authorization functions
 module Auth =
 
-  open Views
-
+(*
   let exchangeCodeForToken code = context (fun ctx ->
       async {
         let client = AuthenticationApiClient (Uri (sprintf "https://%s" cfg.Auth0.Domain))
@@ -120,7 +119,7 @@ module Auth =
       match ctx |> HttpContext.state with
       | Some state -> state.set "auth-key" null
       | _ -> succeed
-      >=> FOUND (sprintf "%s/" (schemeHostPort ctx.request)))
+      >=> FOUND (sprintf "%s/" (schemeHostPort ctx.request))) *)
 
   let cw (x : string) = Console.WriteLine x
 
@@ -152,7 +151,7 @@ module Auth =
       | _ -> Writers.setUserData "user" None)
 
   /// Create a user context for the currently assigned user
-  let userCtx ctx = { Id = ctx.userState.["user"] :?> string option }
+  //let userCtx ctx = { Id = ctx.userState.["user"] :?> string option }
 
 /// Read an item from the user state, downcast to the expected type
 let read ctx key : 'value =
@@ -164,17 +163,17 @@ let dataCtx () =
 
 /// Return an HTML page
 let html ctx content =
-  Views.page (Auth.userCtx ctx) content
+  ""//Views.page (Auth.userCtx ctx) content
 
 /// Home page
-let viewHome = warbler (fun ctx -> OK (Views.home |> html ctx))
+let viewHome = warbler (fun ctx -> OK ("" (*Views.home*) |> html ctx))
 
 /// Journal page
 let viewJournal =
   context (fun ctx ->
     use dataCtx = dataCtx ()
     let reqs = Data.Requests.allForUser (defaultArg (read ctx "user") "") dataCtx
-    OK (Views.journal reqs |> html ctx))
+    OK ("" (*Views.journal reqs*) |> html ctx))
 
 let idx =
   context (fun ctx ->
@@ -187,8 +186,8 @@ let app =
   >=> choose [
         path Route.home >=> Files.browseFileHome "index.html"
         path Route.journal >=> viewJournal
-        path Route.User.logOn >=> Auth.handleSignIn
-        path Route.User.logOff >=> Auth.handleSignOut
+        //path Route.User.logOn >=> Auth.handleSignIn
+        //path Route.User.logOff >=> Auth.handleSignOut
         Writers.setHeader "Cache-Control" "no-cache" >=> Files.browseHome
         NOT_FOUND "Page not found." 
         ]
@@ -214,14 +213,7 @@ let main argv =
   // Establish the data environment
   //liftDep getConn (Data.establishEnvironment >> Async.RunSynchronously)
   //|> run deps
-  let writeKey key = File.WriteAllText ("key.txt", key)
-  Crypto.generateKey Crypto.KeySize
-  |> Convert.ToBase64String
-  |> writeKey
   
   ensureDatabase ()
   startWebServer suaveCfg app
   0 
-(*
-eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Rqcy1jb25zdWx0aW5nLmF1dGgwLmNvbS8iLCJzdWIiOiJ3aW5kb3dzbGl2ZXw3OTMyNGZhMTM4MzZlZGNiIiwiYXVkIjoiT2YyczBSUUNRM210M2R3SWtPQlk1aDg1SjlzWGJGMm4iLCJleHAiOjE0OTI5MDc1OTAsImlhdCI6MTQ5Mjg3MTU5MH0.61JPm3Hz7XW-iaSq8Esv1cajQPbK0o9L5xz-RHIYq9g
-*)

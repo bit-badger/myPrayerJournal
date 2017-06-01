@@ -100,6 +100,7 @@
           "aurelia-dependency-injection",
           "aurelia-event-aggregator",
           "aurelia-framework",
+          "aurelia-fetch-client",
           "aurelia-history",
           "aurelia-history-browser",
           "aurelia-loader",
@@ -151,6 +152,11 @@
             "resources": [
               "nprogress.css"
             ]
+          },
+          {
+            "name": "auth0-lock",
+            "path": "../node_modules/auth0-lock",
+            "main": "lib/index"
           }
         ]
       }

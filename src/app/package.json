@@ -10,6 +10,8 @@
   "dependencies": {
     "aurelia-animator-css": "^1.0.1",
     "aurelia-bootstrapper": "^2.1.0",
+    "aurelia-fetch-client": "^1.1.2",
+    "auth0-lock": "^10.16.0",
     "bluebird": "^3.4.1",
     "bootstrap": "^3.3.7",
     "jquery": "^2.2.4",

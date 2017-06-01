@@ -38,12 +38,27 @@ Target "CopyApp" (fun _ ->
 )
 
 Target "BuildApi" (fun _ ->
-  !! "src/api/*.fsproj"
+  let result =
+    ExecProcessAndReturnMessages (fun info ->
+      info.UseShellExecute <- false
+      info.FileName <- "dotnet"
+      info.Arguments <- "build"
+      info.WorkingDirectory <- "src" @@ "api") (TimeSpan.FromMinutes 2.)
+  Log "AppBuild-Output: " result.Messages
+  match result.ExitCode with
+  | 0 -> ()
+  | _ -> failwith "API build failed"
+  (*!! "src/api/*.fsproj"
   |> MSBuildRelease buildDir "Build"
-  |> Log "ApiBuild-Output: "
+  |> Log "ApiBuild-Output: " *)
 )
 
 Target "Run" (fun _ ->
+  ExecProcess (fun info ->
+    info.FileName <- "dotnet"
+    info.Arguments <- """publish -o ..\..\build"""
+    info.WorkingDirectory <- "src" @@ "api") TimeSpan.MaxValue
+  |> ignore
   ExecProcess (fun info ->
     info.FileName <- "dotnet"
     info.Arguments <- "myPrayerJournal.dll"
