@@ -155,8 +155,9 @@
           },
           {
             "name": "auth0-lock",
-            "path": "../node_modules/auth0-lock",
-            "main": "lib/index"
+            "path": "lib",
+            "main": "lock.min",
+            "exports": "Auth0Lock"
           }
         ]
       }
