@@ -1,5 +1,5 @@
 @echo off
 cd .\src\app
-au build
+npm run build prod
 cd ..\..
 exit %errorlevel%

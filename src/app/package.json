@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "auth0-js": "^8.8.0",
+    "axios": "^0.16.2",
     "element-ui": "^1.4.1",
     "pug": "^2.0.0-rc.2",
     "vue": "^2.3.3",

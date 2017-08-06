@@ -19,9 +19,6 @@ export default {
 </script>
 
 <style>
-@import url('../node_modules/bootstrap/dist/css/bootstrap.css');
-@import url('../node_modules/bootstrap-vue/dist/bootstrap-vue.css');
-
 body {
   padding-top: 60px;
 }

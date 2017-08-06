@@ -253,8 +253,7 @@ paket-files/
 *.sln.iml
 
 # Compiled files / application
-**/vendor-bundle.js
-**/app-bundle.js*
 src/api/wwwroot/index.html
+src/api/wwwroot/static
 src/api/appsettings.json
 build/

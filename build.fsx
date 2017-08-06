@@ -4,7 +4,7 @@ open System
 
 let buildDir = "./build/"
 
-/// Path to the Aurelia app
+/// Path to the Vue app
 let appPath = "src" @@ "app"
 
 /// Path to the Suave API
@@ -14,27 +14,15 @@ let apiPath = "src" @@ "api"
 
 Target "Clean" (fun _ ->
   CleanDir buildDir
+  CleanDir (apiPath @@ "wwwroot")
 )
 
 Target "BuildApp" (fun _ ->
   let result =
     ExecProcessAndReturnMessages (fun info ->
       info.UseShellExecute <- false
-      info.FileName <- "." @@ "build-au.bat") (TimeSpan.FromMinutes 2.)
-  match result.ExitCode with
-  | 0 -> Log "AppBuild-Output: " result.Messages
-  | _ -> failwith "Aurelia build failed"
-)
-
-Target "CopyApp" (fun _ ->
-  let apiWebPath = apiPath @@ "wwwroot"
-  [ "scripts" @@ "app-bundle.js"
-    "scripts" @@ "vendor-bundle.js"
-    "index.html"
-    ]
-  |> List.iter (fun file ->
-      IO.File.Copy (appPath @@ file,  apiWebPath @@ file, true)
-      Log "CopyApp--Output: " (Seq.singleton file))
+      info.FileName <- "build-vue.bat") (TimeSpan.FromMinutes 2.)
+  match result.ExitCode with 0 -> Log "AppBuild-Output: " result.Messages | _ -> failwith "Vue build failed"
 )
 
 Target "BuildApi" (fun _ ->
@@ -43,26 +31,24 @@ Target "BuildApi" (fun _ ->
       info.UseShellExecute <- false
       info.FileName <- "dotnet"
       info.Arguments <- "build"
-      info.WorkingDirectory <- "src" @@ "api") (TimeSpan.FromMinutes 2.)
+      info.WorkingDirectory <- apiPath) (TimeSpan.FromMinutes 2.)
   Log "AppBuild-Output: " result.Messages
-  match result.ExitCode with
-  | 0 -> ()
-  | _ -> failwith "API build failed"
-  (*!! "src/api/*.fsproj"
-  |> MSBuildRelease buildDir "Build"
-  |> Log "ApiBuild-Output: " *)
+  match result.ExitCode with 0 -> () | _ -> failwith "API build failed"
+)
+
+Target "Publish" (fun _ ->
+  ExecProcess (fun info ->
+    info.FileName <- "dotnet"
+    info.Arguments <- """publish -o ..\..\build"""
+    info.WorkingDirectory <- apiPath) TimeSpan.MaxValue
+  |> ignore
 )
 
 Target "Run" (fun _ ->
   ExecProcess (fun info ->
     info.FileName <- "dotnet"
-    info.Arguments <- """publish -o ..\..\build"""
-    info.WorkingDirectory <- "src" @@ "api") TimeSpan.MaxValue
-  |> ignore
-  ExecProcess (fun info ->
-    info.FileName <- "dotnet"
     info.Arguments <- "myPrayerJournal.dll"
-    info.WorkingDirectory <- "build") TimeSpan.MaxValue
+    info.WorkingDirectory <- buildDir) TimeSpan.MaxValue
   |> ignore
 )
 
@@ -74,11 +60,18 @@ Target "Default" (fun _ ->
 
 "Clean"
   ==> "BuildApp"
-  ==> "CopyApp"
+
+"BuildApp"
   ==> "BuildApi"
-  ==> "Default"
 
 "BuildApi"
+  ==> "Publish"
+
+"Publish"
   ==> "Run"
+
+"BuildApi" 
+  ==> "Default"
+
 
 RunTargetOrDefault "Default"
