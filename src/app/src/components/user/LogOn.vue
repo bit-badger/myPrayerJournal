@@ -3,12 +3,13 @@
 </template>
 
 <script>
-  export default {
-    name: 'log-on',
-    props: ['auth'],
-    data () {
-      this.auth.handleAuthentication()
-      return {}
-    }
+import AuthService from '@/auth/AuthService'
+
+export default {
+  name: 'log-on',
+  data () {
+    new AuthService().handleAuthentication(this.$store, this.$router)
+    return {}
   }
+}
 </script>

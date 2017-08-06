@@ -14,11 +14,12 @@
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
   "dependencies": {
-    "EventEmitter": "^1.0.0",
     "auth0-js": "^8.8.0",
-    "bootstrap-vue": "^0.18.0",
+    "element-ui": "^1.4.1",
+    "pug": "^2.0.0-rc.2",
     "vue": "^2.3.3",
-    "vue-router": "^2.6.0"
+    "vue-router": "^2.6.0",
+    "vuex": "^2.3.1"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",

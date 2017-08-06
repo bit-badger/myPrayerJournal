@@ -1,11 +1,9 @@
 import auth0 from 'auth0-js'
 import { AUTH_CONFIG } from './auth0-variables'
-import EventEmitter from 'EventEmitter'
-import router from './../router'
+
+import * as types from '@/store/mutation-types'
 
 export default class AuthService {
-  authenticated = this.isAuthenticated()
-  authNotifier = new EventEmitter()
 
   constructor () {
     this.login = this.login.bind(this)
@@ -20,24 +18,62 @@ export default class AuthService {
     redirectUri: AUTH_CONFIG.callbackUrl,
     audience: `https://${AUTH_CONFIG.domain}/userinfo`,
     responseType: 'token id_token',
-    scope: 'openid'
+    scope: 'openid profile email'
   })
 
   login () {
     this.auth0.authorize()
   }
 
-  handleAuthentication () {
-    this.auth0.parseHash((err, authResult) => {
-      if (authResult && authResult.accessToken && authResult.idToken) {
-        this.setSession(authResult)
-        router.replace('/dashboard')
-      } else if (err) {
+  /**
+   * Promisified parseHash function
+   */
+  parseHash () {
+    return new Promise((resolve, reject) => {
+      this.auth0.parseHash((err, authResult) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(authResult)
+        }
+      })
+    })
+  }
+
+  /**
+   * Promisified userInfo function
+   *
+   * @param token The auth token from the login result
+   */
+  userInfo (token) {
+    return new Promise((resolve, reject) => {
+      this.auth0.client.userInfo(token, (err, user) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(user)
+        }
+      })
+    })
+  }
+
+  handleAuthentication (store, router) {
+    this.parseHash()
+      .then(authResult => {
+        if (authResult && authResult.accessToken && authResult.idToken) {
+          this.setSession(authResult)
+          this.userInfo(authResult.accessToken)
+            .then(user => {
+              store.commit(types.USER_LOGGED_ON, user)
+              router.replace('/dashboard')
+            })
+        }
+      })
+      .catch(err => {
         router.replace('/')
         console.log(err)
         alert(`Error: ${err.error}. Check the console for further details.`)
-      }
-    })
+      })
   }
 
   setSession (authResult) {
@@ -48,17 +84,16 @@ export default class AuthService {
     localStorage.setItem('access_token', authResult.accessToken)
     localStorage.setItem('id_token', authResult.idToken)
     localStorage.setItem('expires_at', expiresAt)
-    this.authNotifier.emit('authChange', { authenticated: true })
   }
 
-  logout () {
+  logout (store, router) {
     // Clear access token and ID token from local storage
     localStorage.removeItem('access_token')
     localStorage.removeItem('id_token')
     localStorage.removeItem('expires_at')
-    this.userProfile = null
-    this.authNotifier.emit('authChange', false)
+    localStorage.setItem('user_profile', JSON.stringify({}))
     // navigate to the home route
+    store.commit(types.USER_LOGGED_OFF)
     router.replace('/')
   }
 

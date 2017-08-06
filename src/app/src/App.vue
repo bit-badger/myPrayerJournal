@@ -1,37 +1,17 @@
-<template>
-  <div id="app">
-    <navigation :auth="auth" />
-    <div id="content" class="container">
-      <router-view :auth="auth"></router-view>
-    </div>
-    <footer>
-      <p class="text-right"><i>myPrayerJournal v0.8.0</i></p>
-    </footer>
-  </div>
+<template lang="pug">
+  #app
+    navigation
+    #content.container
+      router-view
+    footer
+      p.text-right: i myPrayerJournal v0.8.0
 </template>
 
 <script>
-import AuthService from './auth/AuthService'
 import Navigation from './components/Navigation.vue'
-
-const auth = new AuthService()
-const { login, logout, authenticated, authNotifier } = auth
 
 export default {
   name: 'app',
-  data: function () {
-    authNotifier.on('authChange', authState => {
-      this.authenticated = authState.authenticated
-    })
-    return {
-      auth,
-      authenticated
-    }
-  },
-  methods: {
-    login,
-    logout
-  },
   components: {
     Navigation
   }
