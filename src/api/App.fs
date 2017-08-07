@@ -33,7 +33,7 @@ with
       }
 
 /// Application configuration
-type Config = {
+type AppConfig = {
   /// PostgreSQL connection string
   Conn : string
   /// Auth0 settings
@@ -45,40 +45,45 @@ with
       Auth0 = Auth0Config.empty
       }
 
-
 /// A JSON response as a data property
 type JsonOkResponse<'a> = {
   data : 'a
   }
-
 
 /// A JSON response indicating an error occurred
 type JsonErrorResponse = {
   error : string
 }
 
-// --- Support ---
 
-/// Configuration instance
-let cfg =
-  try
-    use sr = File.OpenText "appsettings.json"
-    use tr = new JsonTextReader (sr)
-    let settings = JToken.ReadFrom tr
-    let secret = settings.["auth0"].["client-secret"].ToObject<string>()
-    { Conn = settings.["conn"].ToObject<string>()
-      Auth0 =
-        { Domain = settings.["auth0"].["domain"].ToObject<string>()
-          ClientId = settings.["auth0"].["client-id"].ToObject<string>()
-          ClientSecret = secret
-          ClientSecretJwt = secret.TrimEnd('=').Replace("-", "+").Replace("_", "/")
-          }
+/// Configuration instances
+module Config =
+  
+  /// Application configuration
+  let app =
+    try
+      use sr = File.OpenText "appsettings.json"
+      use tr = new JsonTextReader (sr)
+      let settings = JToken.ReadFrom tr
+      let secret = settings.["auth0"].["client-secret"].ToObject<string>()
+      { Conn = settings.["conn"].ToObject<string>()
+        Auth0 =
+          { Domain = settings.["auth0"].["domain"].ToObject<string>()
+            ClientId = settings.["auth0"].["client-id"].ToObject<string>()
+            ClientSecret = secret
+            ClientSecretJwt = secret.TrimEnd('=').Replace("-", "+").Replace("_", "/")
+            }
+        }
+    with _ -> AppConfig.empty
+
+  /// Custom Suave configuration
+  let suave =
+    { defaultConfig with
+        homeFolder = Some (Path.GetFullPath "./wwwroot/")
+        serverKey = Text.Encoding.UTF8.GetBytes("12345678901234567890123456789012")
+        bindings = [ HttpBinding.createSimple HTTP "127.0.0.1" 8084 ]
       }
-  with _ -> Config.empty
 
-/// Get the scheme, host, and port of the URL
-let schemeHostPort (req : HttpRequest) =
-  sprintf "%s://%s" req.url.Scheme (req.headers |> List.filter (fun x -> fst x = "host") |> List.head |> snd)
 
 /// Authorization functions
 module Auth =
@@ -93,7 +98,7 @@ module Auth =
   /// Get the user Id (sub) from a JSON Web Token
   let getIdFromToken jwt =
     try
-      let payload = Jose.JWT.Decode<JObject>(jwt, cfg.Auth0.ClientSecretJwt)
+      let payload = Jose.JWT.Decode<JObject>(jwt, Config.app.Auth0.ClientSecretJwt)
       let tokenExpires = jsDate (payload.["exp"].ToObject<int64>())
       match tokenExpires > DateTime.UtcNow with
       | true -> Some (payload.["sub"].ToObject<string>())
@@ -108,9 +113,15 @@ module Auth =
   let loggedOn =
     warbler (fun ctx ->
       match ctx.request.header "Authorization" with
-      | Choice1Of2 bearer -> Writers.setUserData "user" ((bearer.Split(' ').[1]) |> getIdFromToken)
+      | Choice1Of2 bearer -> Writers.setUserData "user" (getIdFromToken <| bearer.Split(' ').[1])
       | _ -> Writers.setUserData "user" None)
 
+
+// --- Support ---
+
+/// Get the scheme, host, and port of the URL
+let schemeHostPort (req : HttpRequest) =
+  sprintf "%s://%s" req.url.Scheme (req.headers |> List.filter (fun x -> fst x = "host") |> List.head |> snd)
 
 /// Serialize an object to JSON
 let toJson = JsonConvert.SerializeObject
@@ -121,7 +132,7 @@ let read ctx key : 'value =
 
 /// Create a new data context
 let dataCtx () =
-  new DataContext (((DbContextOptionsBuilder<DataContext>()).UseNpgsql cfg.Conn).Options)
+  new DataContext (((DbContextOptionsBuilder<DataContext>()).UseNpgsql Config.app.Conn).Options)
 
 /// Ensure the EF context is created in the right format
 let ensureDatabase () =
@@ -131,14 +142,6 @@ let ensureDatabase () =
     }
   |> Async.RunSynchronously
 
-let suaveCfg =
-  { defaultConfig with
-      homeFolder = Some (Path.GetFullPath "./wwwroot/")
-      serverKey = Text.Encoding.UTF8.GetBytes("12345678901234567890123456789012")
-      bindings = [ HttpBinding.createSimple HTTP "127.0.0.1" 8084 ]
-    }
-
-// --- Routes ---
 
 /// URL routes for myPrayerJournal
 module Route =
@@ -146,8 +149,6 @@ module Route =
   /// /api/journal ~ All active prayer requests for a user
   let journal = "/api/journal"
 
-
-// --- WebParts ---
 
 /// All WebParts that compose the public API
 module WebParts =
@@ -163,7 +164,6 @@ module WebParts =
   /// WebPart to return an JSON error response
   let errorJSON code error =
     jsonMimeType
-    >=> Writers.setStatus code
     >=> Response.response code ((toJson >> UTF8.bytes) { error = error })
 
   /// Journal page
@@ -177,12 +177,12 @@ module WebParts =
   let app =
     Auth.loggedOn
     >=> choose [
-          path Route.journal >=> viewJournal
+          GET >=> path Route.journal >=> viewJournal
           errorJSON HttpCode.HTTP_404 "Page not found"
           ]
 
 [<EntryPoint>]
 let main argv = 
   ensureDatabase ()
-  startWebServer suaveCfg WebParts.app
+  startWebServer Config.suave WebParts.app
   0 

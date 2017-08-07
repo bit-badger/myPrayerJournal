@@ -1,0 +1,28 @@
+import axios from 'axios'
+
+const http = axios.create({
+  baseURL: 'http://localhost:8084/api'
+})
+
+/**
+ * API access for myPrayerJournal
+ */
+export default {
+
+  /**
+   * Set the bearer token for all future requests
+   * @param {string} token The token to use to identify the user to the server
+   */
+  setBearer: token => { http.defaults.headers.common['Authentication'] = `Bearer ${token}` },
+
+  /**
+   * Remove the bearer token
+   */
+  removeBearer: () => delete http.defaults.headers.common['Authentication'],
+
+  /**
+   * Get all prayer requests and their most recent updates
+   */
+  journal: () => http.get('/journal')
+
+}

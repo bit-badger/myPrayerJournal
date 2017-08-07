@@ -19,14 +19,26 @@ export default {
 </script>
 
 <style>
+@import url('../node_modules/element-ui/lib/theme-default/index.css');
 body {
+  font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue", Arial, sans-serif;
   padding-top: 60px;
+  margin: 0;
+}
+#content {
+  padding: 0 10px;
 }
 footer {
   border-top: solid 1px lightgray;
   margin-top: 1rem;
   padding: 0 1rem;
 
+}
+footer p {
+  margin: 0;
+}
+.text-right {
+  text-align: right;
 }
 .material-icons.md-18 {
   font-size: 18px;
