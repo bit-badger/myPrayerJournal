@@ -164,7 +164,7 @@ module WebParts =
   /// WebPart to return an JSON error response
   let errorJSON code error =
     jsonMimeType
-    >=> Response.response code ((toJson >> UTF8.bytes) { error = error })
+    >=> Response.response code ((toJson >> Text.Encoding.UTF8.GetBytes) { error = error })
 
   /// Journal page
   let viewJournal =

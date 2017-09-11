@@ -22,7 +22,7 @@ Target "BuildApp" (fun _ ->
     ExecProcessAndReturnMessages (fun info ->
       info.UseShellExecute <- false
       info.FileName <- "build-vue.bat") (TimeSpan.FromMinutes 2.)
-  match result.ExitCode with 0 -> Log "AppBuild-Output: " result.Messages | _ -> failwith "Vue build failed"
+  match result.ExitCode with 0 -> Log "App: " result.Messages | _ -> failwith "Vue build failed"
 )
 
 Target "BuildApi" (fun _ ->
@@ -32,7 +32,7 @@ Target "BuildApi" (fun _ ->
       info.FileName <- "dotnet"
       info.Arguments <- "build"
       info.WorkingDirectory <- apiPath) (TimeSpan.FromMinutes 2.)
-  Log "AppBuild-Output: " result.Messages
+  Log "Api: " result.Messages
   match result.ExitCode with 0 -> () | _ -> failwith "API build failed"
 )
 
