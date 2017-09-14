@@ -149,7 +149,6 @@ module Route =
   /// /api/journal ~ All active prayer requests for a user
   let journal = "/api/journal"
 
-
 /// All WebParts that compose the public API
 module WebParts =
   
@@ -173,12 +172,20 @@ module WebParts =
       let reqs = Data.Requests.allForUser (defaultArg (read ctx "user") "") dataCtx
       JSON reqs)
 
+  /// API-specific routes
+  let apiRoutes =
+    choose [
+      GET >=> path Route.journal >=> viewJournal
+      errorJSON HttpCode.HTTP_404 "Page not found"
+      ]
+
   /// Suave application
   let app =
     Auth.loggedOn
     >=> choose [
-          GET >=> path Route.journal >=> viewJournal
-          errorJSON HttpCode.HTTP_404 "Page not found"
+          path "/api" >=> apiRoutes
+          Files.browseHome
+          Files.browseFileHome "index.html"
           ]
 
 [<EntryPoint>]

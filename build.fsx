@@ -2,7 +2,7 @@
 open Fake
 open System
 
-let buildDir = "./build/"
+let buildDir = "build"
 
 /// Path to the Vue app
 let appPath = "src" @@ "app"
@@ -39,7 +39,7 @@ Target "BuildApi" (fun _ ->
 Target "Publish" (fun _ ->
   ExecProcess (fun info ->
     info.FileName <- "dotnet"
-    info.Arguments <- """publish -o ..\..\build"""
+    info.Arguments <- sprintf "publish -o %s" (".." @@ ".." @@ buildDir)
     info.WorkingDirectory <- apiPath) TimeSpan.MaxValue
   |> ignore
 )
