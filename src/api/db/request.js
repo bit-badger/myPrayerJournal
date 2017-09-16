@@ -10,6 +10,6 @@ module.exports = query => {
      * @return The requests that make up the current journal
      */
     journal: async userId =>
-      (await query('SELECT "RequestId" FROM "Request" WHERE "UserId" = $1', [userId])).rows
+      (await query('SELECT "requestId" FROM request WHERE "userId" = $1', [userId])).rows
   }
 }

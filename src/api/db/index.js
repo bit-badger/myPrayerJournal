@@ -1,9 +1,9 @@
 'use strict'
 
 const { Pool } = require('pg')
-const config = require('../appsettings.json')
 
-const pool = new Pool(config.pgPool)
+/** Pooled PostgreSQL instance */
+const pool = new Pool(require('../appsettings.json').pgPool)
 
 /**
  * Run a SQL query
@@ -14,5 +14,6 @@ const query = (text, params) => pool.query(text, params)
 
 module.exports = {
   query: query,
-  request: require('./request')(query)
+  request: require('./request')(query),
+  verify: require('./ddl')(query).ensureDatabase
 }
