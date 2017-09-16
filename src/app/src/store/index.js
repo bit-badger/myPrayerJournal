@@ -41,10 +41,12 @@ export default new Vuex.Store({
     [types.USER_LOGGED_ON] (state, user) {
       localStorage.setItem('user_profile', JSON.stringify(user))
       state.user = user
+      api.setBearer(localStorage.getItem('id_token'))
       state.isAuthenticated = true
     },
     [types.USER_LOGGED_OFF] (state) {
       state.user = {}
+      api.removeBearer()
       state.isAuthenticated = false
     },
     [types.LOADING_JOURNAL] (state, flag) {
@@ -58,10 +60,11 @@ export default new Vuex.Store({
     [actions.LOAD_JOURNAL] ({ commit }) {
       commit(types.LOADED_JOURNAL, {})
       commit(types.LOADING_JOURNAL, true)
+      api.setBearer(localStorage.getItem('id_token'))
       api.journal()
         .then(jrnl => {
           commit(types.LOADING_JOURNAL, false)
-          commit(types.LOADED_JOURNAL, jrnl)
+          commit(types.LOADED_JOURNAL, jrnl.data)
         })
         .catch(err => {
           commit(types.LOADING_JOURNAL, false)

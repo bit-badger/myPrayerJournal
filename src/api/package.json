@@ -1,0 +1,21 @@
+{
+  "name": "my-prayer-journal-api",
+  "private": true,
+  "version": "0.8.0",
+  "description": "Server API for myPrayerJournal",
+  "main": "index.js",
+  "author": "Daniel J. Summers <daniel@djs-consulting.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.15.4",
+    "express-jwt": "^5.3.0",
+    "express-promise-router": "^2.0.0",
+    "jwks-rsa": "^1.2.0",
+    "morgan": "^1.8.2",
+    "pg": "^7.3.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "vue": "cd ../app && node build/build.js prod && cd ../api && node index.js"
+  }
+}
