@@ -1,6 +1,6 @@
 'use strict'
 
-const { Pool } = require('pg')
+import { Pool } from 'pg'
 
 /**
  * SQL to check the existence of a table in the mpj schema
@@ -14,7 +14,7 @@ const tableSql = table => `SELECT 1 FROM pg_tables WHERE schemaname='mpj' AND ta
  * @param {string} index The name of the index
  */
 const indexSql = (table, index) =>
-`SELECT 1 FROM pg_indexes WHERE schemaname='mpj' AND tablename='${table}' AND indexname='${index}'`
+  `SELECT 1 FROM pg_indexes WHERE schemaname='mpj' AND tablename='${table}' AND indexname='${index}'`
 
 const ddl = [
   {
@@ -55,7 +55,7 @@ const ddl = [
   }
 ]
 
-module.exports = query => {
+export default function (query) {
   return {
     /**
      * Ensure that the database schema, tables, and indexes exist

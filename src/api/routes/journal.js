@@ -1,15 +1,16 @@
 'use strict'
 
-const Router = require('express-promise-router')
-const db = require('../db')
+import Router from 'koa-router'
+import db from '../db'
 
-module.exports = checkJwt => {
-  let router = new Router()
+const router = new Router()
 
-  router.get('/', checkJwt, async (req, res) => {
-    const reqs = await db.request.journal(req.user.sub)
-    res.json(reqs)
+export default function (checkJwt) {
+
+  router.get('/', checkJwt, async (ctx, next) => {
+    const reqs = await db.request.journal(ctx.state.user.sub)
+    ctx.body = reqs
+    return await next()
   })
   return router
 }
-

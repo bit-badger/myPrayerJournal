@@ -1,14 +1,16 @@
 <template lang="pug">
   article
     page-title(:title="title")
-    p here you are!
     p(v-if="isLoadingJournal") journal is loading...
-    p(v-if="!isLoadingJournal") journal has {{ journal.length }} entries
+    template(v-if="!isLoadingJournal")
+      new-request
+      p journal has {{ journal.length }} entries
 </template>
 
 <script>
 import { mapState } from 'vuex'
 import PageTitle from './PageTitle'
+import NewRequest from './request/NewRequest'
 
 import * as actions from '@/store/action-types'
 
@@ -19,7 +21,8 @@ export default {
     return {}
   },
   components: {
-    PageTitle
+    PageTitle,
+    NewRequest
   },
   computed: {
     title () {

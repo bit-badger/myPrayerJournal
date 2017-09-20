@@ -1,9 +1,13 @@
 'use strict'
 
-const { Pool } = require('pg')
+import { Pool } from 'pg'
+
+import appConfig from '../appsettings.json'
+import ddl from './ddl'
+import request from './request'
 
 /** Pooled PostgreSQL instance */
-const pool = new Pool(require('../appsettings.json').pgPool)
+const pool = new Pool(appConfig.pgPool)
 
 /**
  * Run a SQL query
@@ -12,8 +16,8 @@ const pool = new Pool(require('../appsettings.json').pgPool)
  */
 const query = (text, params) => pool.query(text, params)
 
-module.exports = {
+export default {
   query: query,
-  request: require('./request')(query),
-  verify: require('./ddl')(query).ensureDatabase
+  request: request(query),
+  verify: ddl(query).ensureDatabase
 }

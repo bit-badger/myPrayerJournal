@@ -1,35 +1,33 @@
 'use strict'
 
-const express = require('express')
+import Koa from 'koa'
+import morgan from 'koa-morgan'
+import send from 'koa-send'
+import serveFrom from 'koa-static'
 
-/** Configuration for the application */
-const appConfig = require('./appsettings.json')
+import appConfig from './appsettings.json'
+import router from './routes'
 
-/** Express app */
-const app = express()
+/** Koa app */
+const app = new Koa()
 
-// Serve the Vue files from /public
-app.use(express.static('public'))
-
-// Logging FTW!
-app.use(require('morgan')('dev'))
-
-// Tie in all the API routes
-require('./routes').mount(app)
-
-// Send the index.html file for what would normally get a 404
-app.use(async (req, res, next) => {
-  try {
-    await res.sendFile('index.html', { root: __dirname + '/public/', dotfiles: 'deny' })
-  }
-  catch (err) {
-    return next(err)
-  }
-})
-
-// Ensure the database exists...
-require('./db').verify().then(() => 
-  // ...and start it up!
-  app.listen(appConfig.port, () => {
-    console.log(`Listening on port ${appConfig.port}`)
-  }))
+export default app
+  // Logging FTW!
+  .use(morgan('dev'))
+  // Serve the Vue files from /public
+  .use(serveFrom('public'))
+  // Tie in all the routes
+  .use(router.routes())
+  .use(router.allowedMethods())
+  // Send the index.html file for what would normally get a 404
+  .use(async (ctx, next) => {
+    if (ctx.url.indexOf('/api') === -1) {
+      try {
+        await send(ctx, 'index.html', { root: __dirname + '/public/' })
+      }
+      catch (err) {
+        return await next(err)
+      }
+    }
+    return await next()
+  })
