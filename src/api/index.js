@@ -1,6 +1,7 @@
 'use strict'
 
 import Koa from 'koa'
+import bodyParser from 'koa-bodyparser'
 import morgan from 'koa-morgan'
 import send from 'koa-send'
 import serveFrom from 'koa-static'
@@ -16,6 +17,8 @@ export default app
   .use(morgan('dev'))
   // Serve the Vue files from /public
   .use(serveFrom('public'))
+  // Parse the body into ctx.request.body, if present
+  .use(bodyParser())
   // Tie in all the routes
   .use(router.routes())
   .use(router.allowedMethods())

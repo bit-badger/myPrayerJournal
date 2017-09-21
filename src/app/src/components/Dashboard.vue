@@ -5,14 +5,19 @@
     template(v-if="!isLoadingJournal")
       new-request
       p journal has {{ journal.length }} entries
+      request-list-item(v-for="request in journal" v-bind:request="request" v-bind:key="request.requestId")
 </template>
 
 <script>
+'use strict'
+
 import { mapState } from 'vuex'
+
 import PageTitle from './PageTitle'
 import NewRequest from './request/NewRequest'
+import RequestListItem from './request/RequestListItem'
 
-import * as actions from '@/store/action-types'
+import actions from '@/store/action-types'
 
 export default {
   name: 'dashboard',
@@ -22,7 +27,8 @@ export default {
   },
   components: {
     PageTitle,
-    NewRequest
+    NewRequest,
+    RequestListItem
   },
   computed: {
     title () {

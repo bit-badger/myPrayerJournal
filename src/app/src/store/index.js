@@ -4,8 +4,8 @@ import Vuex from 'vuex'
 import api from '@/api'
 import AuthService from '@/auth/AuthService'
 
-import * as types from './mutation-types'
-import * as actions from './action-types'
+import mutations from './mutation-types'
+import actions from './action-types'
 
 Vue.use(Vuex)
 
@@ -38,38 +38,48 @@ export default new Vuex.Store({
     isLoadingJournal: false
   },
   mutations: {
-    [types.USER_LOGGED_ON] (state, user) {
+    [mutations.USER_LOGGED_ON] (state, user) {
       localStorage.setItem('user_profile', JSON.stringify(user))
       state.user = user
       api.setBearer(localStorage.getItem('id_token'))
       state.isAuthenticated = true
     },
-    [types.USER_LOGGED_OFF] (state) {
+    [mutations.USER_LOGGED_OFF] (state) {
       state.user = {}
       api.removeBearer()
       state.isAuthenticated = false
     },
-    [types.LOADING_JOURNAL] (state, flag) {
+    [mutations.LOADING_JOURNAL] (state, flag) {
       state.isLoadingJournal = flag
     },
-    [types.LOADED_JOURNAL] (state, journal) {
+    [mutations.LOADED_JOURNAL] (state, journal) {
       state.journal = journal
+    },
+    [mutations.REQUEST_ADDED] (state, newRequest) {
+      state.journal.unshift(newRequest)
     }
   },
   actions: {
-    [actions.LOAD_JOURNAL] ({ commit }) {
-      commit(types.LOADED_JOURNAL, {})
-      commit(types.LOADING_JOURNAL, true)
+    async [actions.LOAD_JOURNAL] ({ commit }) {
+      commit(mutations.LOADED_JOURNAL, {})
+      commit(mutations.LOADING_JOURNAL, true)
       api.setBearer(localStorage.getItem('id_token'))
-      api.journal()
-        .then(jrnl => {
-          commit(types.LOADING_JOURNAL, false)
-          commit(types.LOADED_JOURNAL, jrnl.data)
-        })
-        .catch(err => {
-          commit(types.LOADING_JOURNAL, false)
-          logError(err)
-        })
+      try {
+        const jrnl = await api.journal()
+        commit(mutations.LOADED_JOURNAL, jrnl.data)
+      } catch (err) {
+        logError(err)
+      } finally {
+        commit(mutations.LOADING_JOURNAL, false)
+      }
+    },
+    async [actions.ADD_REQUEST] ({ commit }, requestText) {
+      try {
+        const newRequest = await api.addRequest(requestText)
+        commit(mutations.REQUEST_ADDED, newRequest)
+      } catch (err) {
+        logError(err)
+      }
     }
   },
   getters: {},

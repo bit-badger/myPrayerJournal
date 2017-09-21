@@ -23,6 +23,12 @@ export default {
   /**
    * Get all prayer requests and their most recent updates
    */
-  journal: () => http.get('journal/')
+  journal: () => http.get('journal/'),
+
+  /**
+   * Add a new prayer request
+   * @param {string} requestText The text of the request to be added
+   */
+  addRequest: requestText => http.post('request/', { requestText })
 
 }

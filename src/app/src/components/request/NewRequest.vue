@@ -7,10 +7,14 @@
           el-input(type='textarea' v-model.trim='form.requestText' :rows='10')
       span.dialog-footer(slot='footer')
         el-button(@click='showNewVisible = false') Cancel
-        el-button(type='primary' @click='showNewVisible = false') Confirm
+        el-button(type='primary' @click='saveRequest()') Save
 </template>
 
 <script>
+'use strict'
+
+import actions from '@/store/action-types'
+
 export default {
   name: 'new-request',
   data () {
@@ -20,6 +24,12 @@ export default {
         requestText: ''
       },
       formLabelWidth: '120px'
+    }
+  },
+  methods: {
+    saveRequest: async function () {
+      await this.$store.dispatch(actions.ADD_REQUEST, this.form.requestText)
+      this.showNewVisible = false
     }
   }
 }

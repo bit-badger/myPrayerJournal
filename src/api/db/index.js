@@ -18,6 +18,6 @@ const query = (text, params) => pool.query(text, params)
 
 export default {
   query: query,
-  request: request(query),
+  request: request(pool),
   verify: ddl(query).ensureDatabase
 }
