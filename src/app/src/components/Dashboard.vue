@@ -1,16 +1,23 @@
 <template lang="pug">
   article
     page-title(:title="title")
-    p here you are!
     p(v-if="isLoadingJournal") journal is loading...
-    p(v-if="!isLoadingJournal") journal has {{ journal.length }} entries
+    template(v-if="!isLoadingJournal")
+      new-request
+      p journal has {{ journal.length }} entries
+      request-list-item(v-for="request in journal" v-bind:request="request" v-bind:key="request.requestId")
 </template>
 
 <script>
-import { mapState } from 'vuex'
-import PageTitle from './PageTitle'
+'use strict'
 
-import * as actions from '@/store/action-types'
+import { mapState } from 'vuex'
+
+import PageTitle from './PageTitle'
+import NewRequest from './request/NewRequest'
+import RequestListItem from './request/RequestListItem'
+
+import actions from '@/store/action-types'
 
 export default {
   name: 'dashboard',
@@ -19,7 +26,9 @@ export default {
     return {}
   },
   components: {
-    PageTitle
+    PageTitle,
+    NewRequest,
+    RequestListItem
   },
   computed: {
     title () {

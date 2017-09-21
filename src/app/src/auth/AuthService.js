@@ -1,7 +1,9 @@
-import auth0 from 'auth0-js'
-import { AUTH_CONFIG } from './auth0-variables'
+'use strict'
 
-import * as types from '@/store/mutation-types'
+import auth0 from 'auth0-js'
+
+import AUTH_CONFIG from './auth0-variables'
+import mutations from '@/store/mutation-types'
 
 export default class AuthService {
 
@@ -64,7 +66,7 @@ export default class AuthService {
           this.setSession(authResult)
           this.userInfo(authResult.accessToken)
             .then(user => {
-              store.commit(types.USER_LOGGED_ON, user)
+              store.commit(mutations.USER_LOGGED_ON, user)
               router.replace('/dashboard')
             })
         }
@@ -93,7 +95,7 @@ export default class AuthService {
     localStorage.removeItem('expires_at')
     localStorage.setItem('user_profile', JSON.stringify({}))
     // navigate to the home route
-    store.commit(types.USER_LOGGED_OFF)
+    store.commit(mutations.USER_LOGGED_OFF)
     router.replace('/')
   }
 
