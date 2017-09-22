@@ -29,7 +29,8 @@ export default function (pool) {
               LIMIT 1) AS "asOf"
             FROM mpj.request
            WHERE "userId" = $1
-           GROUP BY request."requestId"`
+           GROUP BY request."requestId"
+           ORDER BY "asOf" DESC`
         }, [userId])).rows,
     
     /**
@@ -41,7 +42,7 @@ export default function (pool) {
     addNew: async (userId, requestText) => {
       const id = cuid()
       const enteredOn = Date.now()
-      ;(async () => {
+      return (async () => {
         const client = await pool.connect()
         try {
           await client.query('BEGIN')
@@ -58,8 +59,11 @@ export default function (pool) {
         } finally {
           client.release()
         }
-      return { requestId: id, text: requestText, asOf: enteredOn }
-      })().catch(e => console.error(e.stack))
+        return { requestId: id, text: requestText, asOf: enteredOn }
+      })().catch(e => {
+        console.error(e.stack)
+        return { requestId: '', text: 'error', asOf: 0 }
+      })
     }
   }
 }

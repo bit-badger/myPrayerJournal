@@ -3,6 +3,7 @@
     navigation
     #content.container
       router-view
+      vue-progress-bar
     footer
       p.text-right: i myPrayerJournal v0.8.0
 </template>

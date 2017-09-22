@@ -21,8 +21,8 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'dashboard',
-  data () {
-    this.$store.dispatch(actions.LOAD_JOURNAL)
+  async data () {
+    this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
     return {}
   },
   components: {

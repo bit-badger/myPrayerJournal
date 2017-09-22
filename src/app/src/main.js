@@ -2,6 +2,7 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import ElementUI from 'element-ui'
+import VueProgressBar from 'vue-progressbar'
 import 'element-ui/lib/theme-default/index.css'
 
 import App from './App'
@@ -11,6 +12,12 @@ import store from './store'
 Vue.config.productionTip = false
 
 Vue.use(ElementUI)
+
+Vue.use(VueProgressBar, {
+  color: 'rgb(143, 255, 199)',
+  failedColor: 'red',
+  height: '2px'
+})
 
 /* eslint-disable no-new */
 new Vue({

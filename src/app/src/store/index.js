@@ -60,8 +60,9 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    async [actions.LOAD_JOURNAL] ({ commit }) {
+    async [actions.LOAD_JOURNAL] ({ commit }, progress) {
       commit(mutations.LOADED_JOURNAL, {})
+      progress.start()
       commit(mutations.LOADING_JOURNAL, true)
       api.setBearer(localStorage.getItem('id_token'))
       try {
@@ -71,12 +72,13 @@ export default new Vuex.Store({
         logError(err)
       } finally {
         commit(mutations.LOADING_JOURNAL, false)
+        progress.finish()
       }
     },
     async [actions.ADD_REQUEST] ({ commit }, requestText) {
       try {
         const newRequest = await api.addRequest(requestText)
-        commit(mutations.REQUEST_ADDED, newRequest)
+        commit(mutations.REQUEST_ADDED, newRequest.data)
       } catch (err) {
         logError(err)
       }
