@@ -44,6 +44,12 @@ export default {
    * Get a prayer request (journal-style; only latest update)
    * @param {string} requestId The Id of the request to retrieve
    */
-  getRequest: requestId => http.get(`request/${requestId}`)
+  getRequest: requestId => http.get(`request/${requestId}`),
+
+  /**
+   * Get a prayer request (full; includes all history)
+   * @param {string} requestId The Id of the request to retrieve
+   */
+  getFullRequest: requestId => http.get(`request/${requestId}/full`)
 
 }

@@ -1,18 +1,18 @@
 <template lang="pug">
-  span
-    el-button(icon='edit' @click='openDialog()' title='Edit')
-    el-dialog(title='Edit Prayer Request' :visible.sync='editVisible')
-      el-form(:model='form' :label-position='top')
-        el-form-item(label='Prayer Request')
-          el-input(type='textarea' v-model.trim='form.requestText' :rows='10')
-        el-form-item(label='Also Mark As')
-          el-radio-group(v-model='form.status')
-            el-radio-button(label='Updated') Updated
-            el-radio-button(label='Prayed') Prayed
-            el-radio-button(label='Answered') Answered
-      span.dialog-footer(slot='footer')
-        el-button(@click='closeDialog()') Cancel
-        el-button(type='primary' @click='saveRequest()') Save
+span
+  el-button(icon='edit' @click='openDialog()' title='Edit')
+  el-dialog(title='Edit Prayer Request' :visible.sync='editVisible')
+    el-form(:model='form' :label-position='top')
+      el-form-item(label='Prayer Request')
+        el-input(type='textarea' v-model.trim='form.requestText' :rows='10')
+      el-form-item(label='Also Mark As')
+        el-radio-group(v-model='form.status')
+          el-radio-button(label='Updated') Updated
+          el-radio-button(label='Prayed') Prayed
+          el-radio-button(label='Answered') Answered
+    span.dialog-footer(slot='footer')
+      el-button(@click='closeDialog()') Cancel
+      el-button(type='primary' @click='saveRequest()') Save
 </template>
 
 <script>

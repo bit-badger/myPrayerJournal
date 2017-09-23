@@ -16,7 +16,12 @@ Vue.use(ElementUI)
 Vue.use(VueProgressBar, {
   color: 'rgb(32, 160, 255)',
   failedColor: 'red',
-  height: '3px'
+  height: '5px',
+  transition: {
+    speed: '0.2s',
+    opacity: '0.6s',
+    termination: 1000
+  }
 })
 
 /* eslint-disable no-new */

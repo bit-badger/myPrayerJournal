@@ -1,15 +1,18 @@
-<template>
-  <p>hang tight...</p>
+<template lang="pug">
+p Logging you on...
 </template>
 
 <script>
+'use strict'
+
 import AuthService from '@/auth/AuthService'
 
 export default {
   name: 'log-on',
-  data () {
+  created () {
+    this.$Progress.start()
     new AuthService().handleAuthentication(this.$store, this.$router)
-    return {}
+    // Auth service redirects to dashboard, which restarts the progress bar
   }
 }
 </script>

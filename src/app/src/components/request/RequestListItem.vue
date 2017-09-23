@@ -1,12 +1,11 @@
 <template lang="pug">
-  el-row.journal-request
-    el-col(:span='4')
-      p
-        el-button(icon='check' @click='markPrayed()' title='Pray')
-        edit-request(:request='request')
-        el-button(icon='document' @click='viewHistory()' title='Show History')
-    el-col(:span='16'): p {{ request.text }}
-    el-col(:span='4'): p {{ asOf }}
+el-row.journal-request
+  el-col(:span='4'): p
+    el-button(icon='check' @click='markPrayed()' title='Pray')
+    edit-request(:request='request')
+    full-request(:request='request')
+  el-col(:span='16'): p {{ request.text }}
+  el-col(:span='4'): p {{ asOf }}
 </template>
 
 <script>
@@ -15,21 +14,20 @@
 import moment from 'moment'
 
 import EditRequest from './EditRequest'
+import FullRequest from './FullRequest'
 
 import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
   props: [ 'request' ],
-  data () {
-    return {}
-  },
   components: {
-    EditRequest
+    EditRequest,
+    FullRequest
   },
   methods: {
-    markPrayed () {
-      this.$store.dispatch(actions.UPDATE_REQUEST, {
+    async markPrayed () {
+      await this.$store.dispatch(actions.UPDATE_REQUEST, {
         progress: this.$Progress,
         requestId: this.request.requestId,
         status: 'Prayed',
