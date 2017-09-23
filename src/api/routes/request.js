@@ -16,15 +16,15 @@ export default function (checkJwt) {
     // Add a request history entry (prayed, updated, answered, etc.)
     .post('/:id/history', checkJwt, async (ctx, next) => {
       const body = ctx.request.body
-      const result = await db.request.addHistory(ctx.params.id, body.status, body.updateText)
-      ctx.status(('Not Found' === result.text) ? 404 : 204)
+      await db.request.addHistory(ctx.params.id, body.status, body.updateText)
+      ctx.response.status = 204
       await next()
     })
     // Get a journal-style request by its Id
     .get('/:id', checkJwt, async (ctx, next) => {
       const req = await db.request.byId(ctx.state.user.sub, ctx.params.id)
       if ('Not Found' === req.text) {
-        ctx.status(404)
+        ctx.response.status = 404
       } else {
         ctx.body = req
       }
@@ -34,7 +34,7 @@ export default function (checkJwt) {
     .get('/:id/full', checkJwt, async (ctx, next) => {
       const req = await db.request.fullById(ctx.state.user.sub, ctx.params.id)
       if ('Not Found' === req.text) {
-        ctx.status(404)
+        ctx.response.status = 404
       } else {
         ctx.body = req
       }

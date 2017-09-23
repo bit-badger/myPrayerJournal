@@ -7,6 +7,8 @@ export default {
   LOADED_JOURNAL: 'journal-loaded',
   /** Mutation for adding a new prayer request (pass text) */
   REQUEST_ADDED: 'request-added',
+  /** Mutation to replace a prayer request at the top of the current journal */
+  REQUEST_UPDATED: 'request-updated',
   /** Mutation for logging a user off */
   USER_LOGGED_OFF: 'user-logged-off',
   /** Mutation for logging a user on (pass user) */

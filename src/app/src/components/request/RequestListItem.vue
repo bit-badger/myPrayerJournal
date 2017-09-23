@@ -10,7 +10,11 @@
 </template>
 
 <script>
+'use strict'
+
 import moment from 'moment'
+
+import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
@@ -20,8 +24,10 @@ export default {
   },
   methods: {
     markPrayed () {
-      alert(`Marking ${this.request.requestId} prayed`)
-      // TODO: write function
+      this.$store.dispatch(actions.MARK_PRAYED, {
+        progress: this.$Progress,
+        requestId: this.request.requestId
+      })
     }
   },
   computed: {

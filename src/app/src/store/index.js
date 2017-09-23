@@ -38,17 +38,6 @@ export default new Vuex.Store({
     isLoadingJournal: false
   },
   mutations: {
-    [mutations.USER_LOGGED_ON] (state, user) {
-      localStorage.setItem('user_profile', JSON.stringify(user))
-      state.user = user
-      api.setBearer(localStorage.getItem('id_token'))
-      state.isAuthenticated = true
-    },
-    [mutations.USER_LOGGED_OFF] (state) {
-      state.user = {}
-      api.removeBearer()
-      state.isAuthenticated = false
-    },
     [mutations.LOADING_JOURNAL] (state, flag) {
       state.isLoadingJournal = flag
     },
@@ -57,9 +46,36 @@ export default new Vuex.Store({
     },
     [mutations.REQUEST_ADDED] (state, newRequest) {
       state.journal.unshift(newRequest)
+    },
+    [mutations.REQUEST_UPDATED] (state, request) {
+      let jrnl = state.journal.filter(it => it.requestId !== request.requestId)
+      jrnl.unshift(request)
+      state.journal = jrnl
+    },
+    [mutations.USER_LOGGED_OFF] (state) {
+      state.user = {}
+      api.removeBearer()
+      state.isAuthenticated = false
+    },
+    [mutations.USER_LOGGED_ON] (state, user) {
+      localStorage.setItem('user_profile', JSON.stringify(user))
+      state.user = user
+      api.setBearer(localStorage.getItem('id_token'))
+      state.isAuthenticated = true
     }
   },
   actions: {
+    async [actions.ADD_REQUEST] ({ commit }, { progress, requestText }) {
+      progress.start()
+      try {
+        const newRequest = await api.addRequest(requestText)
+        commit(mutations.REQUEST_ADDED, newRequest.data)
+        progress.finish()
+      } catch (err) {
+        logError(err)
+        progress.fail()
+      }
+    },
     async [actions.LOAD_JOURNAL] ({ commit }, progress) {
       commit(mutations.LOADED_JOURNAL, {})
       progress.start()
@@ -68,19 +84,24 @@ export default new Vuex.Store({
       try {
         const jrnl = await api.journal()
         commit(mutations.LOADED_JOURNAL, jrnl.data)
+        progress.finish()
       } catch (err) {
         logError(err)
+        progress.fail()
       } finally {
         commit(mutations.LOADING_JOURNAL, false)
-        progress.finish()
       }
     },
-    async [actions.ADD_REQUEST] ({ commit }, requestText) {
+    async [actions.MARK_PRAYED] ({ commit }, { progress, requestId }) {
       try {
-        const newRequest = await api.addRequest(requestText)
-        commit(mutations.REQUEST_ADDED, newRequest.data)
+        progress.start()
+        await api.markPrayed(requestId)
+        const request = await api.getPrayerRequest(requestId)
+        commit(mutations.REQUEST_UPDATED, request.data)
+        progress.finish()
       } catch (err) {
         logError(err)
+        progress.fail()
       }
     }
   },

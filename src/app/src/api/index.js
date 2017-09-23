@@ -35,6 +35,11 @@ export default {
    * Mark a prayer request as having been prayed
    * @param {string} requestId The Id of the request
    */
-  markPrayed: requestId => http.post('request/${requestId}/history', { status: 'Prayed', updateText: '' })
+  markPrayed: requestId => http.post(`request/${requestId}/history`, { status: 'Prayed', updateText: '' }),
+
+  /**
+   * Get a prayer request
+   */
+  getPrayerRequest: requestId => http.get(`request/${requestId}`)
 
 }

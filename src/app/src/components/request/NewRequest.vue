@@ -28,7 +28,10 @@ export default {
   },
   methods: {
     saveRequest: async function () {
-      await this.$store.dispatch(actions.ADD_REQUEST, this.form.requestText)
+      await this.$store.dispatch(actions.ADD_REQUEST, {
+        progress: this.$Progress,
+        requestText: this.form.requestText
+      })
       this.showNewVisible = false
     }
   }

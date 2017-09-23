@@ -9,7 +9,7 @@
         el-col(:span='4'): strong Actions
         el-col(:span='16'): strong Request
         el-col(:span='4'): strong As Of
-      request-list-item(v-for="request in journal" v-bind:request="request" v-bind:key="request.requestId")
+      request-list-item(v-for="request in journal" :request="request" :key="request.requestId")
 </template>
 
 <script>
