@@ -5,6 +5,6 @@ export default {
   ADD_REQUEST: 'add-request',
   /** Action to load the user's prayer journal */
   LOAD_JOURNAL: 'load-journal',
-  /** Action to mark a request as prayed */
-  MARK_PRAYED: 'mark-prayed'
+  /** Action to update a request */
+  UPDATE_REQUEST: 'update-request'
 }

@@ -92,11 +92,11 @@ export default new Vuex.Store({
         commit(mutations.LOADING_JOURNAL, false)
       }
     },
-    async [actions.MARK_PRAYED] ({ commit }, { progress, requestId }) {
+    async [actions.UPDATE_REQUEST] ({ commit }, { progress, requestId, status, updateText }) {
+      progress.start()
       try {
-        progress.start()
-        await api.markPrayed(requestId)
-        const request = await api.getPrayerRequest(requestId)
+        await api.updateRequest({ requestId, status, updateText })
+        const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
         progress.finish()
       } catch (err) {

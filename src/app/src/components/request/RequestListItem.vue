@@ -3,7 +3,7 @@
     el-col(:span='4')
       p
         el-button(icon='check' @click='markPrayed()' title='Pray')
-        el-button(icon='edit' @click='editRequest()' title='Edit')
+        edit-request(:request='request')
         el-button(icon='document' @click='viewHistory()' title='Show History')
     el-col(:span='16'): p {{ request.text }}
     el-col(:span='4'): p {{ asOf }}
@@ -14,26 +14,32 @@
 
 import moment from 'moment'
 
+import EditRequest from './EditRequest'
+
 import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
-  props: ['request'],
+  props: [ 'request' ],
   data () {
     return {}
   },
+  components: {
+    EditRequest
+  },
   methods: {
     markPrayed () {
-      this.$store.dispatch(actions.MARK_PRAYED, {
+      this.$store.dispatch(actions.UPDATE_REQUEST, {
         progress: this.$Progress,
-        requestId: this.request.requestId
+        requestId: this.request.requestId,
+        status: 'Prayed',
+        updateText: ''
       })
     }
   },
   computed: {
     asOf () {
-      // FIXME: why isn't this already a number?
-      return moment(parseInt(this.request.asOf)).fromNow()
+      return moment(this.request.asOf).fromNow()
     }
   }
 }

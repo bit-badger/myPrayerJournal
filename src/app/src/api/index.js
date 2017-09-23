@@ -32,14 +32,18 @@ export default {
   addRequest: requestText => http.post('request/', { requestText }),
 
   /**
-   * Mark a prayer request as having been prayed
-   * @param {string} requestId The Id of the request
+   * Update a prayer request
+   * @param request The request (should have requestId, status, and updateText properties)
    */
-  markPrayed: requestId => http.post(`request/${requestId}/history`, { status: 'Prayed', updateText: '' }),
+  updateRequest: request => http.post(`request/${request.requestId}/history`, {
+    status: request.status,
+    updateText: request.updateText
+  }),
 
   /**
-   * Get a prayer request
+   * Get a prayer request (journal-style; only latest update)
+   * @param {string} requestId The Id of the request to retrieve
    */
-  getPrayerRequest: requestId => http.get(`request/${requestId}`)
+  getRequest: requestId => http.get(`request/${requestId}`)
 
 }
