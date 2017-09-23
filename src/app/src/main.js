@@ -14,9 +14,9 @@ Vue.config.productionTip = false
 Vue.use(ElementUI)
 
 Vue.use(VueProgressBar, {
-  color: 'rgb(143, 255, 199)',
+  color: 'rgb(32, 160, 255)',
   failedColor: 'red',
-  height: '2px'
+  height: '3px'
 })
 
 /* eslint-disable no-new */

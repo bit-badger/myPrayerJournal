@@ -17,6 +17,7 @@
     "auth0-js": "^8.10.1",
     "axios": "^0.16.2",
     "element-ui": "^1.4.4",
+    "moment": "^2.18.1",
     "pug": "^2.0.0-rc.4",
     "vue": "^2.4.4",
     "vue-progressbar": "^0.7.3",

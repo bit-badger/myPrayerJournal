@@ -5,6 +5,10 @@
     template(v-if="!isLoadingJournal")
       new-request
       p journal has {{ journal.length }} entries
+      el-row
+        el-col(:span='4'): strong Actions
+        el-col(:span='16'): strong Request
+        el-col(:span='4'): strong As Of
       request-list-item(v-for="request in journal" v-bind:request="request" v-bind:key="request.requestId")
 </template>
 

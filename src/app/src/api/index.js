@@ -29,6 +29,12 @@ export default {
    * Add a new prayer request
    * @param {string} requestText The text of the request to be added
    */
-  addRequest: requestText => http.post('request/', { requestText })
+  addRequest: requestText => http.post('request/', { requestText }),
+
+  /**
+   * Mark a prayer request as having been prayed
+   * @param {string} requestId The Id of the request
+   */
+  markPrayed: requestId => http.post('request/${requestId}/history', { status: 'Prayed', updateText: '' })
 
 }
