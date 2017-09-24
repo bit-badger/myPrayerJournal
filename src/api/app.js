@@ -2,17 +2,17 @@
 
 const chalk = require('chalk')
 
-const env = process.env.NODE_ENV || 'dev'
+const { env } = require('./appsettings.json') // process.env.NODE_ENV || 'dev'
 
 if ('dev' === env) require('babel-register')
+const src = (env === 'dev') ? './src' : './build'
 
-const app = require('./index').default
-const db = require('./db').default
-const json = require('./json.mjs').default
+const app = require(`${src}/index`).default
+const db = require(`${src}/db`).default
 
 const fullEnv = ('dev' === env) ? 'Development' : 'Production'
 
-const { port } = json('./appsettings.json')
+const { port } = require('./appsettings.json')
 
 /**
  * Log a start-up message for the app

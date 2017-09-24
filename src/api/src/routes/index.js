@@ -4,7 +4,7 @@ import jwt from 'koa-jwt'
 import jwksRsa from 'jwks-rsa-koa'
 import Router from 'koa-router'
 
-import appConfig from '../appsettings.json'
+import appConfig from '../../appsettings.json'
 import journal from './journal'
 import request from './request'
 

@@ -2,7 +2,7 @@
 
 import { Pool, types } from 'pg'
 
-import appConfig from '../appsettings.json'
+import appConfig from '../../appsettings.json'
 import ddl from './ddl'
 import request from './request'
 

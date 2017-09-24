@@ -6,15 +6,15 @@ import morgan from 'koa-morgan'
 import send from 'koa-send'
 import serveFrom from 'koa-static'
 
-import appConfig from './appsettings.json'
+import appConfig from '../appsettings.json'
 import router from './routes'
 
 /** Koa app */
 const app = new Koa()
 
+if (appConfig.env === 'dev') app.use(morgan('dev'))
+
 export default app
-  // Logging FTW!
-  .use(morgan('dev'))
   // Serve the Vue files from /public
   .use(serveFrom('public'))
   // Parse the body into ctx.request.body, if present
@@ -26,7 +26,7 @@ export default app
   .use(async (ctx, next) => {
     if (ctx.url.indexOf('/api') === -1) {
       try {
-        await send(ctx, 'index.html', { root: __dirname + '/public/' })
+        await send(ctx, 'index.html', { root: __dirname + '/../public/' })
       }
       catch (err) {
         return await next(err)
