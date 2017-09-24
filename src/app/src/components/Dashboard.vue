@@ -4,7 +4,6 @@ article
   p(v-if="isLoadingJournal") Loading your prayer journal...
   template(v-if="!isLoadingJournal")
     new-request
-    p journal has {{ journal.length }} entries
     el-row
       el-col(:span='4'): strong Actions
       el-col(:span='16'): strong Request
@@ -38,6 +37,10 @@ export default {
   },
   async created () {
     await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+    this.$message({
+      message: `Loaded ${this.journal.length} prayer requests`,
+      type: 'success'
+    })
   }
 }
 </script>

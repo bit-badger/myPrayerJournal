@@ -45,11 +45,11 @@ export default new Vuex.Store({
       state.journal = journal
     },
     [mutations.REQUEST_ADDED] (state, newRequest) {
-      state.journal.unshift(newRequest)
+      state.journal.push(newRequest)
     },
     [mutations.REQUEST_UPDATED] (state, request) {
       let jrnl = state.journal.filter(it => it.requestId !== request.requestId)
-      jrnl.unshift(request)
+      if (request.lastStatus !== 'Answered') jrnl.push(request)
       state.journal = jrnl
     },
     [mutations.USER_LOGGED_OFF] (state) {

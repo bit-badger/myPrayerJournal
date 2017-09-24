@@ -4,7 +4,7 @@ el-row.journal-request
     el-button(icon='check' @click='markPrayed()' title='Pray')
     edit-request(:request='request')
     full-request(:request='request')
-  el-col(:span='16'): p {{ request.text }}
+  el-col(:span='16'): p {{ text }}
   el-col(:span='4'): p {{ asOf }}
 </template>
 
@@ -33,11 +33,18 @@ export default {
         status: 'Prayed',
         updateText: ''
       })
+      this.$message({
+        message: 'Request marked as prayed',
+        type: 'success'
+      })
     }
   },
   computed: {
     asOf () {
       return moment(this.request.asOf).fromNow()
+    },
+    text () {
+      return this.request.text.split('\n').join('<br>')
     }
   }
 }

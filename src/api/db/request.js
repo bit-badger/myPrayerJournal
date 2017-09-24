@@ -4,24 +4,12 @@ import { Pool } from 'pg'
 import cuid from 'cuid'
 
 const currentRequestSql = `
-  SELECT
-    request."requestId",
-    (SELECT "text"
-      FROM mpj.history
-      WHERE history."requestId" = request."requestId"
-        AND "text" IS NOT NULL
-      ORDER BY "asOf" DESC
-      LIMIT 1) AS "text",
-    (SELECT "asOf"
-      FROM mpj.history
-      WHERE history."requestId" = request."requestId"
-      ORDER BY "asOf" DESC
-      LIMIT 1) AS "asOf"
-    FROM mpj.request`
+  SELECT "requestId", "text", "asOf", "lastStatus"
+    FROM mpj.journal`
 
 const journalSql = `${currentRequestSql}
   WHERE "userId" = $1
-  GROUP BY request."requestId"`
+    AND "lastStatus" <> 'Answered'`
 
 const requestNotFound = {
   requestId: '',
@@ -40,7 +28,10 @@ export default function (pool) {
     addHistory: async (requestId, status, updateText) => {
       const asOf = Date.now()
       await pool.query(`
-        INSERT INTO mpj.history ("requestId", "asOf", "status", "text") VALUES ($1, $2, $3, NULLIF($4, ''))`,
+        INSERT INTO mpj.history
+          ("requestId", "asOf", "status", "text")
+        VALUES
+          ($1, $2, $3, NULLIF($4, ''))`,
       [ requestId, asOf, status, updateText ])
     },
 
@@ -70,10 +61,10 @@ export default function (pool) {
         } finally {
           client.release()
         }
-        return { requestId: id, text: requestText, asOf: enteredOn }
+        return { requestId: id, text: requestText, asOf: enteredOn, lastStatus: 'Created' }
       })().catch(e => {
         console.error(e.stack)
-        return { requestId: '', text: 'error', asOf: 0 }
+        return { requestId: '', text: 'error', asOf: 0, lastStatus: 'Errored' }
       })
     },
 
@@ -86,8 +77,7 @@ export default function (pool) {
     byId: async (userId, requestId) => {
       const reqs = await pool.query(`${currentRequestSql}
         WHERE "requestId" = $1
-          AND "userId" = $2
-        GROUP BY request."requestId"`,
+          AND "userId" = $2`,
         [ requestId, userId ])
       return (0 < reqs.rowCount) ? reqs.rows[0] : requestNotFound
     },
@@ -124,15 +114,7 @@ export default function (pool) {
      * @param {string} userId The Id of the user
      * @return The requests that make up the current journal
      */
-    journal: async userId => (await pool.query(`${journalSql} ORDER BY "asOf" DESC`, [ userId ])).rows,
-    
-    /**
-     * Get the least-recently-updated prayer request for the given user
-     * @param {string} userId The Id of the current user
-     * @return The least-recently-updated request for the given user
-     */
-    oldest: async userId => (await pool.query(`${journalSql} ORDER BY "asOf" LIMIT 1`, [ userId ])).rows[0]
-    
+    journal: async userId => (await pool.query(`${journalSql} ORDER BY "asOf"`, [ userId ])).rows
     
   }
 }

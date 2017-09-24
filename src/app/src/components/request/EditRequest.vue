@@ -49,6 +49,17 @@ export default {
         updateText: this.form.requestText,
         status: this.form.status
       })
+      if (this.form.status === 'Answered') {
+        this.$message({
+          message: 'Request updated and removed from active journal',
+          type: 'success'
+        })
+      } else {
+        this.$message({
+          message: 'Request updated',
+          type: 'success'
+        })
+      }
       this.editVisible = false
     }
   }

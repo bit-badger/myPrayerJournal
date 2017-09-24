@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  el-button(@click='openDialog()') Add a New Request
+  el-button(icon='plus' @click='openDialog()') Add a New Request
   el-dialog(title='Add a New Prayer Request' :visible.sync='showNewVisible')
     el-form(:model='form' :label-position='top')
       el-form-item(label='Prayer Request')
@@ -39,7 +39,11 @@ export default {
         progress: this.$Progress,
         requestText: this.form.requestText
       })
-      this.showNewVisible = false
+      this.$message({
+        message: 'New prayer request added',
+        type: 'success'
+      })
+      this.closeDialog()
     }
   }
 }

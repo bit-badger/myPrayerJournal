@@ -52,6 +52,33 @@ const ddl = [
     fix: `
       CREATE INDEX "idx_request_userId" ON mpj.request ("userId");
       COMMENT ON INDEX "idx_request_userId" IS 'Requests are retrieved by user'`
+  },
+  {
+    name: 'journal View',
+    check: `SELECT 1 FROM pg_views WHERE schemaname='mpj' AND viewname='journal'`,
+    fix: `
+      CREATE VIEW mpj.journal AS
+        SELECT
+          request."requestId",
+          request."userId",
+          (SELECT "text"
+            FROM mpj.history
+            WHERE history."requestId" = request."requestId"
+              AND "text" IS NOT NULL
+            ORDER BY "asOf" DESC
+            LIMIT 1) AS "text",
+          (SELECT "asOf"
+            FROM mpj.history
+            WHERE history."requestId" = request."requestId"
+            ORDER BY "asOf" DESC
+            LIMIT 1) AS "asOf",
+          (SELECT "status"
+            FROM mpj.history
+            WHERE history."requestId" = request."requestId"
+            ORDER BY "asOf" DESC
+            LIMIT 1) AS "lastStatus"
+          FROM mpj.request;
+      COMMENT ON VIEW mpj.journal IS 'Requests with latest text'`
   }
 ]
 
