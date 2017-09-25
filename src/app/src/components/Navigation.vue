@@ -1,12 +1,13 @@
 <template lang="pug">
-el-menu(theme="dark" mode="horizontal" class="mpj-top-nav" router=true)
-  el-menu-item(index="/")
-    span(style="font-weight:100;") my
-    span(style="font-weight:600;") Prayer
-    span(style="font-weight:700;") Journal
-  el-menu-item(v-if="isAuthenticated" index="/dashboard") Dashboard
-  el-menu-item(v-if="isAuthenticated" index="3"): a(@click.stop="logOff()") Log Off
-  el-menu-item(v-if="!isAuthenticated" index="4"): a(@click.stop="logOn()") Log On
+el-menu(theme='dark' mode='horizontal' class='mpj-top-nav' router='true')
+  el-menu-item(index='/')
+    span(style='font-weight:100;') my
+    span(style='font-weight:600;') Prayer
+    span(style='font-weight:700;') Journal
+  el-menu-item(v-if='isAuthenticated' index='/dashboard') Dashboard
+  el-menu-item(v-if='isAuthenticated' index='3'): a(@click.stop='logOff()') Log Off
+  el-menu-item(v-if='!isAuthenticated' index='4'): a(@click.stop='logOn()') Log On
+  el-menu-item(index='5'): a(href='https://danieljsummers.github.io/myPrayerJournal/' target='_blank' @click.stop='') Docs
 </template>
 
 <script>
@@ -36,10 +37,14 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 .mpj-top-nav {
   position: fixed;
   top: 0px;
   width: 100%;
+}
+.mpj-top-nav a:link,
+.mpj-top-nav a:visited {
+  text-decoration: none;
 }
 </style>
