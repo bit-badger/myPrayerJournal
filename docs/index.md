@@ -12,7 +12,7 @@ myPrayerJournal uses login services using Google or Microsoft accounts. The only
 
 # Adding a Request
 
-To add a request, click the "Add a New Request" button in your "Dashboard" _("Journal" in v0.8.1)_. Then, enter the text of the request as you see fit; there is no right or wrong way, and you are the only person who will see the text you enter. When you save the request, it will go to the bottom of the list of requests.
+To add a request, click the "Add a New Request" button in your "Journal". Then, enter the text of the request as you see fit; there is no right or wrong way, and you are the only person who will see the text you enter. When you save the request, it will go to the bottom of the list of requests.
 
 # Praying for Requests
 
@@ -28,6 +28,7 @@ myPrayerJournal tracks all of the actions related to a request; the third button
 
 # Known Issues
 
-- _The "As Of" column does not update as time goes on; if you pray through your list, you may end up with all requests saying "a few seconds ago" (or, if your computer's time is off, it may say "a few seconds from now"). On the menu, if you click the title, then back to "Dashboard," it should reload the journal and display the times._
+See [the GitHub issues list](https://github.com/danieljsummers/myPrayerJournal/issues) for the most up-to-date list.
+
 - _There is no way to view "Answered" requests; the absence of this functionality is a big reason this is still considered alpha. Going back through requests to see how God has answered them is an encouraging benefit of taking the time to journal._
 - _If you try to do something an get an error notification instead of a green checkmark, try logging off and logging back on again. The site currently doesn't check to see if your session has expired, but the server with which it's communicating does._

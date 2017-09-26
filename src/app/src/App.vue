@@ -5,7 +5,7 @@
     router-view
     vue-progress-bar
   footer
-    p.text-right: i myPrayerJournal v0.8.0
+    p.text-right: i myPrayerJournal v0.8.1
 </template>
 
 <script>
