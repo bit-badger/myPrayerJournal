@@ -4,7 +4,7 @@ div
   el-dialog(title='Add a New Prayer Request' :visible.sync='showNewVisible')
     el-form(:model='form' :label-position='top')
       el-form-item(label='Prayer Request')
-        el-input(type='textarea' v-model.trim='form.requestText' :rows='10')
+        el-input(type='textarea' v-model='form.requestText' :rows='10' @blur='trimText()')
     span.dialog-footer(slot='footer')
       el-button(@click='closeDialog()') Cancel
       el-button(type='primary' @click='saveRequest()') Save
@@ -33,6 +33,9 @@ export default {
     },
     openDialog () {
       this.showNewVisible = true
+    },
+    trimText () {
+      this.form.requestText = this.form.requestText.trim()
     },
     async saveRequest () {
       await this.$store.dispatch(actions.ADD_REQUEST, {

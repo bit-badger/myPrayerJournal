@@ -4,7 +4,7 @@ span
   el-dialog(title='Edit Prayer Request' :visible.sync='editVisible')
     el-form(:model='form' :label-position='top')
       el-form-item(label='Prayer Request')
-        el-input(type='textarea' v-model.trim='form.requestText' :rows='10')
+        el-input(type='textarea' v-model='form.requestText' :rows='10' @blur="trimText()")
       el-form-item(label='Also Mark As')
         el-radio-group(v-model='form.status')
           el-radio-button(label='Updated') Updated
@@ -41,6 +41,9 @@ export default {
     },
     openDialog () {
       this.editVisible = true
+    },
+    trimText () {
+      this.form.requestText = this.form.requestText.trim()
     },
     async saveRequest () {
       await this.$store.dispatch(actions.UPDATE_REQUEST, {
