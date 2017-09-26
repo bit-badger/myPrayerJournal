@@ -12,7 +12,7 @@ myPrayerJournal uses login services using Google or Microsoft accounts. The only
 
 # Adding a Request
 
-To add a request, click the "Add a New Request" button in your "Dashboard" _(which will probably get renamed to "Journal" before this goes from alpha to beta)_. Then, enter the text of the request as you see fit; there is no right or wrong way, and you are the only person who will see the text you enter. When you save the request, it will go to the bottom of the list of requests.
+To add a request, click the "Add a New Request" button in your "Dashboard" _("Journal" in v0.8.1)_. Then, enter the text of the request as you see fit; there is no right or wrong way, and you are the only person who will see the text you enter. When you save the request, it will go to the bottom of the list of requests.
 
 # Praying for Requests
 

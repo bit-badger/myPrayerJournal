@@ -1,14 +1,15 @@
 <template lang="pug">
 article
-  page-title(:title="title")
-  p(v-if="isLoadingJournal") Loading your prayer journal...
-  template(v-if="!isLoadingJournal")
+  page-title(:title='title')
+  p(v-if='isLoadingJournal') Loading your prayer journal...
+  template(v-if='!isLoadingJournal')
     new-request
     el-row
       el-col(:span='4'): strong Actions
       el-col(:span='16'): strong Request
       el-col(:span='4'): strong As Of
-    request-list-item(v-for="request in journal" :request="request" :key="request.requestId")
+    request-list-item(v-if='journal.length > 0' v-for='request in journal' :request='request' :key='request.requestId')
+    p.text-center(v-if='journal.length === 0'): em No requests found; click the "Add a New Request" button to add one
 </template>
 
 <script>
@@ -23,7 +24,7 @@ import RequestListItem from './request/RequestListItem'
 import actions from '@/store/action-types'
 
 export default {
-  name: 'dashboard',
+  name: 'journal',
   components: {
     PageTitle,
     NewRequest,
@@ -31,7 +32,7 @@ export default {
   },
   computed: {
     title () {
-      return `${this.user.given_name}'s Dashboard`
+      return `${this.user.given_name}'s Prayer Journal`
     },
     ...mapState(['user', 'journal', 'isLoadingJournal'])
   },

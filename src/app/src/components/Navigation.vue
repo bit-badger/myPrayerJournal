@@ -4,7 +4,7 @@ el-menu(theme='dark' mode='horizontal' class='mpj-top-nav' router='true')
     span(style='font-weight:100;') my
     span(style='font-weight:600;') Prayer
     span(style='font-weight:700;') Journal
-  el-menu-item(v-if='isAuthenticated' index='/dashboard') Dashboard
+  el-menu-item(v-if='isAuthenticated' index='/journal') Journal
   el-menu-item(v-if='isAuthenticated' index='3'): a(@click.stop='logOff()') Log Off
   el-menu-item(v-if='!isAuthenticated' index='4'): a(@click.stop='logOn()') Log On
   el-menu-item(index='5'): a(href='https://danieljsummers.github.io/myPrayerJournal/' target='_blank' @click.stop='') Docs

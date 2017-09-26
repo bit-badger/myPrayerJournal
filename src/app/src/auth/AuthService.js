@@ -67,7 +67,7 @@ export default class AuthService {
           this.userInfo(authResult.accessToken)
             .then(user => {
               store.commit(mutations.USER_LOGGED_ON, user)
-              router.replace('/dashboard')
+              router.replace('/journal')
             })
         }
       })
