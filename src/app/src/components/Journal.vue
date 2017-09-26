@@ -17,7 +17,7 @@ article
 
 import { mapState } from 'vuex'
 
-import PageTitle from './PageTitle'
+import PageTitle from './common/PageTitle'
 import NewRequest from './request/NewRequest'
 import RequestListItem from './request/RequestListItem'
 

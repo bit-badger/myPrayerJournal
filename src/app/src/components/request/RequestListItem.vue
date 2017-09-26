@@ -5,7 +5,7 @@ el-row.journal-request
     edit-request(:request='request')
     full-request(:request='request')
   el-col(:span='16'): p {{ text }}
-  el-col(:span='4'): p {{ asOf }}
+  el-col(:span='4'): p: date-from-now(:value='request.asOf')
 </template>
 
 <script>
@@ -13,6 +13,7 @@ el-row.journal-request
 
 import moment from 'moment'
 
+import DateFromNow from '../common/DateFromNow'
 import EditRequest from './EditRequest'
 import FullRequest from './FullRequest'
 
@@ -21,7 +22,11 @@ import actions from '@/store/action-types'
 export default {
   name: 'request-list-item',
   props: [ 'request' ],
+  data () {
+    return { interval: null }
+  },
   components: {
+    DateFromNow,
     EditRequest,
     FullRequest
   },

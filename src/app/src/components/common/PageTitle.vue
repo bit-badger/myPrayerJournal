@@ -1,11 +1,20 @@
 <template lang="pug">
-h2.mpj-page-title(v-if="!hideOnPage" v-html="title")
+h2.mpj-page-title(v-if='!hideOnPage' v-html='title')
 </template>
 
 <script>
 export default {
   name: 'page-title',
-  props: [ 'title', 'hideOnPage' ],
+  props: {
+    title: {
+      type: String,
+      required: true
+    },
+    hideOnPage: {
+      type: Boolean,
+      default: false
+    }
+  },
   created () {
     document.title = `${this.title} « myPrayerJournal`
   },
