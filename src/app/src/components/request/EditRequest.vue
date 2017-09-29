@@ -1,18 +1,25 @@
 <template lang="pug">
 span
-  el-button(icon='edit' @click='openDialog()' title='Edit')
-  el-dialog(title='Edit Prayer Request' :visible.sync='editVisible')
-    el-form(:model='form' :label-position='top')
-      el-form-item(label='Prayer Request')
-        el-input(type='textarea' v-model='form.requestText' :rows='10' @blur="trimText()")
-      el-form-item(label='Also Mark As')
-        el-radio-group(v-model='form.status')
-          el-radio-button(label='Updated') Updated
-          el-radio-button(label='Prayed') Prayed
-          el-radio-button(label='Answered') Answered
-    span.dialog-footer(slot='footer')
-      el-button(@click='closeDialog()') Cancel
-      el-button(type='primary' @click='saveRequest()') Save
+  b-btn(@click='openDialog()' title='Edit' size='sm' variant='outline-secondary'): icon(name='pencil')
+  b-modal(title='Edit Prayer Request'
+          v-model='editVisible'
+          size='lg'
+          header-bg-variant='dark'
+          header-text-variant='light'
+          @shows='focusRequestText')
+    b-form
+      b-form-group(label='Prayer Request' label-for='request_text')
+        b-textarea#request_text(v-model='form.requestText' :rows='10' @blur='trimText()' ref='toFocus')
+      b-form-group(label='Also Mark As')
+        b-radio-group(v-model='form.status' buttons)
+          b-radio(value='Updated') Updated
+          b-radio(value='Prayed') Prayed
+          b-radio(value='Answered') Answered
+    div.w-100.text-right(slot='modal-footer')
+      b-btn(variant='primary' @click='saveRequest()') Save
+      | &nbsp; &nbsp;
+      b-btn(variant='outline-secondary' @click='closeDialog()') Cancel
+  toast(ref='toast')
 </template>
 
 <script>
@@ -22,7 +29,9 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'edit-request',
-  props: [ 'request' ],
+  props: {
+    request: { required: true }
+  },
   data () {
     return {
       editVisible: false,
@@ -33,11 +42,17 @@ export default {
       formLabelWidth: '120px'
     }
   },
+  mounted () {
+    this.$refs.toast.setOptions({ position: 'bottom right' })
+  },
   methods: {
     closeDialog () {
       this.form.requestText = ''
       this.form.status = 'Updated'
       this.editVisible = false
+    },
+    focusRequestText (e) {
+      this.$refs.toFocus.focus()
     },
     openDialog () {
       this.editVisible = true
@@ -53,15 +68,9 @@ export default {
         status: this.form.status
       })
       if (this.form.status === 'Answered') {
-        this.$message({
-          message: 'Request updated and removed from active journal',
-          type: 'success'
-        })
+        this.$refs.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
       } else {
-        this.$message({
-          message: 'Request updated',
-          type: 'success'
-        })
+        this.$refs.toast.showToast('Request updated', { theme: 'success' })
       }
       this.editVisible = false
     }

@@ -20,8 +20,11 @@ export default {
     }
   },
   data () {
+    const dt = moment(this.value)
     return {
-      fromNow: moment(this.value).fromNow(),
+      dt,
+      fromNow: dt.fromNow(),
+      actual: dt.format('LLLL'),
       intervalId: null
     }
   },
@@ -34,12 +37,17 @@ export default {
   },
   methods: {
     updateFromNow () {
-      let newFromNow = moment(this.value).fromNow()
+      let newFromNow = this.dt.fromNow()
       if (newFromNow !== this.fromNow) this.fromNow = newFromNow
     }
   },
   render (createElement) {
-    return createElement(this.tag, this.fromNow)
+    return createElement(this.tag, {
+      domProps: {
+        title: this.actual,
+        innerText: this.fromNow
+      }
+    })
   }
 }
 </script>

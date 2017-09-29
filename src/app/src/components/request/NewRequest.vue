@@ -1,13 +1,22 @@
 <template lang="pug">
 div
-  el-button(icon='plus' @click='openDialog()') Add a New Request
-  el-dialog(title='Add a New Prayer Request' :visible.sync='showNewVisible')
-    el-form(:model='form' :label-position='top')
-      el-form-item(label='Prayer Request')
-        el-input(type='textarea' v-model='form.requestText' :rows='10' @blur='trimText()')
-    span.dialog-footer(slot='footer')
-      el-button(@click='closeDialog()') Cancel
-      el-button(type='primary' @click='saveRequest()') Save
+  b-btn(@click='openDialog()' size='sm' variant='primary')
+    icon(name='plus')
+    | &nbsp; Add a New Request
+  b-modal(title='Add a New Prayer Request'
+          v-model='showNewVisible'
+          size='lg'
+          header-bg-variant='dark'
+          header-text-variant='light'
+          @shown='focusRequestText')
+    b-form
+      b-form-group(label='Prayer Request' label-for='request_text')
+        b-textarea#request_text(v-model='form.requestText' :rows='10' @blur='trimText()' ref='toFocus')
+    div.w-100.text-right(slot='modal-footer')
+      b-btn(variant='primary' @click='saveRequest()') Save
+      | &nbsp; &nbsp;
+      b-btn(variant='outline-secondary' @click='closeDialog()') Cancel
+  toast(ref='toast')
 </template>
 
 <script>
@@ -26,10 +35,16 @@ export default {
       formLabelWidth: '120px'
     }
   },
+  mounted () {
+    this.$refs.toast.setOptions({ position: 'bottom right' })
+  },
   methods: {
     closeDialog () {
       this.form.requestText = ''
       this.showNewVisible = false
+    },
+    focusRequestText (e) {
+      this.$refs.toFocus.focus()
     },
     openDialog () {
       this.showNewVisible = true
@@ -42,10 +57,7 @@ export default {
         progress: this.$Progress,
         requestText: this.form.requestText
       })
-      this.$message({
-        message: 'New prayer request added',
-        type: 'success'
-      })
+      this.$refs.toast.showToast('New prayer request added', { theme: 'success' })
       this.closeDialog()
     }
   }

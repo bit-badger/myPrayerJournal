@@ -1,11 +1,23 @@
 <template lang="pug">
-el-row.journal-request
-  el-col(:span='4'): p
-    el-button(icon='check' @click='markPrayed()' title='Pray')
-    edit-request(:request='request')
-    full-request(:request='request')
-  el-col(:span='16'): p {{ text }}
-  el-col(:span='4'): p: date-from-now(:value='request.asOf')
+b-col(xs='12' sm='6' md='4')
+  b-card(border-variant='dark' no-body)
+    div.card-body.p-0
+      p.card-text.mb-1.px-3.pt-3
+        | {{ text }}
+      p.card-text.p-0.pr-1.text-right: small.text-muted: em
+        = '(last activity '
+        date-from-now(:value='request.asOf')
+        | )
+    //-
+      edit-request(:request='request')
+      full-request(:request='request')
+    b-card-footer.text-center.py-1.
+      #[b-btn(@click='markPrayed()' variant='outline-primary' title='Pray' size='sm'): icon(name='check')]
+      #[b-btn(variant='outline-secondary' title='Edit' size='sm'): icon(name='pencil')]
+      #[b-btn(variant='outline-secondary' title='Add Notes' size='sm'): icon(name='file-text-o')]
+      #[b-btn(variant='outline-secondary' title='View Full Request' size='sm'): icon(name='search')]
+  br
+  toast(ref='toast')
 </template>
 
 <script>
@@ -13,7 +25,6 @@ el-row.journal-request
 
 import moment from 'moment'
 
-import DateFromNow from '../common/DateFromNow'
 import EditRequest from './EditRequest'
 import FullRequest from './FullRequest'
 
@@ -21,14 +32,15 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
-  props: [ 'request' ],
-  data () {
-    return { interval: null }
+  props: {
+    request: { required: true }
   },
   components: {
-    DateFromNow,
     EditRequest,
     FullRequest
+  },
+  mounted () {
+    this.$refs.toast.setOptions({ position: 'bottom right' })
   },
   methods: {
     async markPrayed () {
@@ -38,10 +50,7 @@ export default {
         status: 'Prayed',
         updateText: ''
       })
-      this.$message({
-        message: 'Request marked as prayed',
-        type: 'success'
-      })
+      this.$refs.toast.showToast('Request marked as prayed', { theme: 'success' })
     }
   },
   computed: {
@@ -53,10 +62,13 @@ export default {
     }
   }
 }
+/*
+b-row.journal-request
+  b-col(cols='2'): p
+    b-btn(@click='markPrayed()' size='sm' variant='outline-primary' title='Pray'): icon(name='check')
+    edit-request(:request='request')
+    full-request(:request='request')
+  b-col(cols='8'): p {{ text }}
+  b-col(cols='2'): p: date-from-now(:value='request.asOf')
+ */
 </script>
-
-<style>
-.journal-request {
-  border-bottom: dotted 1px lightgray;
-}
-</style>

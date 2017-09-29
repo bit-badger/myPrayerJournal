@@ -1,5 +1,5 @@
 <template lang="pug">
-p.journal-request
+b-list-group-item
   | {{ history.status }} {{ asOf }}
   span(v-if='0 < history.text.length') &nbsp;&raquo; {{ history.text }}
 </template>
@@ -11,7 +11,9 @@ import moment from 'moment'
 
 export default {
   name: 'full-request-history',
-  props: [ 'history' ],
+  props: {
+    history: { required: true }
+  },
   computed: {
     asOf () {
       return moment(this.history.asOf).fromNow()

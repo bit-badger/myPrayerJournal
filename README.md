@@ -4,4 +4,4 @@ Journaling has a long history; it helps people remember what happened, and the a
 
 This is borne of out of a personal desire I had to have something that would help me with my prayer life. When it's time to pray, it's not really time to use an app, so the design goal here is to keep it simple and unobtrusive. It will also help eliminate some of the downsides to a paper prayer journal, like not remembering whether you've prayed for a request, or running out of room to write another update on one.
 
-It is still a work-in-progress (WIP). It will eventually be hosted at <https://prayerjournal.me>, and will be available for public use.
+It is still a work-in-progress (WIP), but is available for public preview at <https://prayerjournal.me>.

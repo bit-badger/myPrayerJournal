@@ -1,13 +1,17 @@
 <template lang="pug">
-el-menu(theme='dark' mode='horizontal' class='mpj-top-nav' router='true')
-  el-menu-item(index='/')
+b-navbar(toggleable='sm' type='dark' variant='info' fixed='top')
+  b-nav-toggle(target='nav_collapse')
+  b-navbar-brand(to='/')
     span(style='font-weight:100;') my
     span(style='font-weight:600;') Prayer
     span(style='font-weight:700;') Journal
-  el-menu-item(v-if='isAuthenticated' index='/journal') Journal
-  el-menu-item(v-if='isAuthenticated' index='3'): a(@click.stop='logOff()') Log Off
-  el-menu-item(v-if='!isAuthenticated' index='4'): a(@click.stop='logOn()') Log On
-  el-menu-item(index='5'): a(href='https://danieljsummers.github.io/myPrayerJournal/' target='_blank' @click.stop='') Docs
+  b-collapse#nav_collapse(is-nav)
+    b-nav(is-nav-bar)
+      b-nav-item(v-if='isAuthenticated' to='/journal') Journal
+      b-nav-item(v-if='isAuthenticated' to='/answered') Answered
+      b-nav-item(v-if='isAuthenticated'): a(@click.stop='logOff()') Log Off
+      b-nav-item(v-if='!isAuthenticated'): a(@click.stop='logOn()') Log On
+      b-nav-item(href='https://danieljsummers.github.io/myPrayerJournal/' target='_blank' @click.stop='') Docs
 </template>
 
 <script>
@@ -36,15 +40,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.mpj-top-nav {
-  position: fixed;
-  top: 0px;
-  width: 100%;
-}
-.mpj-top-nav a:link,
-.mpj-top-nav a:visited {
-  text-decoration: none;
-}
-</style>

@@ -50,6 +50,11 @@ export default {
    * Get a prayer request (full; includes all history)
    * @param {string} requestId The Id of the request to retrieve
    */
-  getFullRequest: requestId => http.get(`request/${requestId}/full`)
+  getFullRequest: requestId => http.get(`request/${requestId}/full`),
+
+  /**
+   * Get all answered requests, along with the text they had when it was answered
+   */
+  getAnsweredRequests: () => http.get('request/answered')
 
 }

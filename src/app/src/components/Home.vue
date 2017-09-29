@@ -15,12 +15,7 @@ article
 <script>
 'use strict'
 
-import PageTitle from './common/PageTitle.vue'
-
 export default {
-  name: 'home',
-  components: {
-    PageTitle
-  }
+  name: 'home'
 }
 </script>

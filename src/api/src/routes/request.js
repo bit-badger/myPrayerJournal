@@ -45,7 +45,10 @@ export default function (checkJwt) {
       ctx.body = await db.request.oldest(ctx.state.user.sub)
       await next()
     })
-  
+    .get('/answered', checkJwt, async (ctx, next) => {
+      ctx.body = await db.request.answered(ctx.state.user.sub)
+      await next()
+    })
 
   return router
 }

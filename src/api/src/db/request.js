@@ -69,6 +69,17 @@ export default function (pool) {
     },
 
     /**
+     * Get all answered requests with their text as of the "Answered" status
+     * @param {string} userId The Id of the user for whom requests should be retrieved
+     * @return All requests
+     */
+    answered: async (userId) => 
+      (await pool.query(`${currentRequestSql}
+        WHERE "userId" = $1
+          AND "lastStatus" = 'Answered'
+        ORDER BY "asOf" DESC`)).rows,
+
+    /**
      * Get the "current" version of a request by its Id
      * @param {string} requestId The Id of the request to retrieve
      * @param {string} userId The Id of the user to which the request belongs

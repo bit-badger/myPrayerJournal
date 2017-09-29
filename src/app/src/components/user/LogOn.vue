@@ -7,14 +7,10 @@ article
 <script>
 'use strict'
 
-import PageTitle from '../common/PageTitle'
 import AuthService from '@/auth/AuthService'
 
 export default {
   name: 'log-on',
-  components: {
-    PageTitle
-  },
   created () {
     this.$Progress.start()
     new AuthService().handleAuthentication(this.$store, this.$router)
