@@ -77,7 +77,8 @@ export default function (pool) {
       (await pool.query(`${currentRequestSql}
         WHERE "userId" = $1
           AND "lastStatus" = 'Answered'
-        ORDER BY "asOf" DESC`)).rows,
+        ORDER BY "asOf" DESC`,
+        [ userId ])).rows,
 
     /**
      * Get the "current" version of a request by its Id

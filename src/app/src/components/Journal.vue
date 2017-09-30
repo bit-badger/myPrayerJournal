@@ -21,7 +21,7 @@ article
 
 import Vue from 'vue'
 import { mapState } from 'vuex'
-import _ from 'lodash'
+import chunk from 'lodash/chunk'
 
 import EditRequest from './request/EditRequest'
 import FullRequest from './request/FullRequest'
@@ -48,7 +48,7 @@ export default {
       return `${this.user.given_name}'s Prayer Journal`
     },
     journalCardRows () {
-      return _.chunk(this.journal, 3)
+      return chunk(this.journal, 3)
     },
     toast () {
       return this.$parent.$refs.toast

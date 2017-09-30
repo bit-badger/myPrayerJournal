@@ -33,7 +33,12 @@ const logError = function (error) {
 export default new Vuex.Store({
   state: {
     user: JSON.parse(localStorage.getItem('user_profile') || '{}'),
-    isAuthenticated: this.auth0.isAuthenticated(),
+    isAuthenticated: (() => {
+      if (this.auth0.isAuthenticated()) {
+        api.setBearer(localStorage.getItem('id_token'))
+      }
+      return this.auth0.isAuthenticated()
+    })(),
     journal: {},
     isLoadingJournal: false
   },

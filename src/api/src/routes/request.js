@@ -47,6 +47,7 @@ export default function (checkJwt) {
     })
     .get('/answered', checkJwt, async (ctx, next) => {
       ctx.body = await db.request.answered(ctx.state.user.sub)
+      ctx.response.status = 200
       await next()
     })
 

@@ -1,5 +1,5 @@
 <template lang="pug">
-b-navbar(toggleable='sm' type='dark' variant='info' fixed='top')
+b-navbar(toggleable='sm' type='dark' variant='primary' fixed='top')
   b-nav-toggle(target='nav_collapse')
   b-navbar-brand(to='/')
     span(style='font-weight:100;') my

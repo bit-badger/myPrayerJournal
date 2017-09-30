@@ -1,6 +1,5 @@
 <template lang="pug">
 span
-  b-btn(@click='openDialog()' title='Show History' size='sm' variant='outline-secondary'): icon(name='search')
   b-modal(title='Prayer Request History'
           v-model='historyVisible'
           size='lg'
