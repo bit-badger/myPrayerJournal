@@ -22,7 +22,6 @@ export default {
   data () {
     const dt = moment(this.value)
     return {
-      dt,
       fromNow: dt.fromNow(),
       actual: dt.format('LLLL'),
       intervalId: null
@@ -37,7 +36,7 @@ export default {
   },
   methods: {
     updateFromNow () {
-      let newFromNow = this.dt.fromNow()
+      let newFromNow = moment(this.value).fromNow()
       if (newFromNow !== this.fromNow) this.fromNow = newFromNow
     }
   },

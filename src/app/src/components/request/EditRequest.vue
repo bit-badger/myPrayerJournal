@@ -1,11 +1,12 @@
 <template lang="pug">
 span
-  b-btn(@click='openDialog()' title='Edit' size='sm' variant='outline-secondary'): icon(name='pencil')
+  //- b-btn(@click='openDialog()' title='Edit' size='sm' variant='outline-secondary'): icon(name='pencil')
   b-modal(title='Edit Prayer Request'
           v-model='editVisible'
           size='lg'
           header-bg-variant='dark'
           header-text-variant='light'
+          @edit='openDialog()'
           @shows='focusRequestText')
     b-form
       b-form-group(label='Prayer Request' label-for='request_text')
@@ -19,7 +20,6 @@ span
       b-btn(variant='primary' @click='saveRequest()') Save
       | &nbsp; &nbsp;
       b-btn(variant='outline-secondary' @click='closeDialog()') Cancel
-  toast(ref='toast')
 </template>
 
 <script>
@@ -30,23 +30,25 @@ import actions from '@/store/action-types'
 export default {
   name: 'edit-request',
   props: {
-    request: { required: true }
+    toast: { required: true },
+    events: { required: true }
   },
   data () {
     return {
       editVisible: false,
       form: {
-        requestText: this.request.text,
+        requestId: '',
+        requestText: '',
         status: 'Updated'
-      },
-      formLabelWidth: '120px'
+      }
     }
   },
-  mounted () {
-    this.$refs.toast.setOptions({ position: 'bottom right' })
+  created () {
+    this.events.$on('edit', this.openDialog)
   },
   methods: {
     closeDialog () {
+      this.form.requestId = ''
       this.form.requestText = ''
       this.form.status = 'Updated'
       this.editVisible = false
@@ -54,8 +56,11 @@ export default {
     focusRequestText (e) {
       this.$refs.toFocus.focus()
     },
-    openDialog () {
+    openDialog (request) {
+      this.form.requestId = request.requestId
+      this.form.requestText = request.text
       this.editVisible = true
+      this.focusRequestText(null)
     },
     trimText () {
       this.form.requestText = this.form.requestText.trim()
@@ -63,16 +68,16 @@ export default {
     async saveRequest () {
       await this.$store.dispatch(actions.UPDATE_REQUEST, {
         progress: this.$Progress,
-        requestId: this.request.requestId,
+        requestId: this.form.requestId,
         updateText: this.form.requestText,
         status: this.form.status
       })
       if (this.form.status === 'Answered') {
-        this.$refs.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
+        this.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
       } else {
-        this.$refs.toast.showToast('Request updated', { theme: 'success' })
+        this.toast.showToast('Request updated', { theme: 'success' })
       }
-      this.editVisible = false
+      this.closeDialog()
     }
   }
 }

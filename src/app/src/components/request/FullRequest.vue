@@ -23,13 +23,16 @@ import api from '@/api'
 export default {
   name: 'full-request',
   props: {
-    request: { required: true }
+    events: { required: true }
   },
   data () {
     return {
       historyVisible: false,
       full: null
     }
+  },
+  created () {
+    this.events.$on('full', this.openDialog)
   },
   components: {
     FullRequestHistory
@@ -39,10 +42,10 @@ export default {
       this.full = null
       this.historyVisible = false
     },
-    async openDialog () {
+    async openDialog (requestId) {
       this.historyVisible = true
       this.$Progress.start()
-      const req = await api.getFullRequest(this.request.requestId)
+      const req = await api.getFullRequest(requestId)
       this.full = req.data
       this.$Progress.finish()
     }

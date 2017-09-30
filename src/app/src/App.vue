@@ -4,6 +4,7 @@
   #content.container
     router-view
     vue-progress-bar
+    toast(ref='toast')
   footer
     p.text-right: i myPrayerJournal v0.8.1
 </template>
@@ -17,6 +18,14 @@ export default {
   name: 'app',
   components: {
     Navigation
+  },
+  mounted () {
+    this.$refs.toast.setOptions({ position: 'bottom right' })
+  },
+  computed: {
+    toast () {
+      return this.$refs.toast
+    }
   }
 }
 </script>
