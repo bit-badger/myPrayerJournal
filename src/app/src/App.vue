@@ -6,7 +6,7 @@
     vue-progress-bar
     toast(ref='toast')
   footer
-    p.text-right: i myPrayerJournal v0.8.1
+    p.text-right: i myPrayerJournal v0.8.2
 </template>
 
 <script>
@@ -45,5 +45,8 @@ footer p {
 .mpj-page-title {
   border-bottom: solid 1px lightgray;
   margin-bottom: 20px;
+}
+.mpj-request-text {
+  white-space: pre-line;
 }
 </style>

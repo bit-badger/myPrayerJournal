@@ -40,11 +40,6 @@ export default function (checkJwt) {
       }
       await next()
     })
-    // Get the least-recently-updated request (used for the "pray through the journal" feature)
-    .get('/:id/oldest', checkJwt, async (ctx, next) => {
-      ctx.body = await db.request.oldest(ctx.state.user.sub)
-      await next()
-    })
     .get('/answered', checkJwt, async (ctx, next) => {
       ctx.body = await db.request.answered(ctx.state.user.sub)
       ctx.response.status = 200

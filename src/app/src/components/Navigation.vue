@@ -1,5 +1,5 @@
 <template lang="pug">
-b-navbar(toggleable='sm' type='dark' variant='primary' fixed='top')
+b-navbar(toggleable='sm' type='dark' variant='mpj' fixed='top')
   b-nav-toggle(target='nav_collapse')
   b-navbar-brand(to='/')
     span(style='font-weight:100;') my
@@ -40,3 +40,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.bg-mpj {
+  background-color: #1e7e34 !important;
+}
+</style>

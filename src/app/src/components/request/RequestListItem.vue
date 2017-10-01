@@ -3,7 +3,7 @@ div
   b-card-group.w-100(deck)
     b-card(v-for='(request, idx) in row' border-variant='dark' no-body)
       b-card-body.p-0
-        p.card-text.request-card-text.mb-1.px-3.pt-3
+        p.card-text.mpj-request-text.mb-1.px-3.pt-3
           | {{ request.text }}
         p.card-text.p-0.pr-1.text-right: small.text-muted: em
           = '(last activity '
@@ -49,9 +49,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.request-card-text {
-  white-space: pre-line;
-}
-</style>

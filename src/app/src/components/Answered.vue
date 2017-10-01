@@ -3,11 +3,13 @@ article
   page-title(title='Answered Requests')
   p(v-if='!loaded') Loading answered requests...
   div(v-if='loaded')
-    p(v-for='req in requests')
+    p.mpj-request-text(v-for='req in requests')
       b-btn(@click='showFull(req.requestId)' size='sm' variant='outline-secondary')
         icon(name='search')
         | &nbsp;View Full Request
-      | &nbsp; &nbsp; {{ req.text }}
+      | &nbsp; &nbsp; {{ req.text }} &nbsp;
+      small.text-muted: em.
+        (Answered #[date-from-now(:value='req.asOf')])
   full-request(:events='eventBus')
 </template>
 
