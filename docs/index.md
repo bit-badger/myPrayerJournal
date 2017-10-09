@@ -39,5 +39,3 @@ Next to "Journal" on the top navigation is the word "Answered." This page lists 
 ## Known Issues
 
 See [the GitHub issues list](https://github.com/danieljsummers/myPrayerJournal/issues) for the most up-to-date list.
-
-- _If you try to do something an get an error notification instead of a green checkmark, try logging off and logging back on again. The site currently doesn't check to see if your session has expired, but the server with which it's communicating does._
