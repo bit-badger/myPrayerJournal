@@ -34,6 +34,7 @@ export default new Vuex.Store({
   state: {
     user: JSON.parse(localStorage.getItem('user_profile') || '{}'),
     isAuthenticated: (() => {
+      this.auth0.scheduleRenewal()
       if (this.auth0.isAuthenticated()) {
         api.setBearer(localStorage.getItem('id_token'))
       }

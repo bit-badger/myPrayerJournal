@@ -5,6 +5,8 @@ import auth0 from 'auth0-js'
 import AUTH_CONFIG from './auth0-variables'
 import mutations from '@/store/mutation-types'
 
+var tokenRenewalTimeout
+
 export default class AuthService {
 
   constructor () {
@@ -17,7 +19,7 @@ export default class AuthService {
   auth0 = new auth0.WebAuth({
     domain: AUTH_CONFIG.domain,
     clientID: AUTH_CONFIG.clientId,
-    redirectUri: AUTH_CONFIG.callbackUrl,
+    redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
     audience: `https://${AUTH_CONFIG.domain}/userinfo`,
     responseType: 'token id_token',
     scope: 'openid profile email'
@@ -78,6 +80,16 @@ export default class AuthService {
       })
   }
 
+  scheduleRenewal () {
+    let expiresAt = JSON.parse(localStorage.getItem('expires_at'))
+    let delay = expiresAt - Date.now()
+    if (delay > 0) {
+      tokenRenewalTimeout = setTimeout(() => {
+        this.renewToken()
+      }, delay)
+    }
+  }
+
   setSession (authResult) {
     // Set the time that the access token will expire at
     let expiresAt = JSON.stringify(
@@ -86,10 +98,30 @@ export default class AuthService {
     localStorage.setItem('access_token', authResult.accessToken)
     localStorage.setItem('id_token', authResult.idToken)
     localStorage.setItem('expires_at', expiresAt)
+    this.scheduleRenewal()
+  }
+
+  renewToken () {
+    console.log('attempting renewal...')
+    this.auth0.renewAuth(
+      {
+        audience: `https://${AUTH_CONFIG.domain}/userinfo`,
+        redirectUri: `${AUTH_CONFIG.appDomain}/static/silent.html`,
+        usePostMessage: true
+      },
+      (err, result) => {
+        if (err) {
+          console.log(err)
+        } else {
+          this.setSession(result)
+        }
+      }
+    )
   }
 
   logout (store, router) {
     // Clear access token and ID token from local storage
+    clearTimeout(tokenRenewalTimeout)
     localStorage.removeItem('access_token')
     localStorage.removeItem('id_token')
     localStorage.removeItem('expires_at')

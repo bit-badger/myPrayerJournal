@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdn.auth0.com/js/auth0/8.9/auth0.min.js"></script>
+  <script>
+    var webAuth = new auth0.WebAuth({
+      domain: 'djs-consulting.auth0.com',
+      clientID: 'Of2s0RQCQ3mt3dwIkOBY5h85J9sXbF2n',
+      scope: 'openid profile email',
+      responseType: 'token id_token',
+      redirectUri: 'http://localhost:3000/static/silent.html'
+    })
+  </script>
+  <script>
+    webAuth.parseHash(window.location.hash, function (err, response) {
+      parent.postMessage(err || response, 'http://localhost:3000');
+    })
+  </script>
+</head>
+<body></body>
+</html>
