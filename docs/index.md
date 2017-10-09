@@ -1,6 +1,8 @@
+# Documentation
+
 ## Caveats
 
-_myPrayerJournal is currently alpha software. There likely will be errors, the way things work may change, and parts of the application are unfinished or need polish. I **will** do my best to not lose any data, though; it is backed up the way other DJS Consulting sites have their data backed up. Throughout this document, current gotchas will be called out with italic text, like this notice._
+_myPrayerJournal is currently alpha software. There likely will be errors, the way things work may change, and parts of the application are unfinished or need polish. I **will** do my best to not lose any data, though; it is backed up the way other Bit Badger Solutions sites have their data backed up. Throughout this document, current gotchas will be called out with italic text, like this notice._
 
 ## Finding the Site
 

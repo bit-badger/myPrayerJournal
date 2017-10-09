@@ -1,15 +1,19 @@
 <template lang="pug">
 span
-  b-modal(title='Prayer Request History'
-          v-model='historyVisible'
-          size='lg'
-          header-bg-variant='dark'
+  b-modal(v-model='historyVisible'
+          header-bg-variant='mpj'
           header-text-variant='light'
+          size='lg'
+          title='Prayer Request History'
           @shows='focusRequestText')
-    b-list-group(v-if='null !== full' flush)
-      full-request-history(v-for='item in full.history' :history='item' :key='item.asOf')
+    b-list-group(v-if='null !== full'
+                 flush)
+      full-request-history(v-for='item in full.history'
+                           :key='item.asOf'
+                           :history='item')
     div.w-100.text-right(slot='modal-footer')
-      b-btn(variant='primary' @click='closeDialog()') Close
+      b-btn(variant='primary'
+            @click='closeDialog()') Close
 </template>
 
 <script>
@@ -21,6 +25,9 @@ import api from '@/api'
 
 export default {
   name: 'full-request',
+  components: {
+    FullRequestHistory
+  },
   props: {
     events: { required: true }
   },
@@ -32,9 +39,6 @@ export default {
   },
   created () {
     this.events.$on('full', this.openDialog)
-  },
-  components: {
-    FullRequestHistory
   },
   methods: {
     closeDialog () {

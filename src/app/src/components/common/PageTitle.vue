@@ -1,5 +1,6 @@
 <template lang="pug">
-h2.mpj-page-title(v-if='!hideOnPage' v-html='title')
+h2.mpj-page-title(v-if='!hideOnPage'
+                  v-html='title')
 </template>
 
 <script>
@@ -15,13 +16,20 @@ export default {
       default: false
     }
   },
-  created () {
-    document.title = `${this.title} « myPrayerJournal`
-  },
   watch: {
     title () {
       document.title = `${this.title} « myPrayerJournal`
     }
+  },
+  created () {
+    document.title = `${this.title} « myPrayerJournal`
   }
 }
 </script>
+
+<style scoped>
+.mpj-page-title {
+  border-bottom: solid 1px lightgray;
+  margin-bottom: 20px;
+}
+</style>

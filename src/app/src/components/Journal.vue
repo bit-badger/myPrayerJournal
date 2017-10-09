@@ -12,7 +12,8 @@ article
                       :toast='toast'
                       :key='row[0].requestId')
     p.text-center(v-if='journal.length === 0'): em No requests found; click the "Add a New Request" button to add one
-    edit-request(:events='eventBus' :toast='toast' )
+    edit-request(:events='eventBus'
+                 :toast='toast')
     full-request(:events='eventBus')
 </template>
 
@@ -32,16 +33,16 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'journal',
-  data () {
-    return {
-      eventBus: new Vue()
-    }
-  },
   components: {
     EditRequest,
     FullRequest,
     NewRequest,
     RequestListItem
+  },
+  data () {
+    return {
+      eventBus: new Vue()
+    }
   },
   computed: {
     title () {

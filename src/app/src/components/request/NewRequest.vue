@@ -3,19 +3,25 @@ div
   b-btn(@click='openDialog()' size='sm' variant='primary')
     icon(name='plus')
     | &nbsp; Add a New Request
-  b-modal(title='Add a New Prayer Request'
-          v-model='showNewVisible'
-          size='lg'
-          header-bg-variant='dark'
+  b-modal(v-model='showNewVisible'
+          header-bg-variant='mpj'
           header-text-variant='light'
+          size='lg'
+          title='Add a New Prayer Request'
           @shown='focusRequestText')
     b-form
-      b-form-group(label='Prayer Request' label-for='request_text')
-        b-textarea#request_text(v-model='form.requestText' :rows='10' @blur='trimText()' ref='toFocus')
+      b-form-group(label='Prayer Request'
+                   label-for='request_text')
+        b-textarea#request_text(ref='toFocus'
+                                v-model='form.requestText'
+                                :rows='10'
+                                @blur='trimText()')
     div.w-100.text-right(slot='modal-footer')
-      b-btn(variant='primary' @click='saveRequest()') Save
+      b-btn(variant='primary'
+            @click='saveRequest()') Save
       | &nbsp; &nbsp;
-      b-btn(variant='outline-secondary' @click='closeDialog()') Cancel
+      b-btn(variant='outline-secondary'
+            @click='closeDialog()') Cancel
   toast(ref='toast')
 </template>
 

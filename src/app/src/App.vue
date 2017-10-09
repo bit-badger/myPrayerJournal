@@ -31,6 +31,9 @@ export default {
 </script>
 
 <style>
+html, body {
+  background-color: whitesmoke;
+}
 body {
   padding-top: 60px;
 }
@@ -42,11 +45,13 @@ footer {
 footer p {
   margin: 0;
 }
-.mpj-page-title {
-  border-bottom: solid 1px lightgray;
-  margin-bottom: 20px;
-}
 .mpj-request-text {
   white-space: pre-line;
+}
+.bg-mpj {
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#050), to(whitesmoke));
+  background-image: -webkit-linear-gradient(top, #050, whitesmoke);
+  background-image: -moz-linear-gradient(top, #050, whitesmoke);
+  background-image: linear-gradient(to bottom, #050, whitesmoke);
 }
 </style>
