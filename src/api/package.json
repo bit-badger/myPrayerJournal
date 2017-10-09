@@ -1,7 +1,7 @@
 {
   "name": "my-prayer-journal-api",
   "private": true,
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Server API for myPrayerJournal",
   "main": "index.js",
   "author": "Daniel J. Summers <daniel@djs-consulting.com>",

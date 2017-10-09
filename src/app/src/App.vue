@@ -6,7 +6,7 @@
     vue-progress-bar
     toast(ref='toast')
   footer
-    p.text-right: i myPrayerJournal v0.8.2
+    p.text-right: i myPrayerJournal v0.8.3
 </template>
 
 <script>
