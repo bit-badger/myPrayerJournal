@@ -1,10 +1,10 @@
 {
   "name": "my-prayer-journal-api",
   "private": true,
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Server API for myPrayerJournal",
   "main": "index.js",
-  "author": "Daniel J. Summers <daniel@djs-consulting.com>",
+  "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
   "license": "MIT",
   "dependencies": {
     "chalk": "^2.1.0",
