@@ -18,21 +18,41 @@ const requestNotFound = {
 }
 
 export default function (pool) {
+  
+  /**
+   * Retrieve basic information about a single request
+   * @param {string} requestId The Id of the request to retrieve
+   * @param {string} userId The Id of the user to whom the request belongs
+   */
+  let retrieveRequest = (requestId, userId) =>
+    pool.query(`
+      SELECT "requestId", "enteredOn"
+        FROM mpj.request
+      WHERE "requestId" = $1
+        AND "userId" = $2`,
+      [ requestId, userId ])
+  
   return {
     /**
      * Add a history entry for this request
-     * @param {string} requestId The Id of the request
+     * @param {string} userId The Id of the user to whom this request belongs
+     * @param {string} requestId The Id of the request to which the update applies
      * @param {string} status The status for this history entry
      * @param {string} updateText The updated text for the request (pass blank if no update)
+     * @return {number} 404 if the request is not found or does not belong to the given user, 204 if successful
      */
-    addHistory: async (requestId, status, updateText) => {
-      const asOf = Date.now()
+    addHistory: async (userId, requestId, status, updateText) => {
+      const req = retrieveRequest(requestId, userId)
+      if (req.rowCount === 0) {
+        return 404
+      }
       await pool.query(`
         INSERT INTO mpj.history
           ("requestId", "asOf", "status", "text")
         VALUES
           ($1, $2, $3, NULLIF($4, ''))`,
-      [ requestId, asOf, status, updateText ])
+        [ requestId, Date.now(), status, updateText ])
+      return 204
     },
 
     /**
@@ -69,6 +89,27 @@ export default function (pool) {
     },
 
     /**
+     * Add a note about a prayer request
+     * @param {string} userId The Id of the user to whom the request belongs
+     * @param {string} requestId The Id of the request to which the note applies
+     * @param {string} note The notes to add
+     * @return {number} 404 if the request is not found or does not belong to the given user, 204 if successful
+     */
+    addNote: async (userId, requestId, note) => {
+      const req = retrieveRequest(requestId, userId)
+      if (req.rowCount === 0) {
+        return 404
+      }
+      await pool.query(`
+        INSERT INTO mpj.note
+          ("requestId", "asOf", "notes")
+        VALUES
+          ($1, $2, $3)`,
+        [ requestId, Date.now(), note ])
+      return 204
+    },
+
+    /**
      * Get all answered requests with their text as of the "Answered" status
      * @param {string} userId The Id of the user for whom requests should be retrieved
      * @return All requests
@@ -101,12 +142,7 @@ export default function (pool) {
      * @return The request, or a request-like object indicating that the request was not found
      */
     fullById: async (userId, requestId) => {
-      const reqResults = await pool.query(`
-        SELECT "requestId", "enteredOn"
-          FROM mpj.request
-         WHERE "requestId" = $1
-           AND "userId" = $2`,
-        [ requestId, userId ])
+      const reqResults = await retrieveRequest(requestId, userId)
       if (0 === reqResults.rowCount) {
         return requestNotFound
       }
@@ -126,7 +162,27 @@ export default function (pool) {
      * @param {string} userId The Id of the user
      * @return The requests that make up the current journal
      */
-    journal: async userId => (await pool.query(`${journalSql} ORDER BY "asOf"`, [ userId ])).rows
+    journal: async userId => (await pool.query(`${journalSql} ORDER BY "asOf"`, [ userId ])).rows,
+
+    /**
+     * Get the notes for a request, most recent first
+     * @param {string} userId The Id of the user to whom the request belongs
+     * @param {string} requestId The Id of the request whose notes should be retrieved
+     * @return The notes for the request
+     */
+    notesById: async (userId, requestId) => {
+      const reqResults = await retrieveRequest(requestId, userId)
+      if (0 === reqResults.rowCount) {
+        return requestNotFound
+      }
+      const notes = await pool.query(`
+        SELECT "asOf", "notes"
+          FROM mpj.note
+         WHERE "requestId" = $1
+         ORDER BY "asOf" DESC`,
+        [ requestId ])
+      return notes.rows
+    }
     
   }
 }

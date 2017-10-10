@@ -16,8 +16,13 @@ export default function (checkJwt) {
     // Add a request history entry (prayed, updated, answered, etc.)
     .post('/:id/history', checkJwt, async (ctx, next) => {
       const body = ctx.request.body
-      await db.request.addHistory(ctx.params.id, body.status, body.updateText)
-      ctx.response.status = 204
+      ctx.response.status = await db.request.addHistory(ctx.state.user.sub, ctx.params.id, body.status, body.updateText)
+      await next()
+    })
+    // Add a note to a request
+    .post('/:id/note', checkJwt, async (ctx, next) => {
+      const body = ctx.request.body
+      ctx.response.status = await db.request.addNote(ctx.state.user.sub, ctx.params.id, body.notes)
       await next()
     })
     // Get a journal-style request by its Id
@@ -37,6 +42,17 @@ export default function (checkJwt) {
         ctx.response.status = 404
       } else {
         ctx.body = req
+      }
+      await next()
+    })
+    // Get the notes for a request
+    .get('/:id/notes', checkJwt, async (ctx, next) => {
+      const notes = await db.request.notesById(ctx.state.user.sub, ctx.params.id)
+      if (notes.text && 'Not Found' === notes.text) {
+        ctx.response.status = 404
+      } else {
+        ctx.body = notes
+        ctx.response.status = 200
       }
       await next()
     })

@@ -26,6 +26,13 @@ export default {
   journal: () => http.get('journal/'),
 
   /**
+   * Add a note for a prayer request
+   * @param {string} requestId The Id of the request to which the note applies
+   * @param {string} notes The notes to be added
+   */
+  addNote: (requestId, notes) => http.post(`request/${requestId}/note`, { notes }),
+
+  /**
    * Add a new prayer request
    * @param {string} requestText The text of the request to be added
    */
@@ -55,6 +62,12 @@ export default {
   /**
    * Get all answered requests, along with the text they had when it was answered
    */
-  getAnsweredRequests: () => http.get('request/answered')
+  getAnsweredRequests: () => http.get('request/answered'),
+
+  /**
+   * Get past notes for a prayer request
+   * @param {string} requestId The Id of the request for which notes should be retrieved
+   */
+  getNotes: requestId => http.get(`request/${requestId}/notes`)
 
 }

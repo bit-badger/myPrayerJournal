@@ -14,6 +14,8 @@ article
     p.text-center(v-if='journal.length === 0'): em No requests found; click the "Add a New Request" button to add one
     edit-request(:events='eventBus'
                  :toast='toast')
+    notes-edit(:events='eventBus'
+               :toast='toast')
     full-request(:events='eventBus')
 </template>
 
@@ -27,6 +29,7 @@ import chunk from 'lodash/chunk'
 import EditRequest from './request/EditRequest'
 import FullRequest from './request/FullRequest'
 import NewRequest from './request/NewRequest'
+import NotesEdit from './request/NotesEdit'
 import RequestListItem from './request/RequestListItem'
 
 import actions from '@/store/action-types'
@@ -37,6 +40,7 @@ export default {
     EditRequest,
     FullRequest,
     NewRequest,
+    NotesEdit,
     RequestListItem
   },
   data () {

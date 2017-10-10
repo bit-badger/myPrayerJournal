@@ -1,7 +1,9 @@
 <template lang="pug">
 b-list-group-item
-  | {{ history.status }} {{ asOf }}
-  span(v-if='0 < history.text.length') &nbsp;&raquo; {{ history.text }}
+  | {{ history.status }}
+  |
+  small.text-muted {{ asOf }}
+  div(v-if='hasText').mpj-request-text {{ history.text }}
 </template>
 
 <script>
@@ -17,6 +19,9 @@ export default {
   computed: {
     asOf () {
       return moment(this.history.asOf).fromNow()
+    },
+    hasText () {
+      return this.history.text.length > 0
     }
   }
 }

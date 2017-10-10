@@ -28,6 +28,10 @@ The first button for each request has a checkmark icon; clicking this button wil
 
 The second button for each request has a pencil icon. This allows you to edit the text of the request, pretty much the same way you entered it; it starts with the current text, and you can add to it, modify it, or completely replace it. By default, updates will go in with an "Updated" status; you have the option to also mark this update as "Prayed" or "Answered." Answered requests will drop off the journal list.
 
+## Adding Notes
+
+The third button for each request has an icon that looks like a piece of paper with writing; this lets you record notes about the request. If there is something you want to record that doesn't change the text of the request, this is the place to do it. For example, you may be praying for a long-term health issue, and that person tells you that their status is the same; or, you may want to record something God said to you while you were praying for that request.
+
 ## Viewing a Request and Its History
 
 myPrayerJournal tracks all of the actions related to a request; the fourth button, with the magnifying glass icon, will show you the entire history, including the text as it changed, and all the times "Prayed" was recorded.

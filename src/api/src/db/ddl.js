@@ -47,6 +47,17 @@ const ddl = [
       COMMENT ON TABLE mpj.history IS 'Request update history'`
   },
   {
+    name: 'note Table',
+    check: tableSql('note'),
+    fix: `
+      CREATE TABLE mpj.note (
+        "requestId" varchar(25) NOT NULL REFERENCES mpj.request,
+        "asOf" bigint NOT NULL,
+        "notes" text NOT NULL,
+        PRIMARY KEY ("requestId", "asOf"));
+      COMMENT ON TABLE mpj.note IS 'Notes regarding a request'`
+  },
+  {
     name: 'request.userId Index',
     check: indexSql('request', 'idx_request_userId'),
     fix: `
