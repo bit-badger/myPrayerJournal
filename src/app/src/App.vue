@@ -6,7 +6,10 @@
     vue-progress-bar
     toast(ref='toast')
   footer
-    p.text-right: i myPrayerJournal v0.8.4
+    p.text-right.text-muted: i.
+      myPrayerJournal v{{ version }} &bull;
+      #[a(href='https://github.com/danieljsummers/myprayerjournal') Developed] and hosted by
+      #[a(href='https://bitbadger.solutions') Bit Badger Solutions]
 </template>
 
 <script>
@@ -14,10 +17,15 @@
 
 import Navigation from './components/Navigation.vue'
 
+import { version } from '../package.json'
+
 export default {
   name: 'app',
   components: {
     Navigation
+  },
+  data () {
+    return { version }
   },
   mounted () {
     this.$refs.toast.setOptions({ position: 'bottom right' })
@@ -44,6 +52,9 @@ footer {
 }
 footer p {
   margin: 0;
+}
+a:link, a:visited {
+  color: #050;
 }
 .mpj-request-text {
   white-space: pre-line;
