@@ -38,7 +38,7 @@ myPrayerJournal tracks all of the actions related to a request; the fourth butto
 
 ## Answered Requests
 
-Next to "Journal" on the top navigation is the word "Answered." This page lists all answered requests, from most recent to least recent, along with the text of the request at the time it was marked as answered. It will also show you when it was marked answered. The button with the magnifying class at the words "Show Full Request" behave the same way as the paragraph immediately preceding this describes. _(This will likely change before a 0.9.x release, but this gives at least some way to find and review answered requests.)_
+Next to "Journal" on the top navigation is the word "Answered." This page lists all answered requests, from most recent to least recent, along with the text of the request at the time it was marked as answered. It will also show you when it was marked answered. The button at the bottom of each request, with the magnifying glass and the words "Show Full Request", link to a page that shows that request's complete history and notes, along with a few statistics about that request. The history and notes are listed from most recent to least recent; if you want to read it chronologically, just press the "End" key on your keyboard and read it from the bottom up.
 
 ## Known Issues
 
