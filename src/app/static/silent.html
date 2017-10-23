@@ -9,12 +9,12 @@
       clientID: 'Of2s0RQCQ3mt3dwIkOBY5h85J9sXbF2n',
       scope: 'openid profile email',
       responseType: 'token id_token',
-      redirectUri: 'http://localhost:3000/static/silent.html'
+      redirectUri: location.protocol + '//' + location.host + '/static/silent.html'
     })
   </script>
   <script>
     webAuth.parseHash(window.location.hash, function (err, response) {
-      parent.postMessage(err || response, 'http://localhost:3000');
+      parent.postMessage(err || response, location.protocol + '//' + location.host);
     })
   </script>
 </head>

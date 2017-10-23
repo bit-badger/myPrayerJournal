@@ -21,8 +21,8 @@ b-modal(v-model='notesVisible'
         small.text-muted: date-from-now(:value='note.asOf')
         br
         div.mpj-request-text {{ note.notes }}
-  div(v-if='noPriorNotes').text-center.text-muted There are no prior notes for this request
-  div(v-if='!priorNotesLoaded').text-center
+  div(v-else-if='noPriorNotes').text-center.text-muted There are no prior notes for this request
+  div(v-else).text-center
     b-btn(variant='outline-secondary'
           @click='loadNotes()') Load Prior Notes
   div.w-100.text-right(slot='modal-footer')

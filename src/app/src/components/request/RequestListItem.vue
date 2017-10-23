@@ -17,7 +17,7 @@ div
           = '(last activity '
           date-from-now(:value='request.asOf')
           | )
-    b-card(v-for='it in 3 - row.length')
+    b-card(v-for='it in 3 - row.length' key='-1')
   br
 </template>
 

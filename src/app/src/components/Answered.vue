@@ -2,36 +2,29 @@
 article
   page-title(title='Answered Requests')
   p(v-if='!loaded') Loading answered requests...
-  div(v-if='loaded')
+  div(v-if='loaded').mpj-answered-list
     p.mpj-request-text(v-for='req in requests' :key='req.requestId')
-      b-btn(@click='showFull(req.requestId)'
+      | {{ req.text }}
+      br
+      br
+      b-btn(:to='{ name: "AnsweredDetail", params: { id: req.requestId }}'
             size='sm'
             variant='outline-secondary')
         icon(name='search')
-        | &nbsp;View Full Request
-      | &nbsp; &nbsp; {{ req.text }} &nbsp;
+        = ' View Full Request'
       small.text-muted: em.
-        (Answered #[date-from-now(:value='req.asOf')])
-  full-request(:events='eventBus')
+        &nbsp; Answered #[date-from-now(:value='req.asOf')]
 </template>
 
 <script>
 'use static'
 
-import Vue from 'vue'
-
-import FullRequest from './request/FullRequest'
-
 import api from '@/api'
 
 export default {
   name: 'answered',
-  components: {
-    FullRequest
-  },
   data () {
     return {
-      eventBus: new Vue(),
       requests: [],
       loaded: false
     }
@@ -54,11 +47,15 @@ export default {
     } finally {
       this.loaded = true
     }
-  },
-  methods: {
-    showFull (requestId) {
-      this.eventBus.$emit('full', requestId)
-    }
   }
 }
 </script>
+
+<style>
+.mpj-answered-list p {
+  border-top: solid 1px lightgray;
+}
+.mpj-answered-list p:first-child {
+  border-top: none;
+}
+</style>

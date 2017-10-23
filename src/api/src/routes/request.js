@@ -56,6 +56,19 @@ export default function (checkJwt) {
       }
       await next()
     })
+    // Get a complete request; equivalent to full + notes
+    .get('/:id/complete', checkJwt, async (ctx, next) => {
+      const req = await db.request.fullById(ctx.state.user.sub, ctx.params.id)
+      if ('Not Found' === req.text) {
+        ctx.response.status = 404
+      } else {
+        ctx.response.status = 200
+        req.notes = await db.request.notesById(ctx.state.user.sub, ctx.params.id)
+        ctx.body = req
+      }
+      await next()
+    })
+    // Get all answered requests
     .get('/answered', checkJwt, async (ctx, next) => {
       ctx.body = await db.request.answered(ctx.state.user.sub)
       ctx.response.status = 200
