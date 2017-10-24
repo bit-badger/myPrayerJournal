@@ -21,7 +21,7 @@ b-col(md='6' lg='4')
 import actions from '@/store/action-types'
 
 export default {
-  name: 'request-list-item',
+  name: 'request-card',
   props: {
     request: { required: true },
     toast: { required: true },

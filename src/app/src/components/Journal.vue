@@ -6,11 +6,11 @@ article
     new-request
     br
     b-row(v-if='journal.length > 0')
-      request-list-item(v-for='request in journal'
-                        :key='request.requestId'
-                        :request='request'
-                        :events='eventBus'
-                        :toast='toast')
+      request-card(v-for='request in journal'
+                   :key='request.requestId'
+                   :request='request'
+                   :events='eventBus'
+                   :toast='toast')
     p.text-center(v-if='journal.length === 0'): em No requests found; click the "Add a New Request" button to add one
     edit-request(:events='eventBus'
                  :toast='toast')
@@ -30,7 +30,7 @@ import EditRequest from './request/EditRequest'
 import FullRequest from './request/FullRequest'
 import NewRequest from './request/NewRequest'
 import NotesEdit from './request/NotesEdit'
-import RequestListItem from './request/RequestListItem'
+import RequestCard from './request/RequestCard'
 
 import actions from '@/store/action-types'
 
@@ -41,7 +41,7 @@ export default {
     FullRequest,
     NewRequest,
     NotesEdit,
-    RequestListItem
+    RequestCard
   },
   data () {
     return {
