@@ -8,7 +8,8 @@ article
       #[small: em.text-muted prayed {{ prayedCount }} times, open {{ openDays }} days]
     p.mpj-request-text {{ lastText }}
     b-table(small hover :fields='fields' :items='log')
-      template(slot='action' scope='data') {{ data.item.status }} on {{ formatDate(data.item.asOf) }}
+      template(slot='action' scope='data').
+        {{ data.item.status }} on #[span.text-nowrap {{ formatDate(data.item.asOf) }}]
 </template>
 
 <script>

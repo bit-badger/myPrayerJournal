@@ -6,10 +6,12 @@
     vue-progress-bar
     toast(ref='toast')
   footer
-    p.text-right.text-muted: i.
-      myPrayerJournal v{{ version }} &bull;
-      #[a(href='https://github.com/danieljsummers/myprayerjournal') Developed] and hosted by
-      #[a(href='https://bitbadger.solutions') Bit Badger Solutions]
+    p.text-right.text-muted
+      | myPrayerJournal v{{ version }}
+      br
+      em: small.
+        #[a(href='https://github.com/danieljsummers/myprayerjournal') Developed] and hosted by
+        #[a(href='https://bitbadger.solutions') Bit Badger Solutions]
 </template>
 
 <script>

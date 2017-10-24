@@ -5,12 +5,12 @@ article
   template(v-if='!isLoadingJournal')
     new-request
     br
-    request-list-item(v-if='journal.length > 0'
-                      v-for='row in journalCardRows'
-                      :row='row'
-                      :events='eventBus'
-                      :toast='toast'
-                      :key='row[0].requestId')
+    b-row(v-if='journal.length > 0')
+      request-list-item(v-for='request in journal'
+                        :key='request.requestId'
+                        :request='request'
+                        :events='eventBus'
+                        :toast='toast')
     p.text-center(v-if='journal.length === 0'): em No requests found; click the "Add a New Request" button to add one
     edit-request(:events='eventBus'
                  :toast='toast')
