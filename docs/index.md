@@ -1,8 +1,10 @@
 # Documentation
 
-## Caveats
+## About myPrayerJournal
 
-_myPrayerJournal is currently alpha software. There likely will be errors, the way things work may change, and parts of the application are unfinished or need polish. I **will** do my best to not lose any data, though; it is backed up the way other Bit Badger Solutions sites have their data backed up. Throughout this document, current gotchas will be called out with italic text, like this notice._
+Journaling has a long history; it helps people remember what happened, and the act of writing helps people think about what happened and process it. A prayer journal is not a new concept; it helps you keep track of the requests for which you've prayed, you can use it to pray over things repeatedly, and you can write the result when the answer comes _(or it was "no")_.
+
+myPrayerJournal was borne of out of a personal desire I (Daniel) had to have something that would help me with my prayer life. When it's time to pray, it's not really time to use an app, so the design goal here is to keep it simple and unobtrusive. It will also help eliminate some of the downsides to a paper prayer journal, like not remembering whether you've prayed for a request, or running out of room to write another update on one.
 
 ## Finding the Site
 
@@ -14,7 +16,7 @@ myPrayerJournal uses login services using Google or Microsoft accounts. The only
 
 ## Your Prayer Journal
 
-Your current requests will be presented in three columns (or one, if you're using a mobile phone). Each request is in its own card, and the buttons at the bottom of each card apply to that request. The last line of each request also tells you how long it has been since anything has been done on that request. Any time you see something like "a few minutes ago," you can hover over that to see the actual date/time the action was taken.
+Your current requests will be presented in three columns (or two or one, depending on the size of your screen or device). Each request is in its own card, and the buttons at the top of each card apply to that request. The last line of each request also tells you how long it has been since anything has been done on that request. Any time you see something like "a few minutes ago," you can hover over that to see the actual date/time the action was taken.
 
 ## Adding a Request
 
@@ -40,6 +42,8 @@ myPrayerJournal tracks all of the actions related to a request; the fourth butto
 
 Next to "Journal" on the top navigation is the word "Answered." This page lists all answered requests, from most recent to least recent, along with the text of the request at the time it was marked as answered. It will also show you when it was marked answered. The button at the bottom of each request, with the magnifying glass and the words "Show Full Request", link to a page that shows that request's complete history and notes, along with a few statistics about that request. The history and notes are listed from most recent to least recent; if you want to read it chronologically, just press the "End" key on your keyboard and read it from the bottom up.
 
-## Known Issues
+## Final Notes
 
-See [the GitHub issues list](https://github.com/danieljsummers/myPrayerJournal/issues) for the most up-to-date list.
+- myPrayerJournal is currently in public beta. If you encounter errors, please [file an issue on GitHub](https://github.com/danieljsummers/myPrayerJournal/issues) with as much detail as possible. You can also browse the list of issues to see what has been done and what is still left to do.
+- Prayer requests and their history are securely backed up nightly along with other Bit Badger Solutions data.
+- Prayer changes things - most of all, the one doing the praying. I pray that this tool enables you to deepen and strengthen your prayer life.
