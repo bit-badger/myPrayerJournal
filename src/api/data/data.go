@@ -7,6 +7,8 @@ import (
 	"log"
 	"time"
 
+	// Register the PostgreSQL driver.
+	_ "github.com/lib/pq"
 	"github.com/lucsky/cuid"
 )
 
@@ -20,6 +22,15 @@ const (
 		 WHERE "userId" = $1
 		   AND "lastStatus" <> 'Answered'`
 )
+
+// Settings holds the PostgreSQL configuration for myPrayerJournal.
+type Settings struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	DbName   string `json:"dbname"`
+}
 
 /* Data Access */
 
@@ -74,7 +85,7 @@ func AddHistory(db *sql.DB, userID, reqID, status, text string) int {
 	}
 	_, err := db.Exec(`
         INSERT INTO mpj.history
-          	("requestId", "asOf", "status", "text")
+        	("requestId", "asOf", "status", "text")
         VALUES
 			($1, $2, $3, NULLIF($4, ''))`,
 		reqID, jsNow(), status, text)
@@ -123,9 +134,9 @@ func AddNote(db *sql.DB, userID, reqID, note string) int {
 		return 404
 	}
 	_, err := db.Exec(`
-        INSERT INTO mpj.note
-        	("requestId", "asOf", "notes")
-        VALUES
+		INSERT INTO mpj.note
+			("requestId", "asOf", "notes")
+		VALUES
 			($1, $2, $3)`,
 		reqID, jsNow(), note)
 	if err != nil {
@@ -164,6 +175,24 @@ func ByID(db *sql.DB, userID, reqID string) (*JournalRequest, bool) {
 		return nil, false
 	}
 	return &req, true
+}
+
+// Connect establishes a connection to the database.
+func Connect(s *Settings) (*sql.DB, bool) {
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		s.Host, s.Port, s.User, s.Password, s.DbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Print(err)
+		return nil, false
+	}
+	err = db.Ping()
+	if err != nil {
+		log.Print(err)
+		return nil, false
+	}
+	log.Printf("Connected to postgres://%s@%s:%d/%s\n", s.User, s.Host, s.Port, s.DbName)
+	return db, true
 }
 
 // FullByID retrieves a journal request, including its full history and notes.

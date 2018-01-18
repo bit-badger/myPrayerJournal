@@ -2,10 +2,17 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"log"
+
+	"github.com/danieljsummers/myPrayerJournal/src/api/data"
+	"github.com/danieljsummers/myPrayerJournal/src/api/routes"
 )
 
 func main() {
-	fmt.Print(time.Now().UnixNano() / int64(1000000))
+	db, ok := data.Connect(&data.Settings{})
+	if !ok {
+		log.Fatal("Unable to connect to database; exiting")
+	}
+	router := routes.Routes(db)
+	_ = router // TODO: remove
 }
