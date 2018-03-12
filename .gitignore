@@ -253,8 +253,9 @@ paket-files/
 *.sln.iml
 
 # Compiled files / application
+src/api/build
 src/api/public/index.html
 src/api/public/static
 src/api/appsettings.json
-build/
+/build
 src/*.exe
