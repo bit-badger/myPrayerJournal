@@ -254,8 +254,8 @@ paket-files/
 
 # Compiled files / application
 src/api/build
-src/api/public/index.html
-src/api/public/static
+src/public/index.html
+src/public/static
 src/config.json
 /build
 src/*.exe

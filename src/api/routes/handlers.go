@@ -33,7 +33,8 @@ func sendJSON(w http.ResponseWriter, r *http.Request, result interface{}) {
 /* Handlers */
 
 func journal(w http.ResponseWriter, r *http.Request, _ httprouter.Params, db *sql.DB) {
-	reqs := data.Journal(db, "TODO: get user ID")
+	user := r.Context().Value(ContextUserKey)
+	reqs := data.Journal(db, user.(string))
 	if reqs == nil {
 		reqs = []data.JournalRequest{}
 	}
