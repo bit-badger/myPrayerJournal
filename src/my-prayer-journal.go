@@ -30,9 +30,8 @@ func readSettings(f string) *Settings {
 		log.Fatal(err)
 	}
 	defer config.Close()
-	parser := json.NewDecoder(config)
 	settings := Settings{}
-	if err = parser.Decode(&settings); err != nil {
+	if err = json.NewDecoder(config).Decode(&settings); err != nil {
 		log.Fatal(err)
 	}
 	return &settings

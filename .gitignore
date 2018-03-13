@@ -256,6 +256,6 @@ paket-files/
 src/api/build
 src/api/public/index.html
 src/api/public/static
-src/api/appsettings.json
+src/config.json
 /build
 src/*.exe

@@ -1,9 +1,11 @@
 package routes
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	auth0 "github.com/auth0-community/go-auth0"
 	"github.com/julienschmidt/httprouter"
@@ -17,14 +19,22 @@ type AuthConfig struct {
 	ClientSecret string `json:"secret"`
 }
 
-// DBHandler extends httprouter's handler with a DB instance
+// DBHandler extends httprouter's handler with a DB instance.
 type DBHandler func(http.ResponseWriter, *http.Request, httprouter.Params, *sql.DB)
 
 //type APIHandler func(http.ResponseWriter, *http.Request, httprouter.Params, *sql.DB, string)
 
+// ContextKey is the type of key used in our contexts.
+type ContextKey string
+
+// ContextUserKey is the key for the current user in the context.
+const ContextUserKey ContextKey = "user"
+
 func withDB(next DBHandler, db *sql.DB) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		next(w, r, p, db)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(60*time.Second))
+		defer cancel()
+		next(w, r.WithContext(ctx), p, db)
 	}
 }
 
@@ -32,9 +42,9 @@ func withAuth(next DBHandler, cfg *AuthConfig) DBHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, db *sql.DB) {
 		secret := []byte(cfg.ClientSecret)
 		secretProvider := auth0.NewKeyProvider(secret)
-		audience := []string{"{YOUR-AUTH0-API-AUDIENCE}"}
+		audience := []string{fmt.Sprintf("https://%s/userinfo", cfg.Domain)}
 
-		configuration := auth0.NewConfiguration(secretProvider, audience, fmt.Sprintf("https://%s.auth0.com/", cfg.Domain), jose.HS256)
+		configuration := auth0.NewConfiguration(secretProvider, audience, fmt.Sprintf("https://%s/", cfg.Domain), jose.HS256)
 		validator := auth0.NewValidator(configuration)
 
 		token, err := validator.ValidateRequest(r)
@@ -45,6 +55,11 @@ func withAuth(next DBHandler, cfg *AuthConfig) DBHandler {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte("Unauthorized"))
 		} else {
+			values := make(map[string]interface{})
+			if err := token.Claims(secret, &values); err != nil {
+				sendError(w, r, err)
+			}
+			r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, values["sub"]))
 			// TODO pass the user ID (sub) along; this -> doesn't work | r.Header.Add("user-id", token.Claims("sub"))
 			next(w, r, p, db)
 		}
