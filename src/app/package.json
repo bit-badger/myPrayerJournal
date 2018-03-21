@@ -13,7 +13,7 @@
     "test": "npm run unit && npm run e2e",
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs",
     "apistart": "cd .. && go build -o mpj-api.exe && mpj-api.exe",
-    "vue": "node build/build.js prod && go build -o mpj-api.exe && mpj-api.exe"
+    "vue": "node build/build.js prod && cd .. && go build -o mpj-api.exe && mpj-api.exe"
   },
   "dependencies": {
     "auth0-js": "^9.3.3",

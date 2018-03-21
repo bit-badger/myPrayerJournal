@@ -18,7 +18,7 @@ var routes = Routes{
 	Route{
 		"Journal",
 		"GET",
-		"/journal",
+		"/api/journal",
 		journal,
 		false,
 	},

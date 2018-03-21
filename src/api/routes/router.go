@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	auth0 "github.com/auth0-community/go-auth0"
+	"github.com/auth0-community/go-auth0"
 	"github.com/julienschmidt/httprouter"
-	jose "gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2"
 )
 
 // AuthConfig contains the Auth0 configuration passed from the "auth" JSON object.
@@ -45,7 +45,7 @@ func withAuth(next DBHandler, cfg *AuthConfig) DBHandler {
 		audience := []string{fmt.Sprintf("https://%s/userinfo", cfg.Domain)}
 
 		configuration := auth0.NewConfiguration(secretProvider, audience, fmt.Sprintf("https://%s/", cfg.Domain), jose.HS256)
-		validator := auth0.NewValidator(configuration)
+		validator := auth0.NewValidator(configuration, nil)
 
 		token, err := validator.ValidateRequest(r)
 
@@ -77,5 +77,6 @@ func NewRouter(db *sql.DB, cfg *AuthConfig) *httprouter.Router {
 			router.Handle(route.Method, route.Pattern, withDB(withAuth(route.Func, cfg), db))
 		}
 	}
+	// router.ServeFiles("/*filepath", http.Dir("/public"))
 	return router
 }
