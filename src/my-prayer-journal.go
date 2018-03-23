@@ -39,10 +39,10 @@ func readSettings(f string) *Settings {
 
 func main() {
 	cfg := readSettings("config.json")
-	db, ok := data.Connect(cfg.Data)
-	if !ok {
+	if ok := data.Connect(cfg.Data); !ok {
 		log.Fatal("Unable to connect to database; exiting")
 	}
+	data.EnsureDB()
 	log.Printf("myPrayerJournal API listening on %s", cfg.Web.Port)
-	log.Fatal(http.ListenAndServe(cfg.Web.Port, routes.NewRouter(db, cfg.Auth)))
+	log.Fatal(http.ListenAndServe(cfg.Web.Port, routes.NewRouter(cfg.Auth)))
 }

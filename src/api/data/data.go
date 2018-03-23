@@ -23,6 +23,9 @@ const (
 		   AND "lastStatus" <> 'Answered'`
 )
 
+// db is a connection to the database for the entire application.
+var db *sql.DB
+
 // Settings holds the PostgreSQL configuration for myPrayerJournal.
 type Settings struct {
 	Host     string `json:"host"`
@@ -35,7 +38,7 @@ type Settings struct {
 /* Data Access */
 
 // Retrieve a basic request
-func retrieveRequest(db *sql.DB, reqID, userID string) (*Request, bool) {
+func retrieveRequest(reqID, userID string) (*Request, bool) {
 	req := Request{}
 	err := db.QueryRow(`
 		SELECT "requestId", "enteredOn"
@@ -79,8 +82,8 @@ func makeJournal(rows *sql.Rows, userID string) []JournalRequest {
 }
 
 // AddHistory creates a history entry for a prayer request, given the status and updated text.
-func AddHistory(db *sql.DB, userID, reqID, status, text string) int {
-	if _, ok := retrieveRequest(db, reqID, userID); !ok {
+func AddHistory(userID, reqID, status, text string) int {
+	if _, ok := retrieveRequest(reqID, userID); !ok {
 		return 404
 	}
 	_, err := db.Exec(`
@@ -97,7 +100,7 @@ func AddHistory(db *sql.DB, userID, reqID, status, text string) int {
 }
 
 // AddNew stores a new prayer request and its initial history record.
-func AddNew(db *sql.DB, userID, text string) (*JournalRequest, bool) {
+func AddNew(userID, text string) (*JournalRequest, bool) {
 	id := cuid.New()
 	now := jsNow()
 	tx, err := db.Begin()
@@ -129,8 +132,8 @@ func AddNew(db *sql.DB, userID, text string) (*JournalRequest, bool) {
 }
 
 // AddNote adds a note to a prayer request.
-func AddNote(db *sql.DB, userID, reqID, note string) int {
-	if _, ok := retrieveRequest(db, reqID, userID); !ok {
+func AddNote(userID, reqID, note string) int {
+	if _, ok := retrieveRequest(reqID, userID); !ok {
 		return 404
 	}
 	_, err := db.Exec(`
@@ -147,7 +150,7 @@ func AddNote(db *sql.DB, userID, reqID, note string) int {
 }
 
 // Answered retrieves all answered requests for the given user.
-func Answered(db *sql.DB, userID string) []JournalRequest {
+func Answered(userID string) []JournalRequest {
 	rows, err := db.Query(currentRequestSQL+
 		`WHERE "userId" = $1
 		   AND "lastStatus" = 'Answered'
@@ -162,7 +165,7 @@ func Answered(db *sql.DB, userID string) []JournalRequest {
 }
 
 // ByID retrieves a journal request by its ID.
-func ByID(db *sql.DB, userID, reqID string) (*JournalRequest, bool) {
+func ByID(userID, reqID string) (*JournalRequest, bool) {
 	req := JournalRequest{}
 	err := db.QueryRow(currentRequestSQL+
 		`WHERE "requestId" = $1
@@ -178,26 +181,27 @@ func ByID(db *sql.DB, userID, reqID string) (*JournalRequest, bool) {
 }
 
 // Connect establishes a connection to the database.
-func Connect(s *Settings) (*sql.DB, bool) {
+func Connect(s *Settings) bool {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		s.Host, s.Port, s.User, s.Password, s.DbName)
-	db, err := sql.Open("postgres", connStr)
+	var err error
+	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Print(err)
-		return nil, false
+		return false
 	}
 	err = db.Ping()
 	if err != nil {
 		log.Print(err)
-		return nil, false
+		return false
 	}
 	log.Printf("Connected to postgres://%s@%s:%d/%s\n", s.User, s.Host, s.Port, s.DbName)
-	return db, true
+	return true
 }
 
 // FullByID retrieves a journal request, including its full history and notes.
-func FullByID(db *sql.DB, userID, reqID string) (*JournalRequest, bool) {
-	req, ok := ByID(db, userID, reqID)
+func FullByID(userID, reqID string) (*JournalRequest, bool) {
+	req, ok := ByID(userID, reqID)
 	if !ok {
 		return nil, false
 	}
@@ -225,12 +229,12 @@ func FullByID(db *sql.DB, userID, reqID string) (*JournalRequest, bool) {
 		log.Print(hRows.Err())
 		return nil, false
 	}
-	req.Notes = NotesByID(db, userID, reqID)
+	req.Notes = NotesByID(userID, reqID)
 	return req, true
 }
 
 // Journal retrieves the current user's active prayer journal.
-func Journal(db *sql.DB, userID string) []JournalRequest {
+func Journal(userID string) []JournalRequest {
 	rows, err := db.Query(journalSQL, userID)
 	if err != nil {
 		log.Print(err)
@@ -241,8 +245,8 @@ func Journal(db *sql.DB, userID string) []JournalRequest {
 }
 
 // NotesByID retrieves the notes for a given prayer request
-func NotesByID(db *sql.DB, userID, reqID string) []Note {
-	if _, ok := retrieveRequest(db, reqID, userID); !ok {
+func NotesByID(userID, reqID string) []Note {
+	if _, ok := retrieveRequest(reqID, userID); !ok {
 		return nil
 	}
 	rows, err := db.Query(`
@@ -276,7 +280,7 @@ func NotesByID(db *sql.DB, userID, reqID string) []Note {
 /* DDL */
 
 // EnsureDB makes sure we have a known state of data structures.
-func EnsureDB(db *sql.DB) {
+func EnsureDB() {
 	tableSQL := func(table string) string {
 		return fmt.Sprintf(`SELECT 1 FROM pg_tables WHERE schemaname='mpj' AND tablename='%s'`, table)
 	}

@@ -1,12 +1,16 @@
 // Package routes contains endpoint handlers for the myPrayerJournal API.
 package routes
 
+import (
+	"net/http"
+)
+
 // Route is a route served in the application.
 type Route struct {
 	Name     string
 	Method   string
 	Pattern  string
-	Func     DBHandler
+	Func     http.HandlerFunc
 	IsPublic bool
 }
 

@@ -1,13 +1,11 @@
 package routes
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/danieljsummers/myPrayerJournal/src/api/data"
-	"github.com/julienschmidt/httprouter"
 )
 
 /* Support */
@@ -32,9 +30,9 @@ func sendJSON(w http.ResponseWriter, r *http.Request, result interface{}) {
 
 /* Handlers */
 
-func journal(w http.ResponseWriter, r *http.Request, _ httprouter.Params, db *sql.DB) {
+func journal(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(ContextUserKey)
-	reqs := data.Journal(db, user.(string))
+	reqs := data.Journal(user.(string))
 	if reqs == nil {
 		reqs = []data.JournalRequest{}
 	}
