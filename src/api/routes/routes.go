@@ -21,9 +21,20 @@ type Routes []Route
 var routes = Routes{
 	Route{
 		"Journal",
-		"GET",
-		"/api/journal",
+		http.MethodGet,
+		"/api/journal/",
 		journal,
 		false,
 	},
+	// keep this route last
+	Route{
+		"StaticFiles",
+		http.MethodGet,
+		"/*",
+		staticFiles,
+		true,
+	},
 }
+
+// ClientPrefixes is a list of known route prefixes handled by the Vue app.
+var ClientPrefixes = []string{"/answered", "/journal", "/user"}

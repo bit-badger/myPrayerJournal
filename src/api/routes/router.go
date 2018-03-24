@@ -62,6 +62,5 @@ func NewRouter(cfg *AuthConfig) *vestigo.Router {
 			router.Add(route.Method, route.Pattern, withAuth(route.Func, cfg))
 		}
 	}
-	router.Get("/*", http.FileServer(http.Dir("/public")).ServeHTTP)
 	return router
 }

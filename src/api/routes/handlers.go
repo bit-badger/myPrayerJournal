@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/danieljsummers/myPrayerJournal/src/api/data"
 )
@@ -37,4 +38,18 @@ func journal(w http.ResponseWriter, r *http.Request) {
 		reqs = []data.JournalRequest{}
 	}
 	sendJSON(w, r, reqs)
+}
+
+func staticFiles(w http.ResponseWriter, r *http.Request) {
+	// serve index for known routes handled client-side by the app
+	for _, prefix := range ClientPrefixes {
+		log.Print("Checking " + r.URL.Path)
+		if strings.HasPrefix(r.URL.Path, prefix) {
+			w.Header().Add("Content-Type", "text/html")
+			http.ServeFile(w, r, "./public/index.html")
+			return
+		}
+	}
+	// 404 here is fine; quit hacking, y'all...
+	http.ServeFile(w, r, "./public"+r.URL.Path)
 }
