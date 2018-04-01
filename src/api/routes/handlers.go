@@ -2,12 +2,14 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/danieljsummers/myPrayerJournal/src/api/data"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/husobee/vestigo"
 )
 
 /* Support */
@@ -39,9 +41,84 @@ func userID(r *http.Request) string {
 
 /* Handlers */
 
-// GET: /api/journal
+// GET: /api/journal/
 func journal(w http.ResponseWriter, r *http.Request) {
 	reqs := data.Journal(userID(r))
+	if reqs == nil {
+		reqs = []data.JournalRequest{}
+	}
+	sendJSON(w, r, reqs)
+}
+
+// POST: /api/request/
+func requestAdd(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		sendError(w, r, err)
+	}
+	result, ok := data.AddNew(userID(r), r.FormValue("requestText"))
+	if !ok {
+		sendError(w, r, errors.New("error adding request"))
+	}
+	sendJSON(w, r, result)
+}
+
+// GET: /api/request/:id
+func requestGet(w http.ResponseWriter, r *http.Request) {
+	request, ok := data.ByID(userID(r), vestigo.Param(r, "id"))
+	if !ok {
+		sendError(w, r, errors.New("error retrieving request"))
+	}
+	sendJSON(w, r, request)
+}
+
+// GET: /api/request/:id/complete
+func requestGetComplete(w http.ResponseWriter, r *http.Request) {
+	request, ok := data.FullByID(userID(r), vestigo.Param(r, "id"))
+	if !ok {
+		sendError(w, r, errors.New("error retrieving request"))
+	}
+	request.Notes = data.NotesByID(userID(r), vestigo.Param(r, "id"))
+	sendJSON(w, r, request)
+}
+
+// GET: /api/request/:id/full
+func requestGetFull(w http.ResponseWriter, r *http.Request) {
+	request, ok := data.FullByID(userID(r), vestigo.Param(r, "id"))
+	if !ok {
+		sendError(w, r, errors.New("error retrieving request"))
+	}
+	sendJSON(w, r, request)
+}
+
+// POST: /api/request/:id/history
+func requestAddHistory(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		sendError(w, r, err)
+	}
+	w.WriteHeader(data.AddHistory(userID(r), vestigo.Param(r, "id"), r.FormValue("status"), r.FormValue("updateText")))
+}
+
+// POST: /api/request/:id/note
+func requestAddNote(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		sendError(w, r, err)
+	}
+	w.WriteHeader(data.AddNote(userID(r), vestigo.Param(r, "id"), r.FormValue("notes")))
+}
+
+// GET: /api/request/:id/notes
+func requestGetNotes(w http.ResponseWriter, r *http.Request) {
+	notes := data.NotesByID(userID(r), vestigo.Param(r, "id"))
+	if notes == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	sendJSON(w, r, notes)
+}
+
+// GET: /api/request/answered
+func requestsAnswered(w http.ResponseWriter, r *http.Request) {
+	reqs := data.Answered(userID(r))
 	if reqs == nil {
 		reqs = []data.JournalRequest{}
 	}
