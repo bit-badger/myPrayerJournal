@@ -1,13 +1,15 @@
 package routes
 
 import (
-	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
-	"github.com/auth0-community/go-auth0"
+	"github.com/auth0/go-jwt-middleware"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/husobee/vestigo"
-	"gopkg.in/square/go-jose.v2"
 )
 
 // AuthConfig contains the Auth0 configuration passed from the "auth" JSON object.
@@ -17,49 +19,102 @@ type AuthConfig struct {
 	ClientSecret string `json:"secret"`
 }
 
-// ContextKey is the type of key used in our contexts.
-type ContextKey string
+// JWKS is a structure into which the JSON Web Key Set is unmarshaled.
+type JWKS struct {
+	Keys []JWK `json:"keys"`
+}
 
-// ContextUserKey is the key for the current user in the context.
-const ContextUserKey ContextKey = "user"
+// JWK is a structure into which a single JSON Web Key is unmarshaled.
+type JWK struct {
+	Kty string   `json:"kty"`
+	Kid string   `json:"kid"`
+	Use string   `json:"use"`
+	N   string   `json:"n"`
+	E   string   `json:"e"`
+	X5c []string `json:"x5c"`
+}
 
-func withAuth(next http.HandlerFunc, cfg *AuthConfig) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		secret := []byte(cfg.ClientSecret)
-		secretProvider := auth0.NewKeyProvider(secret)
-		audience := []string{fmt.Sprintf("https://%s/userinfo", cfg.Domain)}
+// authCfg is the Auth0 configuration provided at application startup.
+var authCfg *AuthConfig
 
-		configuration := auth0.NewConfiguration(secretProvider, audience, fmt.Sprintf("https://%s/", cfg.Domain), jose.HS256)
-		validator := auth0.NewValidator(configuration, nil)
+// jwksBytes is a cache of the JSON Web Key Set for this domain.
+var jwksBytes = make([]byte, 0)
 
-		token, err := validator.ValidateRequest(r)
+// getPEMCert is a function to get the applicable certificate for a JSON Web Token.
+func getPEMCert(token *jwt.Token) (string, error) {
+	cert := ""
 
+	if len(jwksBytes) == 0 {
+		resp, err := http.Get(fmt.Sprintf("https://%s/.well-known/jwks.json", authCfg.Domain))
 		if err != nil {
-			fmt.Println(err)
-			fmt.Println("Token is not valid:", token)
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Unauthorized"))
-		} else {
-			values := make(map[string]interface{})
-			if err := token.Claims(secret, &values); err != nil {
-				sendError(w, r, err)
-			}
-			r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, values["sub"]))
-			// TODO pass the user ID (sub) along; this -> doesn't work | r.Header.Add("user-id", token.Claims("sub"))
-			next(w, r)
+			return cert, err
+		}
+		defer resp.Body.Close()
+
+		if jwksBytes, err = ioutil.ReadAll(resp.Body); err != nil {
+			return cert, err
 		}
 	}
 
+	jwks := JWKS{}
+	if err := json.Unmarshal(jwksBytes, &jwks); err != nil {
+		return cert, err
+	}
+	for k, v := range jwks.Keys[0].X5c {
+		if token.Header["kid"] == jwks.Keys[k].Kid {
+			cert = fmt.Sprintf("-----BEGIN CERTIFICATE-----\n%s\n-----END CERTIFICATE-----", v)
+		}
+	}
+	if cert == "" {
+		err := errors.New("unable to find appropriate key")
+		return cert, err
+	}
+
+	return cert, nil
+}
+
+// authZero is an instance of Auth0's JWT middlware. Since it doesn't support the http.HandlerFunc sig, it is wrapped
+// below; it's defined outside that function, though, so it does not get recreated every time.
+var authZero = jwtmiddleware.New(jwtmiddleware.Options{
+	ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
+		if checkAud := token.Claims.(jwt.MapClaims).VerifyAudience(authCfg.ClientID, false); !checkAud {
+			return token, errors.New("invalid audience")
+		}
+		iss := fmt.Sprintf("https://%s/", authCfg.Domain)
+		if checkIss := token.Claims.(jwt.MapClaims).VerifyIssuer(iss, false); !checkIss {
+			return token, errors.New("invalid issuer")
+		}
+
+		cert, err := getPEMCert(token)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		result, _ := jwt.ParseRSAPublicKeyFromPEM([]byte(cert))
+		return result, nil
+	},
+	SigningMethod: jwt.SigningMethodRS256,
+})
+
+// authMiddleware is a wrapper for the Auth0 middleware above with a signature Vestigo recognizes.
+func authMiddleware(f http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := authZero.CheckJWT(w, r)
+		if err == nil {
+			f(w, r)
+		}
+	}
 }
 
 // NewRouter returns a configured router to handle all incoming requests.
 func NewRouter(cfg *AuthConfig) *vestigo.Router {
+	authCfg = cfg
 	router := vestigo.NewRouter()
 	for _, route := range routes {
 		if route.IsPublic {
 			router.Add(route.Method, route.Pattern, route.Func)
 		} else {
-			router.Add(route.Method, route.Pattern, withAuth(route.Func, cfg))
+			router.Add(route.Method, route.Pattern, route.Func, authMiddleware)
 		}
 	}
 	return router

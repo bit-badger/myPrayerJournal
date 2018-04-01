@@ -26,10 +26,9 @@ type Request struct {
 // properties that may be filled for history and notes.
 type JournalRequest struct {
 	RequestID  string    `json:"requestId"`
-	UserID     string    `json:"userId"`
 	Text       string    `json:"text"`
 	AsOf       int64     `json:"asOf"`
 	LastStatus string    `json:"lastStatus"`
-	History    []History `json:"history"`
-	Notes      []Note    `json:"notes"`
+	History    []History `json:"history,omitempty"`
+	Notes      []Note    `json:"notes,omitempty"`
 }
