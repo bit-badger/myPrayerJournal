@@ -9,7 +9,7 @@ b-navbar(toggleable='sm'
     span(style='font-weight:600;') Prayer
     span(style='font-weight:700;') Journal
   b-collapse#nav_collapse(is-nav)
-    b-nav(is-nav-bar)
+    b-navbar-nav
       b-nav-item(v-if='isAuthenticated'
                  to='/journal') Journal
       b-nav-item(v-if='isAuthenticated'

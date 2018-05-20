@@ -9,8 +9,8 @@ article
     individuals to review their answered prayers.
   p.
     This site is currently in beta, but it is open and available to the general public. To get started, simply click
-    the "Log On" link above, and log on with either a Microsoft or Google account. You can also learn more about the
-    site at the "Docs" link, also above.
+    the &ldquo;Log On&rdquo; link above, and log on with either a Microsoft or Google account. You can also learn more
+    about the site at the &ldquo;Docs&rdquo; link, also above.
 </template>
 
 <script>
