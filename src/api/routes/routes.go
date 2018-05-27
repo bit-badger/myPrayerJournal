@@ -35,6 +35,14 @@ var routes = Routes{
 		requestAdd,
 		false,
 	},
+	// Must be above GetRequestByID
+	Route{
+		"GetAnsweredRequests",
+		http.MethodGet,
+		"/api/request/answered",
+		requestsAnswered,
+		false,
+	},
 	Route{
 		"GetRequestByID",
 		http.MethodGet,
@@ -75,13 +83,6 @@ var routes = Routes{
 		http.MethodGet,
 		"/api/request/<id>/notes",
 		requestGetNotes,
-		false,
-	},
-	Route{
-		"GetAnsweredRequests",
-		http.MethodGet,
-		"/api/request/answered",
-		requestsAnswered,
 		false,
 	},
 	// keep this route last

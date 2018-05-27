@@ -156,9 +156,6 @@ func Answered(userID string) []JournalRequest {
 		   AND "lastStatus" = 'Answered'
 		 ORDER BY "asOf" DESC`,
 		userID)
-	if err == sql.ErrNoRows {
-		return make([]JournalRequest, 0)
-	}
 	if err != nil {
 		log.Print(err)
 		return nil
@@ -177,6 +174,9 @@ func ByID(userID, reqID string) (*JournalRequest, bool) {
 		&req.RequestID, &req.Text, &req.AsOf, &req.LastStatus,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, true
+		}
 		log.Print(err)
 		return nil, false
 	}

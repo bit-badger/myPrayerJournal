@@ -83,6 +83,10 @@ func requestGet(c *routing.Context) error {
 	if !ok {
 		return sendError(c, errors.New("error retrieving request"))
 	}
+	if request == nil {
+		c.Response.WriteHeader(404)
+		return nil
+	}
 	return sendJSON(c, request)
 }
 
