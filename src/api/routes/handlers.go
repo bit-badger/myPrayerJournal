@@ -9,132 +9,155 @@ import (
 
 	"github.com/danieljsummers/myPrayerJournal/src/api/data"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/husobee/vestigo"
+	routing "github.com/go-ozzo/ozzo-routing"
 )
 
 /* Support */
 
 // Set the content type, the HTTP error code, and return the error message.
-func sendError(w http.ResponseWriter, r *http.Request, err error) {
+func sendError(c *routing.Context, err error) error {
+	w := c.Response
 	w.Header().Set("Content-Type", "application/json; encoding=UTF-8")
 	w.WriteHeader(http.StatusInternalServerError)
 	if err := json.NewEncoder(w).Encode(map[string]string{"error": err.Error()}); err != nil {
 		log.Print("Error creating error JSON: " + err.Error())
 	}
+	return err
 }
 
 // Set the content type and return the JSON to the user.
-func sendJSON(w http.ResponseWriter, r *http.Request, result interface{}) {
+func sendJSON(c *routing.Context, result interface{}) error {
+	w := c.Response
 	w.Header().Set("Content-Type", "application/json; encoding=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(result); err != nil {
-		sendError(w, r, err)
+		return sendError(c, err)
 	}
+	return nil
+}
+
+// Parse the request body as JSON.
+func parseJSON(c *routing.Context) (map[string]interface{}, error) {
+	payload := make(map[string]interface{})
+	if err := json.NewDecoder(c.Request.Body).Decode(&payload); err != nil {
+		log.Println("Error decoding JSON:", err)
+		return payload, err
+	}
+	return payload, nil
 }
 
 // userID is a convenience function to extract the subscriber ID from the user's JWT.
 // NOTE: Do not call this from public routes; there are a lot of type assertions that won't be true if the request
 //       hasn't gone through the authorization process.
-func userID(r *http.Request) string {
-	return r.Context().Value("user").(*jwt.Token).Claims.(jwt.MapClaims)["sub"].(string)
+func userID(c *routing.Context) string {
+	return c.Request.Context().Value("user").(*jwt.Token).Claims.(jwt.MapClaims)["sub"].(string)
 }
 
 /* Handlers */
 
 // GET: /api/journal/
-func journal(w http.ResponseWriter, r *http.Request) {
-	reqs := data.Journal(userID(r))
+func journal(c *routing.Context) error {
+	reqs := data.Journal(userID(c))
 	if reqs == nil {
 		reqs = []data.JournalRequest{}
 	}
-	sendJSON(w, r, reqs)
+	return sendJSON(c, reqs)
 }
 
 // POST: /api/request/
-func requestAdd(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		sendError(w, r, err)
+func requestAdd(c *routing.Context) error {
+	payload, err := parseJSON(c)
+	if err != nil {
+		return sendError(c, err)
 	}
-	result, ok := data.AddNew(userID(r), r.FormValue("requestText"))
+	result, ok := data.AddNew(userID(c), payload["requestText"].(string))
 	if !ok {
-		sendError(w, r, errors.New("error adding request"))
+		return sendError(c, errors.New("error adding request"))
 	}
-	sendJSON(w, r, result)
+	return sendJSON(c, result)
 }
 
-// GET: /api/request/:id
-func requestGet(w http.ResponseWriter, r *http.Request) {
-	request, ok := data.ByID(userID(r), vestigo.Param(r, "id"))
+// GET: /api/request/<id>
+func requestGet(c *routing.Context) error {
+	request, ok := data.ByID(userID(c), c.Param("id"))
 	if !ok {
-		sendError(w, r, errors.New("error retrieving request"))
+		return sendError(c, errors.New("error retrieving request"))
 	}
-	sendJSON(w, r, request)
+	return sendJSON(c, request)
 }
 
-// GET: /api/request/:id/complete
-func requestGetComplete(w http.ResponseWriter, r *http.Request) {
-	request, ok := data.FullByID(userID(r), vestigo.Param(r, "id"))
+// GET: /api/request/<id>/complete
+func requestGetComplete(c *routing.Context) error {
+	request, ok := data.FullByID(userID(c), c.Param("id"))
 	if !ok {
-		sendError(w, r, errors.New("error retrieving request"))
+		return sendError(c, errors.New("error retrieving request"))
 	}
-	request.Notes = data.NotesByID(userID(r), vestigo.Param(r, "id"))
-	sendJSON(w, r, request)
+	request.Notes = data.NotesByID(userID(c), c.Param("id"))
+	return sendJSON(c, request)
 }
 
-// GET: /api/request/:id/full
-func requestGetFull(w http.ResponseWriter, r *http.Request) {
-	request, ok := data.FullByID(userID(r), vestigo.Param(r, "id"))
+// GET: /api/request/<id>/full
+func requestGetFull(c *routing.Context) error {
+	request, ok := data.FullByID(userID(c), c.Param("id"))
 	if !ok {
-		sendError(w, r, errors.New("error retrieving request"))
+		return sendError(c, errors.New("error retrieving request"))
 	}
-	sendJSON(w, r, request)
+	return sendJSON(c, request)
 }
 
-// POST: /api/request/:id/history
-func requestAddHistory(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		sendError(w, r, err)
+// POST: /api/request/<id>/history
+func requestAddHistory(c *routing.Context) error {
+	payload, err := parseJSON(c)
+	if err != nil {
+		return sendError(c, err)
 	}
-	w.WriteHeader(data.AddHistory(userID(r), vestigo.Param(r, "id"), r.FormValue("status"), r.FormValue("updateText")))
+	c.Response.WriteHeader(
+		data.AddHistory(userID(c), c.Param("id"), payload["status"].(string), payload["updateText"].(string)))
+	return nil
 }
 
-// POST: /api/request/:id/note
-func requestAddNote(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		sendError(w, r, err)
+// POST: /api/request/<id>/note
+func requestAddNote(c *routing.Context) error {
+	payload, err := parseJSON(c)
+	if err != nil {
+		return sendError(c, err)
 	}
-	w.WriteHeader(data.AddNote(userID(r), vestigo.Param(r, "id"), r.FormValue("notes")))
+	c.Response.WriteHeader(data.AddNote(userID(c), c.Param("id"), payload["notes"].(string)))
+	return nil
 }
 
-// GET: /api/request/:id/notes
-func requestGetNotes(w http.ResponseWriter, r *http.Request) {
-	notes := data.NotesByID(userID(r), vestigo.Param(r, "id"))
+// GET: /api/request/<id>/notes
+func requestGetNotes(c *routing.Context) error {
+	notes := data.NotesByID(userID(c), c.Param("id"))
 	if notes == nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
+		c.Response.WriteHeader(http.StatusNotFound)
+		return errors.New("Not Found")
 	}
-	sendJSON(w, r, notes)
+	return sendJSON(c, notes)
 }
 
 // GET: /api/request/answered
-func requestsAnswered(w http.ResponseWriter, r *http.Request) {
-	reqs := data.Answered(userID(r))
+func requestsAnswered(c *routing.Context) error {
+	reqs := data.Answered(userID(c))
 	if reqs == nil {
 		reqs = []data.JournalRequest{}
 	}
-	sendJSON(w, r, reqs)
+	return sendJSON(c, reqs)
 }
 
 // GET: /*
-func staticFiles(w http.ResponseWriter, r *http.Request) {
+func staticFiles(c *routing.Context) error {
 	// serve index for known routes handled client-side by the app
+	r := c.Request
+	w := c.Response
 	for _, prefix := range ClientPrefixes {
 		if strings.HasPrefix(r.URL.Path, prefix) {
 			w.Header().Add("Content-Type", "text/html")
 			http.ServeFile(w, r, "./public/index.html")
-			return
+			return nil
 		}
 	}
 	// 404 here is fine; quit hacking, y'all...
 	http.ServeFile(w, r, "./public"+r.URL.Path)
+	return nil
 }

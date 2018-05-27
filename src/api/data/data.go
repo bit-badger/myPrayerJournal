@@ -152,10 +152,13 @@ func AddNote(userID, reqID, note string) int {
 // Answered retrieves all answered requests for the given user.
 func Answered(userID string) []JournalRequest {
 	rows, err := db.Query(currentRequestSQL+
-		`WHERE "userId" = $1
+		` WHERE "userId" = $1
 		   AND "lastStatus" = 'Answered'
 		 ORDER BY "asOf" DESC`,
 		userID)
+	if err == sql.ErrNoRows {
+		return make([]JournalRequest, 0)
+	}
 	if err != nil {
 		log.Print(err)
 		return nil
@@ -168,9 +171,9 @@ func Answered(userID string) []JournalRequest {
 func ByID(userID, reqID string) (*JournalRequest, bool) {
 	req := JournalRequest{}
 	err := db.QueryRow(currentRequestSQL+
-		`WHERE "requestId" = $1
-		   AND "userId = $2`,
-		userID, reqID).Scan(
+		` WHERE "requestId" = $1
+		   AND "userId" = $2`,
+		reqID, userID).Scan(
 		&req.RequestID, &req.Text, &req.AsOf, &req.LastStatus,
 	)
 	if err != nil {
@@ -235,7 +238,7 @@ func FullByID(userID, reqID string) (*JournalRequest, bool) {
 
 // Journal retrieves the current user's active prayer journal.
 func Journal(userID string) []JournalRequest {
-	rows, err := db.Query(journalSQL, userID)
+	rows, err := db.Query(journalSQL+` ORDER BY "asOf"`, userID)
 	if err != nil {
 		log.Print(err)
 		return nil

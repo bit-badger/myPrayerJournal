@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/husobee/vestigo"
+	"github.com/go-ozzo/ozzo-routing"
+	"github.com/go-ozzo/ozzo-routing/access"
+	"github.com/go-ozzo/ozzo-routing/fault"
 )
 
 // AuthConfig contains the Auth0 configuration passed from the "auth" JSON object.
@@ -96,25 +99,24 @@ var authZero = jwtmiddleware.New(jwtmiddleware.Options{
 	SigningMethod: jwt.SigningMethodRS256,
 })
 
-// authMiddleware is a wrapper for the Auth0 middleware above with a signature Vestigo recognizes.
-func authMiddleware(f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := authZero.CheckJWT(w, r)
-		if err == nil {
-			f(w, r)
-		}
-	}
+// authMiddleware is a wrapper for the Auth0 middleware above with a signature ozzo-routing recognizes.
+func authMiddleware(c *routing.Context) error {
+	return authZero.CheckJWT(c.Response, c.Request)
 }
 
 // NewRouter returns a configured router to handle all incoming requests.
-func NewRouter(cfg *AuthConfig) *vestigo.Router {
+func NewRouter(cfg *AuthConfig) *routing.Router {
 	authCfg = cfg
-	router := vestigo.NewRouter()
+	router := routing.New()
+	router.Use(
+		access.Logger(log.Printf), // TODO: remove before go-live
+		fault.Recovery(log.Printf),
+	)
 	for _, route := range routes {
 		if route.IsPublic {
-			router.Add(route.Method, route.Pattern, route.Func)
+			router.To(route.Method, route.Pattern, route.Func)
 		} else {
-			router.Add(route.Method, route.Pattern, route.Func, authMiddleware)
+			router.To(route.Method, route.Pattern, authMiddleware, route.Func)
 		}
 	}
 	return router

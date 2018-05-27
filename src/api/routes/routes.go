@@ -3,6 +3,8 @@ package routes
 
 import (
 	"net/http"
+
+	routing "github.com/go-ozzo/ozzo-routing"
 )
 
 // Route is a route served in the application.
@@ -10,7 +12,7 @@ type Route struct {
 	Name     string
 	Method   string
 	Pattern  string
-	Func     http.HandlerFunc
+	Func     routing.Handler
 	IsPublic bool
 }
 
@@ -36,42 +38,42 @@ var routes = Routes{
 	Route{
 		"GetRequestByID",
 		http.MethodGet,
-		"/api/request/:id",
+		"/api/request/<id>",
 		requestGet,
 		false,
 	},
 	Route{
 		"GetCompleteRequestByID",
 		http.MethodGet,
-		"/api/request/:id/complete",
+		"/api/request/<id>/complete",
 		requestGetComplete,
 		false,
 	},
 	Route{
 		"GetFullRequestByID",
 		http.MethodGet,
-		"/api/request/:id/full",
+		"/api/request/<id>/full",
 		requestGetFull,
 		false,
 	},
 	Route{
 		"AddNewHistoryEntry",
 		http.MethodPost,
-		"/api/request/:id/history",
+		"/api/request/<id>/history",
 		requestAddHistory,
 		false,
 	},
 	Route{
 		"AddNewNote",
 		http.MethodPost,
-		"/api/request/:id/note",
+		"/api/request/<id>/note",
 		requestAddNote,
 		false,
 	},
 	Route{
 		"GetNotesForRequest",
 		http.MethodGet,
-		"/api/request/:id/notes",
+		"/api/request/<id>/notes",
 		requestGetNotes,
 		false,
 	},
