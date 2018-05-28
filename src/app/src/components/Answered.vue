@@ -3,6 +3,8 @@ article
   page-title(title='Answered Requests')
   p(v-if='!loaded') Loading answered requests...
   div(v-if='loaded').mpj-answered-list
+    p.text-center(v-if='requests.length === 0'): em.
+      No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
     p.mpj-request-text(v-for='req in requests' :key='req.requestId')
       | {{ req.text }}
       br

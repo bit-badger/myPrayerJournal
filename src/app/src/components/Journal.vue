@@ -11,7 +11,8 @@ article
                    :request='request'
                    :events='eventBus'
                    :toast='toast')
-    p.text-center(v-if='journal.length === 0'): em No requests found; click the "Add a New Request" button to add one
+    p.text-center(v-if='journal.length === 0'): em.
+      No requests found; click the &ldquo;Add a New Request&rdquo; button to add one
     edit-request(:events='eventBus'
                  :toast='toast')
     notes-edit(:events='eventBus'
@@ -50,7 +51,7 @@ export default {
   },
   computed: {
     title () {
-      return `${this.user.given_name}'s Prayer Journal`
+      return `${this.user.given_name}&rsquo;s Prayer Journal`
     },
     journalCardRows () {
       return chunk(this.journal, 3)
