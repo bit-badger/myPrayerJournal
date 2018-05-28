@@ -11,7 +11,6 @@ import (
 	"github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-ozzo/ozzo-routing"
-	"github.com/go-ozzo/ozzo-routing/access"
 	"github.com/go-ozzo/ozzo-routing/fault"
 )
 
@@ -108,10 +107,7 @@ func authMiddleware(c *routing.Context) error {
 func NewRouter(cfg *AuthConfig) *routing.Router {
 	authCfg = cfg
 	router := routing.New()
-	router.Use(
-		access.Logger(log.Printf), // TODO: remove before go-live
-		fault.Recovery(log.Printf),
-	)
+	router.Use(fault.Recovery(log.Printf))
 	for _, route := range routes {
 		if route.IsPublic {
 			router.To(route.Method, route.Pattern, route.Func)
