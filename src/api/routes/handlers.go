@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -33,6 +34,12 @@ func sendJSON(c *routing.Context, result interface{}) error {
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		return sendError(c, err)
 	}
+	return nil
+}
+
+// Send an HTTP 404 response.
+func notFound(c *routing.Context) error {
+	c.Response.WriteHeader(404)
 	return nil
 }
 
@@ -84,8 +91,7 @@ func requestGet(c *routing.Context) error {
 		return sendError(c, errors.New("error retrieving request"))
 	}
 	if request == nil {
-		c.Response.WriteHeader(404)
-		return nil
+		return notFound(c)
 	}
 	return sendJSON(c, request)
 }
@@ -96,7 +102,11 @@ func requestGetComplete(c *routing.Context) error {
 	if !ok {
 		return sendError(c, errors.New("error retrieving request"))
 	}
-	request.Notes = data.NotesByID(userID(c), c.Param("id"))
+	var err error
+	request.Notes, err = data.NotesByID(userID(c), c.Param("id"))
+	if err != nil {
+		return sendError(c, err)
+	}
 	return sendJSON(c, request)
 }
 
@@ -132,10 +142,15 @@ func requestAddNote(c *routing.Context) error {
 
 // GET: /api/request/<id>/notes
 func requestGetNotes(c *routing.Context) error {
-	notes := data.NotesByID(userID(c), c.Param("id"))
+	notes, err := data.NotesByID(userID(c), c.Param("id"))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return notFound(c)
+		}
+		return sendError(c, err)
+	}
 	if notes == nil {
-		c.Response.WriteHeader(http.StatusNotFound)
-		return errors.New("Not Found")
+		notes = []data.Note{}
 	}
 	return sendJSON(c, notes)
 }

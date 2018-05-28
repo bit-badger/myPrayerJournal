@@ -48,7 +48,7 @@ export default {
         .sort(asOfDesc)[0].text
     },
     log () {
-      return this.request.notes
+      return (this.request.notes || [])
         .map(note => ({ asOf: note.asOf, text: note.notes, status: 'Notes' }))
         .concat(this.request.history)
         .sort(asOfDesc)

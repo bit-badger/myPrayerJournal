@@ -18,11 +18,11 @@ export default {
   },
   watch: {
     title () {
-      document.title = `${this.title} « myPrayerJournal`
+      document.title = `${this.title.replace('&rsquo;', "'")} « myPrayerJournal`
     }
   },
   created () {
-    document.title = `${this.title} « myPrayerJournal`
+    document.title = `${this.title.replace('&rsquo;', "'")} « myPrayerJournal`
   }
 }
 </script>

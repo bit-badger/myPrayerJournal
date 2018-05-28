@@ -232,7 +232,11 @@ func FullByID(userID, reqID string) (*JournalRequest, bool) {
 		log.Print(hRows.Err())
 		return nil, false
 	}
-	req.Notes = NotesByID(userID, reqID)
+	req.Notes, err = NotesByID(userID, reqID)
+	if err != nil {
+		log.Print(err)
+		return nil, false
+	}
 	return req, true
 }
 
@@ -248,9 +252,9 @@ func Journal(userID string) []JournalRequest {
 }
 
 // NotesByID retrieves the notes for a given prayer request
-func NotesByID(userID, reqID string) []Note {
+func NotesByID(userID, reqID string) ([]Note, error) {
 	if _, ok := retrieveRequest(reqID, userID); !ok {
-		return nil
+		return nil, sql.ErrNoRows
 	}
 	rows, err := db.Query(`
         SELECT "asOf", "notes"
@@ -260,7 +264,7 @@ func NotesByID(userID, reqID string) []Note {
 		reqID)
 	if err != nil {
 		log.Print(err)
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	var notes []Note
@@ -275,9 +279,9 @@ func NotesByID(userID, reqID string) []Note {
 	}
 	if rows.Err() != nil {
 		log.Print(rows.Err())
-		return nil
+		return nil, err
 	}
-	return notes
+	return notes, nil
 }
 
 /* DDL */
