@@ -20,11 +20,14 @@ export default {
     }
   },
   data () {
-    const dt = moment(this.value)
     return {
-      fromNow: dt.fromNow(),
-      actual: dt.format('LLLL'),
+      fromNow: moment(this.value).fromNow(),
       intervalId: null
+    }
+  },
+  computed: {
+    actual () {
+      return moment(this.value).format('LLLL')
     }
   },
   mounted () {
