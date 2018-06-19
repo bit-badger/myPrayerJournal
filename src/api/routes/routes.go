@@ -85,6 +85,13 @@ var routes = Routes{
 		requestGetNotes,
 		false,
 	},
+	Route{
+		"SnoozeRequest",
+		http.MethodPost,
+		"/api/request/<id>/snooze",
+		requestSnooze,
+		false,
+	},
 	// keep this route last
 	Route{
 		"StaticFiles",

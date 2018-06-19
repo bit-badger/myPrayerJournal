@@ -14,10 +14,10 @@ import (
 
 const (
 	currentRequestSQL = `
-		SELECT "requestId", "text", "asOf", "lastStatus"
+		SELECT "requestId", "text", "asOf", "lastStatus", "snoozedUntil"
 		  FROM mpj.journal`
 	journalSQL = `
-		SELECT "requestId", "text", "asOf", "lastStatus"
+		SELECT "requestId", "text", "asOf", "lastStatus", "snoozedUntil"
 		  FROM mpj.journal
 		 WHERE "userId" = $1
 		   AND "lastStatus" <> 'Answered'`
@@ -41,11 +41,11 @@ type Settings struct {
 func retrieveRequest(reqID, userID string) (*Request, bool) {
 	req := Request{}
 	err := db.QueryRow(`
-		SELECT "requestId", "enteredOn"
+		SELECT "requestId", "enteredOn", "snoozedUntil"
 		  FROM mpj.request
 		 WHERE "requestId" = $1
 		   AND "userId" = $2`, reqID, userID).Scan(
-		&req.ID, &req.EnteredOn,
+		&req.ID, &req.EnteredOn, &req.SnoozedUntil,
 	)
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -67,7 +67,7 @@ func makeJournal(rows *sql.Rows, userID string) []JournalRequest {
 	var out []JournalRequest
 	for rows.Next() {
 		req := JournalRequest{}
-		err := rows.Scan(&req.RequestID, &req.Text, &req.AsOf, &req.LastStatus)
+		err := rows.Scan(&req.RequestID, &req.Text, &req.AsOf, &req.LastStatus, &req.SnoozedUntil)
 		if err != nil {
 			log.Print(err)
 			continue
@@ -117,7 +117,7 @@ func AddNew(userID, text string) (*JournalRequest, bool) {
 		}
 	}()
 	_, err = tx.Exec(
-		`INSERT INTO mpj.request ("requestId", "enteredOn", "userId") VALUES ($1, $2, $3)`,
+		`INSERT INTO mpj.request ("requestId", "enteredOn", "userId", "snoozedUntil") VALUES ($1, $2, $3, 0)`,
 		id, now, userID)
 	if err != nil {
 		return nil, false
@@ -128,7 +128,7 @@ func AddNew(userID, text string) (*JournalRequest, bool) {
 	if err != nil {
 		return nil, false
 	}
-	return &JournalRequest{RequestID: id, Text: text, AsOf: now, LastStatus: `Created`}, true
+	return &JournalRequest{RequestID: id, Text: text, AsOf: now, LastStatus: `Created`, SnoozedUntil: 0}, true
 }
 
 // AddNote adds a note to a prayer request.
@@ -171,7 +171,7 @@ func ByID(userID, reqID string) (*JournalRequest, bool) {
 		` WHERE "requestId" = $1
 		   AND "userId" = $2`,
 		reqID, userID).Scan(
-		&req.RequestID, &req.Text, &req.AsOf, &req.LastStatus,
+		&req.RequestID, &req.Text, &req.AsOf, &req.LastStatus, &req.SnoozedUntil,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -284,12 +284,34 @@ func NotesByID(userID, reqID string) ([]Note, error) {
 	return notes, nil
 }
 
+// SnoozeByID sets a request to not show until a specified time
+func SnoozeByID(userID, reqID string, until int64) int {
+	if _, ok := retrieveRequest(reqID, userID); !ok {
+		return 404
+	}
+	_, err := db.Exec(`
+		UPDATE mpj.request
+		   SET "snoozedUntil" = $2
+		 WHERE "requestId" = $1`,
+		reqID, until)
+	if err != nil {
+		log.Print(err)
+		return 500
+	}
+	return 204
+}
+
 /* DDL */
 
 // EnsureDB makes sure we have a known state of data structures.
 func EnsureDB() {
 	tableSQL := func(table string) string {
 		return fmt.Sprintf(`SELECT 1 FROM pg_tables WHERE schemaname='mpj' AND tablename='%s'`, table)
+	}
+	columnSQL := func(table, column string) string {
+		return fmt.Sprintf(
+			`SELECT 1 FROM information_schema.columns WHERE table_schema='mpj' AND table_name='%s' AND column_name='%s'`,
+			table, column)
 	}
 	indexSQL := func(table, index string) string {
 		return fmt.Sprintf(`SELECT 1 FROM pg_indexes WHERE schemaname='mpj' AND tablename='%s' AND indexname='%s'`,
@@ -322,6 +344,9 @@ func EnsureDB() {
 			"enteredOn" bigint NOT NULL,
 			"userId" varchar(100) NOT NULL);
 		COMMENT ON TABLE mpj.request IS 'Requests'`)
+	check(`request.snoozedUntil Column`, columnSQL(`request`, `snoozedUntil`),
+		`ALTER TABLE mpj.request
+			ADD COLUMN "snoozedUntil" bigint NOT NULL DEFAULT 0`)
 	check(`history Table`, tableSQL(`history`),
 		`CREATE TABLE mpj.history (
 			"requestId" varchar(25) NOT NULL REFERENCES mpj.request,
@@ -360,7 +385,8 @@ func EnsureDB() {
 				   FROM mpj.history
 				  WHERE history."requestId" = request."requestId"
 				  ORDER BY "asOf" DESC
-				  LIMIT 1) AS "lastStatus"
+				  LIMIT 1) AS "lastStatus",
+				request."snoozedUntil"
 			  FROM mpj.request;
 		COMMENT ON VIEW mpj.journal IS 'Requests with latest text'`)
 }

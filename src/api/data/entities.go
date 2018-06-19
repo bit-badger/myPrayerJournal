@@ -17,18 +17,20 @@ type Note struct {
 
 // Request is the identifying record for a prayer request.
 type Request struct {
-	ID        string `json:"requestId"`
-	EnteredOn int64  `json:"enteredOn"`
-	UserID    string `json:"userId"`
+	ID           string `json:"requestId"`
+	EnteredOn    int64  `json:"enteredOn"`
+	UserID       string `json:"userId"`
+	SnoozedUntil int64  `json:"snoozedUntil"`
 }
 
 // JournalRequest is the form of a prayer request returned for the request journal display. It also contains
 // properties that may be filled for history and notes.
 type JournalRequest struct {
-	RequestID  string    `json:"requestId"`
-	Text       string    `json:"text"`
-	AsOf       int64     `json:"asOf"`
-	LastStatus string    `json:"lastStatus"`
-	History    []History `json:"history,omitempty"`
-	Notes      []Note    `json:"notes,omitempty"`
+	RequestID    string    `json:"requestId"`
+	Text         string    `json:"text"`
+	AsOf         int64     `json:"asOf"`
+	LastStatus   string    `json:"lastStatus"`
+	SnoozedUntil int64     `json:"snoozedUntil"`
+	History      []History `json:"history,omitempty"`
+	Notes        []Note    `json:"notes,omitempty"`
 }

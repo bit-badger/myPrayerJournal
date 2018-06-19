@@ -155,6 +155,16 @@ func requestGetNotes(c *routing.Context) error {
 	return sendJSON(c, notes)
 }
 
+// POST: /api/request/<id>/snooze
+func requestSnooze(c *routing.Context) error {
+	payload, err := parseJSON(c)
+	if err != nil {
+		return sendError(c, err)
+	}
+	c.Response.WriteHeader(data.SnoozeByID(userID(c), c.Param("id"), payload["until"].(int64)))
+	return nil
+}
+
 // GET: /api/request/answered
 func requestsAnswered(c *routing.Context) error {
 	reqs := data.Answered(userID(c))
