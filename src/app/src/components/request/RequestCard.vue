@@ -1,11 +1,12 @@
 <template lang="pug">
-b-col(md='6' lg='4')
+b-col(v-if="!isSnoozed" md='6' lg='4')
   .mpj-request-card
     b-card-header.text-center.py-1.
       #[b-btn(@click='markPrayed()' variant='outline-primary' title='Pray' size='sm'): icon(name='check')]
       #[b-btn(@click.stop='showEdit()' variant='outline-secondary' title='Edit' size='sm'): icon(name='pencil')]
       #[b-btn(@click.stop='showNotes()' variant='outline-secondary' title='Add Notes' size='sm'): icon(name='file-text-o')]
       #[b-btn(@click.stop='showFull()' variant='outline-secondary' title='View Full Request' size='sm'): icon(name='search')]
+      #[b-btn(@click.stop='snooze()' variant='outline-secondary' title='Snooze Request' size='sm'): icon(name='clock-o')]
     b-card-body.p-0
       p.card-text.mpj-request-text.mb-1.px-3.pt-3
         | {{ request.text }}
@@ -27,6 +28,11 @@ export default {
     toast: { required: true },
     events: { required: true }
   },
+  computed: {
+    isSnoozed () {
+      return Date.now() < this.request.snoozedUntil
+    }
+  },
   methods: {
     async markPrayed () {
       await this.$store.dispatch(actions.UPDATE_REQUEST, {
@@ -45,6 +51,9 @@ export default {
     },
     showNotes () {
       this.events.$emit('notes', this.request)
+    },
+    snooze () {
+      // Nothing yet
     }
   }
 }

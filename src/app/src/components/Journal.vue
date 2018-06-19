@@ -25,7 +25,6 @@ article
 
 import Vue from 'vue'
 import { mapState } from 'vuex'
-import chunk from 'lodash/chunk'
 
 import EditRequest from './request/EditRequest'
 import FullRequest from './request/FullRequest'
@@ -52,9 +51,6 @@ export default {
   computed: {
     title () {
       return `${this.user.given_name}&rsquo;s Prayer Journal`
-    },
-    journalCardRows () {
-      return chunk(this.journal, 3)
     },
     toast () {
       return this.$parent.$refs.toast

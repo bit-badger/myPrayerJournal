@@ -12,6 +12,7 @@ import 'vue-toast/dist/vue-toast.min.css'
 
 // Only import the icons we need; the whole set is ~500K!
 import 'vue-awesome/icons/check'
+import 'vue-awesome/icons/clock-o'
 import 'vue-awesome/icons/file-text-o'
 import 'vue-awesome/icons/pencil'
 import 'vue-awesome/icons/plus'
