@@ -58,11 +58,14 @@ module Entities =
           m.Property(fun e -> e.requestId).IsRequired () |> ignore
           m.Property(fun e -> e.asOf).IsRequired () |> ignore
           m.Property(fun e -> e.status).IsRequired() |> ignore
+          m.Property(fun e -> e.text) |> ignore
           m.HasOne(fun e -> e.request)
             .WithMany(fun r -> r.history :> IEnumerable<History>)
             .HasForeignKey(fun e -> e.requestId :> obj)
           |> ignore)
       |> ignore
+      let typ = mb.Model.FindEntityType(typeof<History>)
+      let prop = typ.FindProperty("text")
       mb.Model.FindEntityType(typeof<History>).FindProperty("text").SetValueConverter (OptionConverter<string> ())
 
   /// Note is a note regarding a prayer request that does not result in an update to its text
@@ -171,12 +174,8 @@ open System.Linq
 open System.Threading.Tasks
 
 /// Data context
-type AppDbContext (opts : DbContextOptions<AppDbContext>) as self =
+type AppDbContext (opts : DbContextOptions<AppDbContext>) =
   inherit DbContext (opts)
-
-  /// Register a disconnected entity with the context, having the given state
-  let registerAs state (e : 'TEntity when 'TEntity : not struct) =
-    self.Entry<'TEntity>(e).State <- state
 
   [<DefaultValue>]
   val mutable private history  : DbSet<History>
@@ -209,13 +208,17 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) as self =
       ]
     |> List.iter (fun x -> x mb)
   
+  /// Register a disconnected entity with the context, having the given state
+  member private this.RegisterAs<'TEntity when 'TEntity : not struct> state e =
+    this.Entry<'TEntity>(e).State <- state
+
   /// Add an entity instance to the context
-  member __.AddEntry e =
-    registerAs EntityState.Added e
+  member this.AddEntry e =
+    this.RegisterAs EntityState.Added e
 
   /// Update the entity instance's values
-  member __.UpdateEntry e =
-    registerAs EntityState.Modified e
+  member this.UpdateEntry e =
+    this.RegisterAs EntityState.Modified e
 
   /// Retrieve all answered requests for the given user
   member this.AnsweredRequests userId : JournalRequest seq =
@@ -227,7 +230,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) as self =
   member this.JournalByUserId userId : JournalRequest seq =
     upcast this.Journal
       .Where(fun r -> r.userId = userId && r.lastStatus <> "Answered")
-      .OrderBy(fun r -> r.asOf)
+      .OrderByDescending(fun r -> r.asOf)
   
   /// Retrieve a request by its ID and user ID
   member this.TryRequestById reqId userId : Task<Request option> =

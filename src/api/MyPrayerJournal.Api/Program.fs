@@ -2,18 +2,21 @@ namespace MyPrayerJournal.Api
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
+open System
 
 
 /// Configuration functions for the application
 module Configure =
   
+  open Giraffe
+  open Giraffe.TokenRouter
   open Microsoft.AspNetCore.Authentication.JwtBearer
   open Microsoft.AspNetCore.Server.Kestrel.Core
+  open Microsoft.EntityFrameworkCore
   open Microsoft.Extensions.Configuration
   open Microsoft.Extensions.DependencyInjection
   open Microsoft.Extensions.Logging
-  open Giraffe
-  open Giraffe.TokenRouter
+  open MyPrayerJournal
 
   /// Set up the configuration for the app
   let configuration (ctx : WebHostBuilderContext) (cfg : IConfigurationBuilder) =
@@ -29,21 +32,22 @@ module Configure =
 
   /// Configure dependency injection
   let services (sc : IServiceCollection) =
-    sc.AddGiraffe () |> ignore
-    // mad props to Andrea Chiarelli @ https://auth0.com/blog/securing-asp-dot-net-core-2-applications-with-jwts/
     use sp  = sc.BuildServiceProvider()
-    let cfg = sp.GetRequiredService<IConfiguration>().GetSection "Auth0"
-    sc.AddAuthentication(
-      fun opts ->
-        opts.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
-        opts.DefaultChallengeScheme    <- JwtBearerDefaults.AuthenticationScheme)
-      .AddJwtBearer (
+    let cfg = sp.GetRequiredService<IConfiguration> ()
+    sc.AddGiraffe()
+      .AddAuthentication(
+        /// Use HTTP "Bearer" authentication with JWTs
         fun opts ->
-          opts.Authority <- sprintf "https://%s/" cfg.["Domain"]
-          opts.Audience  <- cfg.["Audience"]
-          opts.TokenValidationParameters.ValidateAudience <- false)
+          opts.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
+          opts.DefaultChallengeScheme    <- JwtBearerDefaults.AuthenticationScheme)
+      .AddJwtBearer(
+        /// Configure JWT options with Auth0 options from configuration
+        fun opts ->
+          let jwtCfg = cfg.GetSection "Auth0"
+          opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
+          opts.Audience  <- jwtCfg.["Id"])
     |> ignore
-    sc.AddAuthorization (fun opts -> opts.AddPolicy ("LoggedOn", fun p -> p.RequireClaim "sub" |> ignore))
+    sc.AddDbContext<AppDbContext>(fun opts -> opts.UseNpgsql(cfg.GetConnectionString "mpj") |> ignore)
     |> ignore
   
   /// Routes for the available URLs within myPrayerJournal
@@ -96,12 +100,11 @@ module Configure =
 
 module Program =
   
-  open System
   open System.IO
 
   let exitCode = 0
 
-  let CreateWebHostBuilder args =
+  let CreateWebHostBuilder _ =
     let contentRoot = Directory.GetCurrentDirectory ()
     WebHostBuilder()
       .UseContentRoot(contentRoot)

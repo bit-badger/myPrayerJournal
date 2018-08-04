@@ -32,8 +32,8 @@ module Error =
 module private Helpers =
   
   open Microsoft.AspNetCore.Http
-  open Microsoft.AspNetCore.Authorization
   open System.Threading.Tasks
+  open System.Security.Claims
 
   /// Get the database context from DI
   let db (ctx : HttpContext) =
@@ -41,7 +41,12 @@ module private Helpers =
 
   /// Get the user's "sub" claim
   let user (ctx : HttpContext) =
-    ctx.User.Claims |> Seq.tryFind (fun u -> u.Type = "sub")
+    ctx.User.Claims |> Seq.tryFind (fun u -> u.Type = ClaimTypes.NameIdentifier)
+
+  /// Get the current user's ID
+  //  NOTE: this may raise if you don't run the request through the authorize handler first
+  let userId ctx =
+    ((user >> Option.get) ctx).Value
 
   /// Return a 201 CREATED response
   let created next ctx =
@@ -51,20 +56,17 @@ module private Helpers =
   let jsNow () =
     DateTime.Now.Subtract(DateTime (1970, 1, 1)).TotalSeconds |> int64 |> (*) 1000L
   
+  /// Handler to return a 403 Not Authorized reponse
   let notAuthorized : HttpHandler =
     setStatusCode 403 >=> fun _ _ -> Task.FromResult<HttpContext option> None
 
   /// Handler to require authorization
   let authorize : HttpHandler =
-    fun next ctx ->
-      task {
-        let auth = ctx.GetService<IAuthorizationService>()
-        let! result = auth.AuthorizeAsync (ctx.User, "LoggedOn")
-        Console.WriteLine (sprintf "*** Auth succeeded = %b" result.Succeeded)
-        match result.Succeeded with
-        | true -> return! next ctx
-        | false -> return! notAuthorized next ctx
-        }
+    fun next ctx -> match user ctx with Some _ -> next ctx | None -> notAuthorized next ctx
+  
+  /// Flip JSON result so we can pipe into it
+  let asJson<'T> next ctx (o : 'T) =
+    json o next ctx
 
 
 /// Strongly-typed models for post requests
@@ -107,9 +109,9 @@ module Journal =
   let journal : HttpHandler =
     authorize
     >=> fun next ctx ->
-      match user ctx with
-      | Some u -> json ((db ctx).JournalByUserId u.Value) next ctx
-      | None -> Error.notFound next ctx
+      userId ctx
+      |> (db ctx).JournalByUserId
+      |> asJson next ctx
 
 
 /// /api/request URLs
@@ -119,155 +121,141 @@ module Request =
   
   /// POST /api/request
   let add : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let! r     = ctx.BindJsonAsync<Models.Request> ()
-            let  db    = db ctx
-            let  reqId = Cuid.Generate ()
-            let  now   = jsNow ()
-            { Request.empty with
-                requestId    = reqId
-                userId       = u.Value
-                enteredOn    = now
-                snoozedUntil = 0L
-              }
-            |> db.AddEntry
-            { History.empty with
-                requestId = reqId
-                asOf      = now
-                status    = "Created"
-                text      = Some r.requestText
-                }
-            |> db.AddEntry
-            let! _   = db.SaveChangesAsync ()
-            let! req = db.TryJournalById reqId u.Value
-            match req with
-            | Some rqst -> return! (setStatusCode 201 >=> json rqst) next ctx
-            | None -> return! Error.notFound next ctx
+        let! r     = ctx.BindJsonAsync<Models.Request> ()
+        let  db    = db ctx
+        let  reqId = Cuid.Generate ()
+        let  usrId = userId ctx
+        let  now   = jsNow ()
+        { Request.empty with
+            requestId    = reqId
+            userId       = usrId
+            enteredOn    = now
+            snoozedUntil = 0L
+          }
+        |> db.AddEntry
+        { History.empty with
+            requestId = reqId
+            asOf      = now
+            status    = "Created"
+            text      = Some r.requestText
+            }
+        |> db.AddEntry
+        let! _   = db.SaveChangesAsync ()
+        let! req = db.TryJournalById reqId usrId
+        match req with
+        | Some rqst -> return! (setStatusCode 201 >=> json rqst) next ctx
         | None -> return! Error.notFound next ctx
         }
 
   /// POST /api/request/[req-id]/history
   let addHistory reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let  db  = db ctx
-            let! req = db.TryRequestById reqId u.Value
-            match req with
-            | Some _ ->
-                let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
-                { History.empty with
-                    requestId = reqId
-                    asOf      = jsNow ()
-                    status    = hist.status
-                    text      = match hist.updateText with null | "" -> None | x -> Some x
-                  }
-                |> db.AddEntry
-                let! _ = db.SaveChangesAsync ()
-                return! created next ctx
-            | None -> return! Error.notFound next ctx
+        let  db  = db ctx
+        let! req = db.TryRequestById reqId (userId ctx)
+        match req with
+        | Some _ ->
+            let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
+            { History.empty with
+                requestId = reqId
+                asOf      = jsNow ()
+                status    = hist.status
+                text      = match hist.updateText with null | "" -> None | x -> Some x
+              }
+            |> db.AddEntry
+            let! _ = db.SaveChangesAsync ()
+            return! created next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// POST /api/request/[req-id]/note
   let addNote reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let  db = db ctx
-            let! req = db.TryRequestById reqId u.Value
-            match req with
-            | Some _ ->
-                let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
-                { Note.empty with
-                    requestId = reqId
-                    asOf = jsNow ()
-                    notes = notes.notes
-                  }
-                |> db.AddEntry
-                let! _ = db.SaveChangesAsync ()
-                return! created next ctx
-            | None -> return! Error.notFound next ctx
+        let  db  = db ctx
+        let! req = db.TryRequestById reqId (userId ctx)
+        match req with
+        | Some _ ->
+            let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
+            { Note.empty with
+                requestId = reqId
+                asOf = jsNow ()
+                notes = notes.notes
+              }
+            |> db.AddEntry
+            let! _ = db.SaveChangesAsync ()
+            return! created next ctx
         | None -> return! Error.notFound next ctx
         }
           
   /// GET /api/requests/answered
   let answered : HttpHandler =
-    fun next ctx ->
-      match user ctx with
-      | Some u -> json ((db ctx).AnsweredRequests u.Value) next ctx
-      | None -> Error.notFound next ctx
+    authorize
+    >=> fun next ctx ->
+      userId ctx
+      |> (db ctx).AnsweredRequests
+      |> asJson next ctx
   
   /// GET /api/request/[req-id]
   let get reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let! req = (db ctx).TryRequestById reqId u.Value
-            match req with
-            | Some r -> return! json r next ctx
-            | None -> return! Error.notFound next ctx
+        let! req = (db ctx).TryRequestById reqId (userId ctx)
+        match req with
+        | Some r -> return! json r next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/complete
   let getComplete reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let! req = (db ctx).TryCompleteRequestById reqId u.Value
-            match req with
-            | Some r -> return! json r next ctx
-            | None -> return! Error.notFound next ctx
+        let! req = (db ctx).TryCompleteRequestById reqId (userId ctx)
+        match req with
+        | Some r -> return! json r next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/full
   let getFull reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let! req = (db ctx).TryFullRequestById reqId u.Value
-            match req with
-            | Some r -> return! json r next ctx
-            | None -> return! Error.notFound next ctx
+        let! req = (db ctx).TryFullRequestById reqId (userId ctx)
+        match req with
+        | Some r -> return! json r next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/notes
   let getNotes reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let! notes = (db ctx).NotesById reqId u.Value
-            return! json notes next ctx
-        | None -> return! Error.notFound next ctx
+        let! notes = (db ctx).NotesById reqId (userId ctx)
+        return! json notes next ctx
         }
   
   /// POST /api/request/[req-id]/snooze
   let snooze reqId : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       task {
-        match user ctx with
-        | Some u ->
-            let  db  = db ctx
-            let! req = db.TryRequestById reqId u.Value
-            match req with
-            | Some r ->
-                let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
-                { r with snoozedUntil = until.until }
-                |> db.UpdateEntry
-                let! _ = db.SaveChangesAsync ()
-                return! setStatusCode 204 next ctx
-            | None -> return! Error.notFound next ctx
+        let  db  = db ctx
+        let! req = db.TryRequestById reqId (userId ctx)
+        match req with
+        | Some r ->
+            let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
+            { r with snoozedUntil = until.until }
+            |> db.UpdateEntry
+            let! _ = db.SaveChangesAsync ()
+            return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
