@@ -1,8 +1,9 @@
 ﻿/// HTTP handlers for the myPrayerJournal API
 [<RequireQualifiedAccess>]
-module MyPrayerJournal.Handlers
+module MyPrayerJournal.Api.Handlers
 
 open Giraffe
+open MyPrayerJournal
 open System
 
 module Error =
@@ -17,7 +18,7 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     fun next ctx ->
-      let vueApp () = htmlFile "/index.html" next ctx
+      let vueApp () = htmlFile "wwwroot/index.html" next ctx
       match true with
       | _ when ctx.Request.Path.Value.StartsWith "/answered" -> vueApp ()
       | _ when ctx.Request.Path.Value.StartsWith "/journal" -> vueApp ()
@@ -31,6 +32,8 @@ module Error =
 module private Helpers =
   
   open Microsoft.AspNetCore.Http
+  open Microsoft.AspNetCore.Authorization
+  open System.Threading.Tasks
 
   /// Get the database context from DI
   let db (ctx : HttpContext) =
@@ -47,6 +50,21 @@ module private Helpers =
   /// The "now" time in JavaScript
   let jsNow () =
     DateTime.Now.Subtract(DateTime (1970, 1, 1)).TotalSeconds |> int64 |> (*) 1000L
+  
+  let notAuthorized : HttpHandler =
+    setStatusCode 403 >=> fun _ _ -> Task.FromResult<HttpContext option> None
+
+  /// Handler to require authorization
+  let authorize : HttpHandler =
+    fun next ctx ->
+      task {
+        let auth = ctx.GetService<IAuthorizationService>()
+        let! result = auth.AuthorizeAsync (ctx.User, "LoggedOn")
+        Console.WriteLine (sprintf "*** Auth succeeded = %b" result.Succeeded)
+        match result.Succeeded with
+        | true -> return! next ctx
+        | false -> return! notAuthorized next ctx
+        }
 
 
 /// Strongly-typed models for post requests
@@ -87,7 +105,8 @@ module Journal =
   
   /// GET /api/journal
   let journal : HttpHandler =
-    fun next ctx ->
+    authorize
+    >=> fun next ctx ->
       match user ctx with
       | Some u -> json ((db ctx).JournalByUserId u.Value) next ctx
       | None -> Error.notFound next ctx

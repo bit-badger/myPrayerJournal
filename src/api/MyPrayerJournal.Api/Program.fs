@@ -1,36 +1,50 @@
 namespace MyPrayerJournal.Api
 
-open System
-open Microsoft.AspNetCore
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
-open Microsoft.Extensions.Configuration
-open Microsoft.Extensions.Logging
+
 
 /// Configuration functions for the application
 module Configure =
   
+  open Microsoft.AspNetCore.Authentication.JwtBearer
+  open Microsoft.AspNetCore.Server.Kestrel.Core
+  open Microsoft.Extensions.Configuration
   open Microsoft.Extensions.DependencyInjection
+  open Microsoft.Extensions.Logging
   open Giraffe
   open Giraffe.TokenRouter
-  open MyPrayerJournal
 
   /// Set up the configuration for the app
   let configuration (ctx : WebHostBuilderContext) (cfg : IConfigurationBuilder) =
     cfg.SetBasePath(ctx.HostingEnvironment.ContentRootPath)
       .AddJsonFile("appsettings.json", optional = true, reloadOnChange = true)
-      .AddJsonFile(sprintf "appsettings.%s.json" ctx.HostingEnvironment.EnvironmentName, optional = true)
+      .AddJsonFile(sprintf "appsettings.%s.json" ctx.HostingEnvironment.EnvironmentName)
       .AddEnvironmentVariables()
     |> ignore
     
+  /// Configure Kestrel from appsettings.json
+  let kestrel (ctx : WebHostBuilderContext) (opts : KestrelServerOptions) =
+    (ctx.Configuration.GetSection >> opts.Configure >> ignore) "Kestrel"
+
   /// Configure dependency injection
   let services (sc : IServiceCollection) =
-    sc.AddAuthentication()
-      .AddJwtBearer("Auth0",
-        fun opt ->
-          opt.Audience <- "")
+    sc.AddGiraffe () |> ignore
+    // mad props to Andrea Chiarelli @ https://auth0.com/blog/securing-asp-dot-net-core-2-applications-with-jwts/
+    use sp  = sc.BuildServiceProvider()
+    let cfg = sp.GetRequiredService<IConfiguration>().GetSection "Auth0"
+    sc.AddAuthentication(
+      fun opts ->
+        opts.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
+        opts.DefaultChallengeScheme    <- JwtBearerDefaults.AuthenticationScheme)
+      .AddJwtBearer (
+        fun opts ->
+          opts.Authority <- sprintf "https://%s/" cfg.["Domain"]
+          opts.Audience  <- cfg.["Audience"]
+          opts.TokenValidationParameters.ValidateAudience <- false)
     |> ignore
-    ()
+    sc.AddAuthorization (fun opts -> opts.AddPolicy ("LoggedOn", fun p -> p.RequireClaim "sub" |> ignore))
+    |> ignore
   
   /// Routes for the available URLs within myPrayerJournal
   let webApp =
@@ -82,6 +96,7 @@ module Configure =
 
 module Program =
   
+  open System
   open System.IO
 
   let exitCode = 0
@@ -89,10 +104,10 @@ module Program =
   let CreateWebHostBuilder args =
     let contentRoot = Directory.GetCurrentDirectory ()
     WebHostBuilder()
-      .UseKestrel()
       .UseContentRoot(contentRoot)
+      .ConfigureAppConfiguration(Configure.configuration)
+      .UseKestrel(Configure.kestrel)
       .UseWebRoot(Path.Combine (contentRoot, "wwwroot"))
-      .ConfigureAppConfiguration(Action<WebHostBuilderContext, IConfigurationBuilder> Configure.configuration)
       .ConfigureServices(Configure.services)
       .ConfigureLogging(Configure.logging)
       .Configure(Action<IApplicationBuilder> Configure.application)

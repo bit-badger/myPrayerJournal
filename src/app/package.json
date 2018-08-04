@@ -1,6 +1,6 @@
 {
   "name": "my-prayer-journal",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "myPrayerJournal - Front End",
   "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
   "private": true,
@@ -12,8 +12,8 @@
     "e2e": "node test/e2e/runner.js",
     "test": "npm run unit && npm run e2e",
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs",
-    "apistart": "cd .. && go build -o mpj-api.exe && mpj-api.exe",
-    "vue": "node build/build.js prod && cd .. && go build -o mpj-api.exe && mpj-api.exe"
+    "apistart": "cd ../api/MyPrayerJournal.Api && dotnet run",
+    "vue": "node build/build.js prod && cd ../api/MyPrayerJournal.Api && dotnet run"
   },
   "dependencies": {
     "auth0-js": "^9.3.3",

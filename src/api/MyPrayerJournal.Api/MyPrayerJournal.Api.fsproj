@@ -22,4 +22,8 @@
     <PackageReference Update="FSharp.Core" Version="4.5.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>
