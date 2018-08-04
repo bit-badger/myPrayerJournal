@@ -3,16 +3,27 @@
 module MyPrayerJournal.Handlers
 
 open Giraffe
+open System
 
-/// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
-let notFound : HttpHandler =
-  fun next ctx ->
-    let vueApp () = htmlFile "/index.html" next ctx
-    match true with
-    | _ when ctx.Request.Path.Value.StartsWith "/answered" -> vueApp ()
-    | _ when ctx.Request.Path.Value.StartsWith "/journal" -> vueApp ()
-    | _ when ctx.Request.Path.Value.StartsWith "/user" -> vueApp ()
-    | _ -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
+module Error =
+
+  open Microsoft.Extensions.Logging
+
+  /// Handle errors
+  let error (ex : Exception) (log : ILogger) =
+    log.LogError (EventId(), ex, "An unhandled exception has occurred while executing the request.")
+    clearResponse >=> setStatusCode 500 >=> json ex.Message
+
+  /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
+  let notFound : HttpHandler =
+    fun next ctx ->
+      let vueApp () = htmlFile "/index.html" next ctx
+      match true with
+      | _ when ctx.Request.Path.Value.StartsWith "/answered" -> vueApp ()
+      | _ when ctx.Request.Path.Value.StartsWith "/journal" -> vueApp ()
+      | _ when ctx.Request.Path.Value.StartsWith "/user" -> vueApp ()
+      | _ when ctx.Request.Path.Value = "/" -> vueApp ()
+      | _ -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
 
 
 /// Handler helpers
@@ -20,7 +31,6 @@ let notFound : HttpHandler =
 module private Helpers =
   
   open Microsoft.AspNetCore.Http
-  open System
 
   /// Get the database context from DI
   let db (ctx : HttpContext) =
@@ -80,7 +90,7 @@ module Journal =
     fun next ctx ->
       match user ctx with
       | Some u -> json ((db ctx).JournalByUserId u.Value) next ctx
-      | None -> notFound next ctx
+      | None -> Error.notFound next ctx
 
 
 /// /api/request URLs
@@ -116,8 +126,8 @@ module Request =
             let! req = db.TryJournalById reqId u.Value
             match req with
             | Some rqst -> return! (setStatusCode 201 >=> json rqst) next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
 
   /// POST /api/request/[req-id]/history
@@ -140,8 +150,8 @@ module Request =
                 |> db.AddEntry
                 let! _ = db.SaveChangesAsync ()
                 return! created next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
   
   /// POST /api/request/[req-id]/note
@@ -163,8 +173,8 @@ module Request =
                 |> db.AddEntry
                 let! _ = db.SaveChangesAsync ()
                 return! created next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
           
   /// GET /api/requests/answered
@@ -172,7 +182,7 @@ module Request =
     fun next ctx ->
       match user ctx with
       | Some u -> json ((db ctx).AnsweredRequests u.Value) next ctx
-      | None -> notFound next ctx
+      | None -> Error.notFound next ctx
   
   /// GET /api/request/[req-id]
   let get reqId : HttpHandler =
@@ -183,8 +193,8 @@ module Request =
             let! req = (db ctx).TryRequestById reqId u.Value
             match req with
             | Some r -> return! json r next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/complete
@@ -196,8 +206,8 @@ module Request =
             let! req = (db ctx).TryCompleteRequestById reqId u.Value
             match req with
             | Some r -> return! json r next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/full
@@ -209,8 +219,8 @@ module Request =
             let! req = (db ctx).TryFullRequestById reqId u.Value
             match req with
             | Some r -> return! json r next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/notes
@@ -221,7 +231,7 @@ module Request =
         | Some u ->
             let! notes = (db ctx).NotesById reqId u.Value
             return! json notes next ctx
-        | None -> return! notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
   
   /// POST /api/request/[req-id]/snooze
@@ -239,6 +249,6 @@ module Request =
                 |> db.UpdateEntry
                 let! _ = db.SaveChangesAsync ()
                 return! setStatusCode 204 next ctx
-            | None -> return! notFound next ctx
-        | None -> return! notFound next ctx
+            | None -> return! Error.notFound next ctx
+        | None -> return! Error.notFound next ctx
         }
