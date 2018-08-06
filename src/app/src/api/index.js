@@ -67,6 +67,13 @@ export default {
   journal: () => http.get('journal'),
 
   /**
+   * Snooze a request until the given time
+   * @param requestId {string} The ID of the prayer request to be snoozed
+   * @param until {number} The ticks until which the request should be snoozed
+   */
+  snoozeRequest: (requestId, until) => http.post(`request/${requestId}/snooze`, { until }),
+
+  /**
    * Update a prayer request
    * @param request The request (should have requestId, status, and updateText properties)
    */
