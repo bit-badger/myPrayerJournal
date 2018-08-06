@@ -54,7 +54,7 @@ module private Helpers =
 
   /// The "now" time in JavaScript
   let jsNow () =
-    DateTime.Now.Subtract(DateTime (1970, 1, 1)).TotalSeconds |> int64 |> (*) 1000L
+    DateTime.UtcNow.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> int64 |> (*) 1000L
   
   /// Handler to return a 403 Not Authorized reponse
   let notAuthorized : HttpHandler =
@@ -101,6 +101,7 @@ module Models =
     { /// The time at which the request should reappear
       until : int64
       }
+
 
 /// /api/journal URLs
 module Journal =
@@ -206,7 +207,7 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        let! req = (db ctx).TryRequestById reqId (userId ctx)
+        let! req = (db ctx).TryJournalById reqId (userId ctx)
         match req with
         | Some r -> return! json r next ctx
         | None -> return! Error.notFound next ctx

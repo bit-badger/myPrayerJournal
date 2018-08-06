@@ -2,8 +2,8 @@
 b-list-group-item
   | {{ history.status }}
   |
-  small.text-muted {{ asOf }}
-  div(v-if='hasText').mpj-request-text {{ history.text }}
+  small.text-muted(:title='actualDate') {{ asOf }}
+  div(v-if='history.text').mpj-request-text {{ history.text.fields[0] }}
 </template>
 
 <script>
@@ -20,8 +20,8 @@ export default {
     asOf () {
       return moment(this.history.asOf).fromNow()
     },
-    hasText () {
-      return this.history.text.length > 0
+    actualDate () {
+      return moment(this.history.asOf).format('LLLL')
     }
   }
 }

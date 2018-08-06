@@ -10,6 +10,7 @@ article
     b-table(small hover :fields='fields' :items='log')
       template(slot='action' scope='data').
         {{ data.item.status }} on #[span.text-nowrap {{ formatDate(data.item.asOf) }}]
+      template(slot='text' scope='data' v-if='data.item.text') {{ data.item.text.fields[0] }}
 </template>
 
 <script>
@@ -44,12 +45,12 @@ export default {
     },
     lastText () {
       return this.request.history
-        .filter(hist => hist.text > '')
-        .sort(asOfDesc)[0].text
+        .filter(hist => hist.text)
+        .sort(asOfDesc)[0].text.fields[0]
     },
     log () {
       return (this.request.notes || [])
-        .map(note => ({ asOf: note.asOf, text: note.notes, status: 'Notes' }))
+        .map(note => ({ asOf: note.asOf, text: { case: 'Some', fields: [ note.notes ] }, status: 'Notes' }))
         .concat(this.request.history)
         .sort(asOfDesc)
         .slice(1)

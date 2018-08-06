@@ -37,8 +37,6 @@ module Entities =
       status    : string
       /// The text of the update, if applicable
       text      : string option
-      /// The request to which this history entry applies
-      request   : Request
       }
   with
     /// An empty history entry
@@ -47,7 +45,6 @@ module Entities =
         asOf      = 0L
         status    = ""
         text      = None
-        request   = Request.empty
         }
 
     static member configureEF (mb : ModelBuilder) =
@@ -58,11 +55,7 @@ module Entities =
           m.Property(fun e -> e.requestId).IsRequired () |> ignore
           m.Property(fun e -> e.asOf).IsRequired () |> ignore
           m.Property(fun e -> e.status).IsRequired() |> ignore
-          m.Property(fun e -> e.text) |> ignore
-          m.HasOne(fun e -> e.request)
-            .WithMany(fun r -> r.history :> IEnumerable<History>)
-            .HasForeignKey(fun e -> e.requestId :> obj)
-          |> ignore)
+          m.Property(fun e -> e.text) |> ignore)
       |> ignore
       let typ = mb.Model.FindEntityType(typeof<History>)
       let prop = typ.FindProperty("text")
@@ -76,8 +69,6 @@ module Entities =
       asOf      : int64
       /// The text of the notes
       notes     : string
-      /// The request to which this note applies
-      request   : Request
       }
   with
     /// An empty note
@@ -85,7 +76,6 @@ module Entities =
       { requestId = ""
         asOf      = 0L
         notes     = ""
-        request   = Request.empty
         }
 
     static member configureEF (mb : ModelBuilder) =
@@ -95,11 +85,7 @@ module Entities =
           m.HasKey ("requestId", "asOf") |> ignore
           m.Property(fun e -> e.requestId).IsRequired () |> ignore
           m.Property(fun e -> e.asOf).IsRequired () |> ignore
-          m.Property(fun e -> e.notes).IsRequired () |> ignore
-          m.HasOne(fun e -> e.request)
-            .WithMany(fun r -> r.notes :> IEnumerable<Note>)
-            .HasForeignKey(fun e -> e.requestId :> obj)
-          |> ignore)
+          m.Property(fun e -> e.notes).IsRequired () |> ignore)
       |> ignore
 
   // Request is the identifying record for a prayer request.
@@ -136,7 +122,15 @@ module Entities =
           m.Property(fun e -> e.requestId).IsRequired () |> ignore
           m.Property(fun e -> e.enteredOn).IsRequired () |> ignore
           m.Property(fun e -> e.userId).IsRequired () |> ignore
-          m.Property(fun e -> e.snoozedUntil).IsRequired () |> ignore)
+          m.Property(fun e -> e.snoozedUntil).IsRequired () |> ignore
+          m.HasMany(fun e -> e.history :> IEnumerable<History>)
+            .WithOne()
+            .HasForeignKey(fun e -> e.requestId :> obj)
+          |> ignore
+          m.HasMany(fun e -> e.notes :> IEnumerable<Note>)
+            .WithOne()
+            .HasForeignKey(fun e -> e.requestId :> obj)
+          |> ignore)
       |> ignore
 
   /// JournalRequest is the form of a prayer request returned for the request journal display. It also contains
@@ -230,7 +224,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
   member this.JournalByUserId userId : JournalRequest seq =
     upcast this.Journal
       .Where(fun r -> r.userId = userId && r.lastStatus <> "Answered")
-      .OrderByDescending(fun r -> r.asOf)
+      .OrderBy(fun r -> r.asOf)
   
   /// Retrieve a request by its ID and user ID
   member this.TryRequestById reqId userId : Task<Request option> =
