@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MyPrayerJournal.Api", "MyPrayerJournal.Api\MyPrayerJournal.Api.fsproj", "{E0E5240C-00DC-428A-899A-DA4F06625B8A}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "MyPrayerJournal.Api", "MyPrayerJournal.Api\MyPrayerJournal.Api.fsproj", "{E0E5240C-00DC-428A-899A-DA4F06625B8A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
