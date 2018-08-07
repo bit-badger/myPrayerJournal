@@ -254,8 +254,8 @@ paket-files/
 
 # Compiled files / application
 src/api/build
-src/public/index.html
-src/public/static
-src/config.json
+src/api/MyPrayerJournal.Api/wwwroot/index.html
+src/api/MyPrayerJournal.Api/wwwroot/static
+src/api/MyPrayerJournal.Api/appsettings.development.json
 /build
 src/*.exe
