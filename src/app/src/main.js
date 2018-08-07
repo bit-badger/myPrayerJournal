@@ -17,6 +17,7 @@ import 'vue-awesome/icons/file-text-o'
 import 'vue-awesome/icons/pencil'
 import 'vue-awesome/icons/plus'
 import 'vue-awesome/icons/search'
+import 'vue-awesome/icons/times'
 
 import App from './App'
 import router from './router'

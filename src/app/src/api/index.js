@@ -31,12 +31,12 @@ export default {
    * Add a new prayer request
    * @param {string} requestText The text of the request to be added
    */
-  addRequest: requestText => http.post('request/', { requestText }),
+  addRequest: requestText => http.post('request', { requestText }),
 
   /**
    * Get all answered requests, along with the text they had when it was answered
    */
-  getAnsweredRequests: () => http.get('request/answered'),
+  getAnsweredRequests: () => http.get('requests/answered'),
 
   /**
    * Get a prayer request (full; includes all history)
@@ -64,7 +64,14 @@ export default {
   /**
    * Get all prayer requests and their most recent updates
    */
-  journal: () => http.get('journal/'),
+  journal: () => http.get('journal'),
+
+  /**
+   * Snooze a request until the given time
+   * @param requestId {string} The ID of the prayer request to be snoozed
+   * @param until {number} The ticks until which the request should be snoozed
+   */
+  snoozeRequest: (requestId, until) => http.post(`request/${requestId}/snooze`, { until }),
 
   /**
    * Update a prayer request
