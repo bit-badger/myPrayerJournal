@@ -12,11 +12,13 @@ b-navbar(toggleable='sm'
     b-navbar-nav
       b-nav-item(v-if='isAuthenticated'
                  to='/journal') Journal
+      b-nav-item(v-if='hasSnoozed'
+                 to='/snoozed') Snoozed
       b-nav-item(v-if='isAuthenticated'
                  to='/answered') Answered
       b-nav-item(v-if='isAuthenticated'): a(@click.stop='logOff()') Log Off
       b-nav-item(v-if='!isAuthenticated'): a(@click.stop='logOn()') Log On
-      b-nav-item(href='https://danieljsummers.github.io/myPrayerJournal/'
+      b-nav-item(href='https://bit-badger.github.io/myPrayerJournal/'
                  target='_blank'
                  @click.stop='') Docs
 </template>
@@ -35,7 +37,12 @@ export default {
     }
   },
   computed: {
-    ...mapState([ 'isAuthenticated' ])
+    hasSnoozed () {
+      return this.isAuthenticated &&
+        Array.isArray(this.journal) &&
+        this.journal.filter(req => req.snoozedUntil > Date.now()).length > 0
+    },
+    ...mapState([ 'journal', 'isAuthenticated' ])
   },
   methods: {
     logOn () {

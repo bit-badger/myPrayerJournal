@@ -53,7 +53,7 @@ export default {
       this.events.$emit('notes', this.request)
     },
     snooze () {
-      // Nothing yet
+      this.events.$emit('snooze', this.request.requestId)
     }
   }
 }

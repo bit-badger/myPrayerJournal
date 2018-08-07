@@ -6,5 +6,7 @@ export default {
   /** Action to load the user's prayer journal */
   LOAD_JOURNAL: 'load-journal',
   /** Action to update a request */
-  UPDATE_REQUEST: 'update-request'
+  UPDATE_REQUEST: 'update-request',
+  /** Action to snooze a request */
+  SNOOZE_REQUEST: 'snooze-request'
 }

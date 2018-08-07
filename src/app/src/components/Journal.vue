@@ -18,6 +18,8 @@ article
     notes-edit(:events='eventBus'
                :toast='toast')
     full-request(:events='eventBus')
+    snooze-request(:events='eventBus'
+                   :toast='toast')
 </template>
 
 <script>
@@ -31,6 +33,7 @@ import FullRequest from './request/FullRequest'
 import NewRequest from './request/NewRequest'
 import NotesEdit from './request/NotesEdit'
 import RequestCard from './request/RequestCard'
+import SnoozeRequest from './request/SnoozeRequest'
 
 import actions from '@/store/action-types'
 
@@ -41,7 +44,8 @@ export default {
     FullRequest,
     NewRequest,
     NotesEdit,
-    RequestCard
+    RequestCard,
+    SnoozeRequest
   },
   data () {
     return {
