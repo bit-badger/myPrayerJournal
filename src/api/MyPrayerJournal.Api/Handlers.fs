@@ -18,13 +18,12 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     fun next ctx ->
-      let vueApp () = htmlFile "wwwroot/index.html" next ctx
-      match true with
-      | _ when ctx.Request.Path.Value.StartsWith "/answered" -> vueApp ()
-      | _ when ctx.Request.Path.Value.StartsWith "/journal" -> vueApp ()
-      | _ when ctx.Request.Path.Value.StartsWith "/user" -> vueApp ()
-      | _ when ctx.Request.Path.Value = "/" -> vueApp ()
-      | _ -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
+      [ "/answered"; "/journal"; "/snoozed"; "/user" ]
+      |> List.filter ctx.Request.Path.Value.StartsWith
+      |> List.length
+      |> function
+      | 0 -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
+      | _ -> htmlFile "wwwroot/index.html" next ctx
 
 
 /// Handler helpers

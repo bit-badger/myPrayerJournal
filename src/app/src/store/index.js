@@ -116,6 +116,7 @@ export default new Vuex.Store({
         await api.snoozeRequest(requestId, until)
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
+        progress.finish()
       } catch (err) {
         logError(err)
         progress.fail()

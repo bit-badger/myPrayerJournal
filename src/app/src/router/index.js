@@ -7,6 +7,7 @@ import Home from '@/components/Home'
 import Journal from '@/components/Journal'
 import LogOn from '@/components/user/LogOn'
 import PrivacyPolicy from '@/components/legal/PrivacyPolicy'
+import Snoozed from '@/components/Snoozed'
 import TermsOfService from '@/components/legal/TermsOfService'
 
 Vue.use(Router)
@@ -44,6 +45,11 @@ export default new Router({
       path: '/legal/terms-of-service',
       name: 'TermsOfService',
       component: TermsOfService
+    },
+    {
+      path: '/snoozed',
+      name: 'Snoozed',
+      component: Snoozed
     },
     {
       path: '/user/log-on',
