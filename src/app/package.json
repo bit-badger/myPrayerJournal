@@ -11,6 +11,9 @@
     "apistart": "cd ../api/MyPrayerJournal.Api && dotnet run",
     "vue": "vue-cli-service build && cd ../api/MyPrayerJournal.Api && dotnet run"
   },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "dependencies": {
     "auth0-js": "^9.7.3",
     "axios": "^0.18.0",

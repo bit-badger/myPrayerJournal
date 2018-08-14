@@ -1,31 +1,69 @@
-<template>
-  <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div>
-    <router-view/>
-  </div>
+<template lang="pug">
+#app
+  navigation
+  #content.container
+    router-view
+    vue-progress-bar
+    toast(ref='toast')
+  footer
+    p.text-right.text-muted
+      | myPrayerJournal v{{ version }}
+      br
+      em: small.
+        #[router-link(:to="{ name: 'PrivacyPolicy' }") Privacy Policy] &bull;
+        #[router-link(:to="{ name: 'TermsOfService' }") Terms of Service] &bull;
+        #[a(href='https://github.com/bit-badger/myprayerjournal') Developed] and hosted by
+        #[a(href='https://bitbadger.solutions') Bit Badger Solutions]
 </template>
 
+<script>
+'use strict'
+import Navigation from './components/Navigation.vue'
+import { version } from '../package.json'
+export default {
+  name: 'app',
+  components: {
+    Navigation
+  },
+  data () {
+    return { version }
+  },
+  mounted () {
+    this.$refs.toast.setOptions({ position: 'bottom right' })
+  },
+  computed: {
+    toast () {
+      return this.$refs.toast
+    }
+  }
+}
+</script>
+
 <style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+html, body {
+  background-color: whitesmoke;
 }
-#nav {
-  padding: 30px;
+body {
+  padding-top: 60px;
 }
-
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
+footer {
+  border-top: solid 1px lightgray;
+  margin-top: 1rem;
+  padding: 0 1rem;
 }
-
-#nav a.router-link-exact-active {
-  color: #42b983;
+footer p {
+  margin: 0;
+}
+a:link, a:visited {
+  color: #050;
+}
+.mpj-request-text {
+  white-space: pre-line;
+}
+.bg-mpj {
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#050), to(whitesmoke));
+  background-image: -webkit-linear-gradient(top, #050, whitesmoke);
+  background-image: -moz-linear-gradient(top, #050, whitesmoke);
+  background-image: linear-gradient(to bottom, #050, whitesmoke);
 }
 </style>

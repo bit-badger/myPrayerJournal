@@ -1,3 +1,6 @@
 module.exports = {
-  outputDir: '../api/MyPrayerJournal.Api/wwwroot'
+  outputDir: '../api/MyPrayerJournal.Api/wwwroot',
+  css: {
+    modules: true
+  }
 }
