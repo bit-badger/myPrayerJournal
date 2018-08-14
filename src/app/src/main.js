@@ -1,5 +1,3 @@
-// The Vue build version to load with the `import` command
-// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import BootstrapVue from 'bootstrap-vue'
 import Icon from 'vue-awesome/components/Icon'
@@ -19,7 +17,7 @@ import 'vue-awesome/icons/plus'
 import 'vue-awesome/icons/search'
 import 'vue-awesome/icons/times'
 
-import App from './App'
+import App from './App.vue'
 import router from './router'
 import store from './store'
 import DateFromNow from './components/common/DateFromNow'
@@ -44,11 +42,8 @@ Vue.component('date-from-now', DateFromNow)
 Vue.component('page-title', PageTitle)
 Vue.component('toast', VueToast)
 
-/* eslint-disable no-new */
 new Vue({
-  el: '#app',
   router,
   store,
-  template: '<App/>',
-  components: { App }
-})
+  render: h => h(App)
+}).$mount('#app')
