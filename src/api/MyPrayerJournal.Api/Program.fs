@@ -53,7 +53,7 @@ module Configure =
   /// Routes for the available URLs within myPrayerJournal
   let webApp =
     router Handlers.Error.notFound [
-      route "/" (htmlFile "wwwroot/index.html")
+      route "/" Handlers.Vue.app
       subRoute "/api/" [
         GET [
           route    "journal" Handlers.Journal.journal
