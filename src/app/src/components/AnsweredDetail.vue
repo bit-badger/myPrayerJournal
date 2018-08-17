@@ -1,16 +1,23 @@
 <template lang="pug">
-article
+article.mpj-main-content(role='main')
   page-title(title='Answered Request')
-  p(v-if='!request') Loading request...
   template(v-if='request')
     p.
       Answered {{ formatDate(answered) }} (#[date-from-now(:value='answered')]) &nbsp;
-      #[small: em.text-muted prayed {{ prayedCount }} times, open {{ openDays }} days]
+      #[small: em.mpj-muted-text prayed {{ prayedCount }} times, open {{ openDays }} days]
     p.mpj-request-text {{ lastText }}
-    b-table(small hover :fields='fields' :items='log')
-      template(slot='action' scope='data').
-        {{ data.item.status }} on #[span.text-nowrap {{ formatDate(data.item.asOf) }}]
-      template(slot='text' scope='data' v-if='data.item.text') {{ data.item.text.fields[0] }}
+    br
+    table.mpj-request-log
+      thead
+        tr
+          th Action
+          th Update / Notes
+      tbody
+        tr(v-for='item in log' :key='item.asOf')
+          td {{ item.status }} on #[span.mpj-text-nowrap {{ formatDate(item.asOf) }}]
+          td(v-if='item.text').mpj-request-text {{ item.text.fields[0] }}
+          td(v-else) &nbsp;
+  p(v-else) Loading request...
 </template>
 
 <script>
@@ -32,11 +39,7 @@ export default {
   },
   data () {
     return {
-      request: null,
-      fields: [
-        { key: 'action', label: 'Action' },
-        { key: 'text', label: 'Update / Notes' }
-      ]
+      request: null
     }
   },
   computed: {

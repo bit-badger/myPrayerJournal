@@ -1,19 +1,17 @@
 <template lang="pug">
-b-col(v-if="!isSnoozed" md='6' lg='4')
-  .mpj-request-card
-    b-card-header.text-center.py-1.
-      #[b-btn(@click='markPrayed()' variant='outline-primary' title='Pray' size='sm'): icon(name='check')]
-      #[b-btn(@click.stop='showEdit()' variant='outline-secondary' title='Edit' size='sm'): icon(name='pencil')]
-      #[b-btn(@click.stop='showNotes()' variant='outline-secondary' title='Add Notes' size='sm'): icon(name='file-text-o')]
-      #[b-btn(@click.stop='showFull()' variant='outline-secondary' title='View Full Request' size='sm'): icon(name='search')]
-      #[b-btn(@click.stop='snooze()' variant='outline-secondary' title='Snooze Request' size='sm'): icon(name='clock-o')]
-    b-card-body.p-0
-      p.card-text.mpj-request-text.mb-1.px-3.pt-3
-        | {{ request.text }}
-      p.card-text.p-0.pr-1.text-right: small.text-muted: em
-        = '(last activity '
-        date-from-now(:value='request.asOf')
-        | )
+.mpj-request-card
+  header.mpj-card-header.mpj-bg(role='toolbar').
+    #[button.pray(@click='markPrayed()' title='Pray' size='sm'): md-icon(icon='done')]
+    #[button(@click.stop='showEdit()' title='Edit' size='sm'): md-icon(icon='edit')]
+    #[button(@click.stop='showNotes()' title='Add Notes' size='sm'): md-icon(icon='comment')]
+    #[button(@click.stop='snooze()' title='Snooze Request' size='sm'): md-icon(icon='schedule')]
+  div
+    p.card-text.mpj-request-text
+      | {{ request.text }}
+    p.as-of.mpj-text-right: small.mpj-muted-text: em
+      = '(last activity '
+      date-from-now(:value='request.asOf')
+      | )
 </template>
 
 <script>
@@ -29,8 +27,8 @@ export default {
     events: { required: true }
   },
   computed: {
-    isSnoozed () {
-      return Date.now() < this.request.snoozedUntil
+    shouldDisplay () {
+      return Date.now() >= this.request.showAfter
     }
   },
   methods: {
@@ -63,6 +61,39 @@ export default {
 .mpj-request-card {
   border: solid 1px darkgray;
   border-radius: 5px;
-  margin-bottom: 15px;
+  width: 20rem;
+  margin: .5rem;
+}
+@media screen and (max-width: 20rem) {
+  .mpj-request-card {
+    width: 100%;
+  }
+}
+.mpj-card-header {
+  display: flex;
+  flex-flow: row;
+  justify-content: center;
+}
+.mpj-card-header button {
+  background-color: rgba(255, 255, 255, .75);
+  border-radius: .25rem;
+  margin: .25rem;
+  border: solid #050 1px;
+  font-size: .8rem;
+}
+.mpj-card-header button:hover {
+  cursor: pointer;
+  background-color: white;
+  color: #050;
+}
+.mpj-card-header button.pray {
+  background-color: white;
+}
+.mpj-request-card .card-text {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+.mpj-request-card .as-of {
+  margin-right: .25rem;
 }
 </style>

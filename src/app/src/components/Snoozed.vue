@@ -1,21 +1,19 @@
 <template lang="pug">
-article
+article.mpj-main-content(role='main')
   page-title(title='Snoozed Requests')
-  p(v-if='!loaded') Loading journal...
   div(v-if='loaded').mpj-snoozed-list
-    p.text-center(v-if='requests.length === 0'): em.
+    p.mpj-text-center(v-if='requests.length === 0'): em.
       No snoozed requests found; return to #[router-link(:to='{ name: "Journal" } ') your journal]
-    p.mpj-snoozed-text(v-for='req in requests' :key='req.requestId')
+    p.mpj-request-text(v-for='req in requests' :key='req.requestId')
       | {{ req.text }}
       br
       br
-      b-btn(@click='cancelSnooze(req.requestId)'
-            size='sm'
-            variant='outline-secondary')
-        icon(name='times')
+      button(@click='cancelSnooze(req.requestId)')
+        md-icon(icon='restore')
         = ' Cancel Snooze'
-      small.text-muted: em.
+      small.mpj-muted-text: em.
         &nbsp; Snooze expires #[date-from-now(:value='req.snoozedUntil')]
+  p(v-else) Loading journal...
 </template>
 
 <script>

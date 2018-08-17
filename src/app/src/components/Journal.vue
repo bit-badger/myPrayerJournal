@@ -1,11 +1,11 @@
 <template lang="pug">
-article
+article.mpj-main-content-wide(role='main')
   page-title(:title='title')
   p(v-if='isLoadingJournal') Loading your prayer journal...
   template(v-if='!isLoadingJournal')
     new-request
     br
-    b-row(v-if='journal.length > 0')
+    .mpj-journal(v-if='journal.length > 0')
       request-card(v-for='request in journal'
                    :key='request.requestId'
                    :request='request'
@@ -67,3 +67,11 @@ export default {
   }
 }
 </script>
+
+<style>
+.mpj-journal {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+}
+</style>

@@ -1,7 +1,7 @@
 <template lang="pug">
 div
-  b-btn(@click='openDialog()' size='sm' variant='primary')
-    icon(name='plus')
+  button(@click='openDialog()')
+    md-icon(icon='add_box')
     | &nbsp; Add a New Request
   b-modal(v-model='showNewVisible'
           header-bg-variant='mpj'
@@ -16,8 +16,26 @@ div
                                 v-model='form.requestText'
                                 :rows='10'
                                 @blur='trimText()')
+      b-form-group(label='Recurrence')
+        | After prayer, request reappears
+        b-radio(v-model='form.recur.typ'
+                label='Immediately'
+                value='immediately'
+                checked='checked'
+                @click='checkRadios')
+        b-radio(v-model='form.recur.typ'
+                label='Every...'
+                value='other'
+                @click='checkRadios')
+        b-input(v-model='form.recur.count'
+                placeholder='##')
+        b-select(v-model='form.recur.other')
+          b-option(value='hours') hours
+          b-option(value='days') days
+          b-option(value='weeks') weeks
     div.w-100.text-right(slot='modal-footer')
       b-btn(variant='primary'
+            :disabled='!isValid'
             @click='saveRequest()') Save
       | &nbsp; &nbsp;
       b-btn(variant='outline-secondary'
@@ -36,13 +54,24 @@ export default {
     return {
       showNewVisible: false,
       form: {
-        requestText: ''
+        requestText: '',
+        recur: {
+          typ: 'immediate',
+          other: '',
+          count: ''
+        }
       },
       formLabelWidth: '120px'
     }
   },
   mounted () {
     this.$refs.toast.setOptions({ position: 'bottom right' })
+  },
+  computed: {
+    isValid () {
+      // TODO disallow submission if recurrence is too long
+      return true
+    }
   },
   methods: {
     closeDialog () {

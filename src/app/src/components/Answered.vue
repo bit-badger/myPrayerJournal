@@ -1,5 +1,5 @@
 <template lang="pug">
-article
+article.mpj-main-content(role='main')
   page-title(title='Answered Requests')
   p(v-if='!loaded') Loading answered requests...
   div(v-if='loaded').mpj-answered-list
@@ -9,12 +9,12 @@ article
       | {{ req.text }}
       br
       br
-      b-btn(:to='{ name: "AnsweredDetail", params: { id: req.requestId }}'
-            size='sm'
-            variant='outline-secondary')
-        icon(name='search')
+      router-link(:to='{ name: "AnsweredDetail", params: { id: req.requestId }}'
+                  role='button'
+                  title='View Full Request')
+        md-icon(icon='description')
         = ' View Full Request'
-      small.text-muted: em.
+      small.mpj-muted-text: em.
         &nbsp; Answered #[date-from-now(:value='req.asOf')]
 </template>
 
