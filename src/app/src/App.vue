@@ -12,8 +12,8 @@
       em: small.
         #[router-link(:to="{ name: 'PrivacyPolicy' }") Privacy Policy] &bull;
         #[router-link(:to="{ name: 'TermsOfService' }") Terms of Service] &bull;
-        #[a(href='https://github.com/bit-badger/myprayerjournal') Developed] and hosted by
-        #[a(href='https://bitbadger.solutions') Bit Badger Solutions]
+        #[a(href='https://github.com/bit-badger/myprayerjournal' target='_blank') Developed] and hosted by
+        #[a(href='https://bitbadger.solutions' target='_blank') Bit Badger Solutions]
 </template>
 
 <script>

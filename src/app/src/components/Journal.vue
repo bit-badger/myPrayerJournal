@@ -2,7 +2,7 @@
 article.mpj-main-content-wide(role='main')
   page-title(:title='title')
   p(v-if='isLoadingJournal') Loading your prayer journal...
-  template(v-if='!isLoadingJournal')
+  template(v-else)
     new-request
     br
     .mpj-journal(v-if='journal.length > 0')
@@ -11,13 +11,12 @@ article.mpj-main-content-wide(role='main')
                    :request='request'
                    :events='eventBus'
                    :toast='toast')
-    p.text-center(v-if='journal.length === 0'): em.
+    p.text-center(v-else): em.
       No requests found; click the &ldquo;Add a New Request&rdquo; button to add one
     edit-request(:events='eventBus'
                  :toast='toast')
     notes-edit(:events='eventBus'
                :toast='toast')
-    full-request(:events='eventBus')
     snooze-request(:events='eventBus'
                    :toast='toast')
 </template>
@@ -29,7 +28,6 @@ import Vue from 'vue'
 import { mapState } from 'vuex'
 
 import EditRequest from './request/EditRequest'
-import FullRequest from './request/FullRequest'
 import NewRequest from './request/NewRequest'
 import NotesEdit from './request/NotesEdit'
 import RequestCard from './request/RequestCard'
@@ -41,7 +39,6 @@ export default {
   name: 'journal',
   components: {
     EditRequest,
-    FullRequest,
     NewRequest,
     NotesEdit,
     RequestCard,

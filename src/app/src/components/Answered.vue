@@ -1,7 +1,6 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
   page-title(title='Answered Requests')
-  p(v-if='!loaded') Loading answered requests...
   div(v-if='loaded').mpj-answered-list
     p.text-center(v-if='requests.length === 0'): em.
       No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
@@ -16,6 +15,7 @@ article.mpj-main-content(role='main')
         = ' View Full Request'
       small.mpj-muted-text: em.
         &nbsp; Answered #[date-from-now(:value='req.asOf')]
+  p(v-else) Loading answered requests...
 </template>
 
 <script>
