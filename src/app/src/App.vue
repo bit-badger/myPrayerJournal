@@ -106,6 +106,12 @@ a:hover {
 .mpj-request-text {
   white-space: pre-line;
 }
+.mpj-request-list p {
+  border-top: solid 1px lightgray;
+}
+.mpj-request-list p:first-child {
+  border-top: none;
+}
 .mpj-request-log {
   width: 100%;
 }

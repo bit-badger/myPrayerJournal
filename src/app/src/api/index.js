@@ -1,3 +1,5 @@
+'use strict'
+
 import axios from 'axios'
 
 const http = axios.create({
@@ -39,7 +41,7 @@ export default {
   getAnsweredRequests: () => http.get('requests/answered'),
 
   /**
-   * Get a prayer request (full; includes all history)
+   * Get a prayer request (full; includes all history and notes)
    * @param {string} requestId The Id of the request to retrieve
    */
   getFullRequest: requestId => http.get(`request/${requestId}/full`),
@@ -55,11 +57,6 @@ export default {
    * @param {string} requestId The Id of the request to retrieve
    */
   getRequest: requestId => http.get(`request/${requestId}`),
-
-  /**
-   * Get a complete request; equivalent of "full" and "notes" combined
-   */
-  getRequestComplete: requestId => http.get(`request/${requestId}/complete`),
 
   /**
    * Get all prayer requests and their most recent updates

@@ -1,30 +1,29 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
-  page-title(title='Snoozed Requests')
-  div(v-if='loaded').mpj-snoozed-list
+  page-title(title='Active Requests')
+  div(v-if='loaded').mpj-request-list
     p.mpj-text-center(v-if='requests.length === 0'): em.
-      No snoozed requests found; return to #[router-link(:to='{ name: "Journal" } ') your journal]
-    p.mpj-request-text(v-for='req in requests' :key='req.requestId')
-      | {{ req.text }}
-      br
-      br
-      button(@click='cancelSnooze(req.requestId)')
-        md-icon(icon='restore')
-        = ' Cancel Snooze'
-      small.mpj-muted-text: em.
-        &nbsp; Snooze expires #[date-from-now(:value='req.snoozedUntil')]
+      No active requests found; return to #[router-link(:to='{ name: "Journal" } ') your journal]
+    request-list-item(v-for='req in requests'
+                      :key='req.requestId'
+                      :request='req')
   p(v-else) Loading journal...
 </template>
 
 <script>
-'use static'
+'use strict'
 
 import { mapState } from 'vuex'
+
+import RequestListItem from '@/components/request/RequestListItem'
 
 import actions from '@/store/action-types'
 
 export default {
-  name: 'answered',
+  name: 'active-requests',
+  components: {
+    RequestListItem
+  },
   data () {
     return {
       requests: [],
@@ -44,8 +43,7 @@ export default {
         await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
       }
       this.requests = this.journal
-        .filter(req => req.snoozedUntil > Date.now())
-        .sort((a, b) => a.snoozedUntil - b.snoozedUntil)
+        .sort((a, b) => a.showAfter - b.showAfter)
       this.loaded = true
     },
     async cancelSnooze (requestId) {
@@ -63,12 +61,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.mpj-snoozed-list p {
-  border-top: solid 1px lightgray;
-}
-.mpj-snoozed-list p:first-child {
-  border-top: none;
-}
-</style>

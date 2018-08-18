@@ -26,7 +26,7 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     fun next ctx ->
-      [ "/answered"; "/journal"; "/legal"; "/request"; "/snoozed"; "/user" ]
+      [ "/journal"; "/legal"; "/request"; "/user" ]
       |> List.filter ctx.Request.Path.Value.StartsWith
       |> List.length
       |> function
@@ -232,16 +232,6 @@ module Request =
     >=> fun next ctx ->
       task {
         match! (db ctx).TryJournalById reqId (userId ctx) with
-        | Some req -> return! json req next ctx
-        | None -> return! Error.notFound next ctx
-        }
-  
-  /// GET /api/request/[req-id]/complete
-  let getComplete reqId : HttpHandler =
-    authorize
-    >=> fun next ctx ->
-      task {
-        match! (db ctx).TryCompleteRequestById reqId (userId ctx) with
         | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }

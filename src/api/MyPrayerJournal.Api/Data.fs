@@ -267,7 +267,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
       }
   
   /// Retrieve a request, including its history and notes, by its ID and user ID
-  member this.TryCompleteRequestById requestId userId =
+  member this.TryFullRequestById requestId userId =
     task {
       match! this.TryJournalById requestId userId with
       | Some req ->
@@ -278,21 +278,6 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
               .FirstOrDefaultAsync(fun r -> r.requestId = requestId && r.userId = userId)
           match toOption fullReq with
           | Some _ -> return Some { req with history = List.ofSeq fullReq.history; notes = List.ofSeq fullReq.notes }
-          | None -> return None
-      | None -> return None
-      }
-  
-  /// Retrieve a request, including its history, by its ID and user ID
-  member this.TryFullRequestById requestId userId =
-    task {
-      match! this.TryJournalById requestId userId with
-      | Some req ->
-          let! fullReq =
-            this.Requests.AsNoTracking()
-              .Include(fun r -> r.history)
-              .FirstOrDefaultAsync(fun r -> r.requestId = requestId && r.userId = userId)
-          match toOption fullReq with
-          | Some _ -> return Some { req with history = List.ofSeq fullReq.history }
           | None -> return None
       | None -> return None
       }

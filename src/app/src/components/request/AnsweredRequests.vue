@@ -1,30 +1,27 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
   page-title(title='Answered Requests')
-  div(v-if='loaded').mpj-answered-list
+  div(v-if='loaded').mpj-request-list
     p.text-center(v-if='requests.length === 0'): em.
       No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
-    p.mpj-request-text(v-for='req in requests' :key='req.requestId')
-      | {{ req.text }}
-      br
-      br
-      router-link(:to='{ name: "AnsweredDetail", params: { id: req.requestId }}'
-                  role='button'
-                  title='View Full Request')
-        md-icon(icon='description')
-        = ' View Full Request'
-      small.mpj-muted-text: em.
-        &nbsp; Answered #[date-from-now(:value='req.asOf')]
+    request-list-item(v-for='req in requests'
+                      :key='req.requestId'
+                      :request='req')
   p(v-else) Loading answered requests...
 </template>
 
 <script>
-'use static'
+'use strict'
 
 import api from '@/api'
 
+import RequestListItem from '@/components/request/RequestListItem'
+
 export default {
-  name: 'answered',
+  name: 'answered-requests',
+  components: {
+    RequestListItem
+  },
   data () {
     return {
       requests: [],
@@ -52,12 +49,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.mpj-answered-list p {
-  border-top: solid 1px lightgray;
-}
-.mpj-answered-list p:first-child {
-  border-top: none;
-}
-</style>

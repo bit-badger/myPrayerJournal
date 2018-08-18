@@ -59,7 +59,6 @@ module Configure =
           route    "journal" Handlers.Journal.journal
           subRoute "request" [
             route  "s/answered"   Handlers.Request.answered
-            routef "/%s/complete" Handlers.Request.getComplete
             routef "/%s/full"     Handlers.Request.getFull
             routef "/%s/notes"    Handlers.Request.getNotes
             routef "/%s"          Handlers.Request.get

@@ -1,14 +1,17 @@
+'use strict'
+
 import Vue from 'vue'
 import Router from 'vue-router'
 
-import Answered from '@/components/Answered'
-import AnsweredDetail from '@/components/AnsweredDetail'
+import ActiveRequests from '@/components/request/ActiveRequests'
+import AnsweredRequests from '@/components/request/AnsweredRequests'
 import EditRequest from '@/components/request/EditRequest'
+import FullRequest from '@/components/request/FullRequest'
 import Home from '@/components/Home'
 import Journal from '@/components/Journal'
 import LogOn from '@/components/user/LogOn'
 import PrivacyPolicy from '@/components/legal/PrivacyPolicy'
-import Snoozed from '@/components/Snoozed'
+import SnoozedRequests from '@/components/request/SnoozedRequests'
 import TermsOfService from '@/components/legal/TermsOfService'
 
 Vue.use(Router)
@@ -20,17 +23,6 @@ export default new Router({
       path: '/',
       name: 'Home',
       component: Home
-    },
-    {
-      path: '/answered/:id',
-      name: 'AnsweredDetail',
-      component: AnsweredDetail,
-      props: true
-    },
-    {
-      path: '/answered',
-      name: 'Answered',
-      component: Answered
     },
     {
       path: '/journal',
@@ -54,9 +46,25 @@ export default new Router({
       props: true
     },
     {
-      path: '/snoozed',
-      name: 'Snoozed',
-      component: Snoozed
+      path: '/request/:id/full',
+      name: 'FullRequest',
+      component: FullRequest,
+      props: true
+    },
+    {
+      path: '/requests/active',
+      name: 'ActiveRequests',
+      component: ActiveRequests
+    },
+    {
+      path: '/requests/answered',
+      name: 'AnsweredRequests',
+      component: AnsweredRequests
+    },
+    {
+      path: '/requests/snoozed',
+      name: 'SnoozedRequests',
+      component: SnoozedRequests
     },
     {
       path: '/user/log-on',
