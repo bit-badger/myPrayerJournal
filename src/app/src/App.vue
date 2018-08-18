@@ -61,8 +61,17 @@ a[role="button"] {
   border-radius: .5rem;
   background-color: whitesmoke;
 }
+a[role="button"] {
+  padding: .25rem;
+}
+button.primary,
+a[role="button"].primary {
+  background-color: white;
+  border-width: 3px;
+}
 button:hover,
 a[role="button"]:hover {
+  cursor: pointer;
   background-color: #050;
   color: white;
   text-decoration: none;
@@ -131,5 +140,8 @@ a:hover {
 .mpj-margin {
   margin-left: 1rem;
   margin-right: 1rem;
+}
+.material-icons {
+  vertical-align: middle;
 }
 </style>

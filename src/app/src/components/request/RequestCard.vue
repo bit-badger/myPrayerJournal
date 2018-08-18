@@ -1,10 +1,10 @@
 <template lang="pug">
 .mpj-request-card
-  header.mpj-card-header.mpj-bg(role='toolbar').
-    #[button.pray(@click='markPrayed()' title='Pray' size='sm'): md-icon(icon='done')]
-    #[button(@click.stop='showEdit()' title='Edit' size='sm'): md-icon(icon='edit')]
-    #[button(@click.stop='showNotes()' title='Add Notes' size='sm'): md-icon(icon='comment')]
-    #[button(@click.stop='snooze()' title='Snooze Request' size='sm'): md-icon(icon='schedule')]
+  header.mpj-card-header(role='toolbar').
+    #[button.primary(@click='markPrayed()' title='Pray'): md-icon(icon='done')]
+    #[button(@click.stop='showEdit()' title='Edit'): md-icon(icon='edit')]
+    #[button(@click.stop='showNotes()' title='Add Notes'): md-icon(icon='comment')]
+    #[button(@click.stop='snooze()' title='Snooze Request'): md-icon(icon='schedule')]
   div
     p.card-text.mpj-request-text
       | {{ request.text }}
@@ -42,10 +42,7 @@ export default {
       this.toast.showToast('Request marked as prayed', { theme: 'success' })
     },
     showEdit () {
-      this.events.$emit('edit', this.request)
-    },
-    showFull () {
-      this.events.$emit('full', this.request.requestId)
+      this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
     },
     showNotes () {
       this.events.$emit('notes', this.request)
@@ -73,21 +70,14 @@ export default {
   display: flex;
   flex-flow: row;
   justify-content: center;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(lightgray), to(whitesmoke));
+  background-image: -webkit-linear-gradient(top, lightgray, whitesmoke);
+  background-image: -moz-linear-gradient(top, lightgray, whitesmoke);
+  background-image: linear-gradient(to bottom, lightgray, whitesmoke);
 }
 .mpj-card-header button {
-  background-color: rgba(255, 255, 255, .75);
-  border-radius: .25rem;
   margin: .25rem;
-  border: solid #050 1px;
   font-size: .8rem;
-}
-.mpj-card-header button:hover {
-  cursor: pointer;
-  background-color: white;
-  color: #050;
-}
-.mpj-card-header button.pray {
-  background-color: white;
 }
 .mpj-request-card .card-text {
   margin-left: 1rem;

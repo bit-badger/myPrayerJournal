@@ -31,7 +31,7 @@ export default {
    * Add a new prayer request
    * @param {string} requestText The text of the request to be added
    */
-  addRequest: requestText => http.post('request', { requestText }),
+  addRequest: requestText => http.post('request', { requestText, recurType: 'immediate' }),
 
   /**
    * Get all answered requests, along with the text they had when it was answered

@@ -26,7 +26,7 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     fun next ctx ->
-      [ "/answered"; "/journal"; "/snoozed"; "/user" ]
+      [ "/answered"; "/journal"; "/legal"; "/request"; "/snoozed"; "/user" ]
       |> List.filter ctx.Request.Path.Value.StartsWith
       |> List.length
       |> function

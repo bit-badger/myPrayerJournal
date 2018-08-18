@@ -1,46 +1,62 @@
 <template lang="pug">
-b-modal(v-model='editVisible'
-        header-bg-variant='mpj'
-        header-text-variant='light'
-        size='lg'
-        title='Edit Prayer Request'
-        @edit='openDialog()'
-        @shows='focusRequestText')
-  b-form
-    b-form-group(label='Prayer Request'
-                 label-for='request_text')
-      b-textarea#request_text(ref='toFocus'
-                              v-model='form.requestText'
-                              :rows='10'
-                              @blur='trimText()')
-    b-form-group(label='Also Mark As')
-      b-radio-group(v-model='form.status'
-                    buttons)
-        b-radio(value='Updated') Updated
-        b-radio(value='Prayed') Prayed
-        b-radio(value='Answered') Answered
-  div.w-100.text-right(slot='modal-footer')
-    b-btn(variant='primary'
-          @click='saveRequest()') Save
+article.mpj-main-content(role='main')
+  page-title(:title='title')
+  form.mpj-edit-request-form
+    label(for='request_text') Prayer Request
+    br
+    textarea#request_text(v-model='form.requestText'
+                          :rows='10'
+                          @blur='trimText()'
+                          autofocus)
+    br
+    template(v-if='!isNew')
+      label Also Mark As
+      br
+      input(type='radio'
+            id='status_updated'
+            value='Updated'
+            v-model='form.status')
+      label(for='status_updated')= ' Updated'
+      input(type='radio'
+            id='status_prayed'
+            value='Prayed'
+            v-model='form.status')
+      label(for='status_prayed')= ' Prayed'
+      input(type='radio'
+            id='status_answered'
+            value='Answered'
+            v-model='form.status')
+      label(for='status_answered')= ' Answered'
+    br(v-else)
+  div.mpj-edit-request-form.mpj-text-right
+    button(@click.stop='saveRequest()').primary
+      md-icon(icon='save')
+      = ' Save'
     | &nbsp; &nbsp;
-    b-btn(variant='outline-secondary'
-          @click='closeDialog()') Cancel
+    button(@click.stop='goBack()')
+      md-icon(icon='arrow_back')
+      = ' Cancel'
 </template>
 
 <script>
 'use strict'
+
+import { mapState } from 'vuex'
 
 import actions from '@/store/action-types'
 
 export default {
   name: 'edit-request',
   props: {
-    toast: { required: true },
-    events: { required: true }
+    id: {
+      type: String,
+      required: true
+    }
   },
   data () {
     return {
-      editVisible: false,
+      title: 'Edit Prayer Request',
+      isNew: false,
       form: {
         requestId: '',
         requestText: '',
@@ -48,42 +64,70 @@ export default {
       }
     }
   },
-  created () {
-    this.events.$on('edit', this.openDialog)
+  computed: {
+    toast () {
+      return this.$parent.$refs.toast
+    },
+    ...mapState(['journal'])
   },
-  methods: {
-    closeDialog () {
+  async mounted () {
+    if (this.id === 'new') {
+      this.title = 'Add Prayer Request'
+      this.isNew = true
       this.form.requestId = ''
       this.form.requestText = ''
+      this.form.status = 'Created'
+    } else {
+      this.title = 'Edit Prayer Request'
+      this.isNew = false
+      if (this.journal.length === 0) {
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+      }
+      const req = this.journal.filter(r => r.requestId === this.id)[0]
+      this.form.requestId = this.id
+      this.form.requestText = req.text
       this.form.status = 'Updated'
-      this.editVisible = false
-    },
-    focusRequestText (e) {
-      this.$refs.toFocus.focus()
-    },
-    openDialog (request) {
-      this.form.requestId = request.requestId
-      this.form.requestText = request.text
-      this.editVisible = true
-      this.focusRequestText(null)
+    }
+  },
+  methods: {
+    goBack () {
+      this.$router.go(-1)
     },
     trimText () {
       this.form.requestText = this.form.requestText.trim()
     },
     async saveRequest () {
-      await this.$store.dispatch(actions.UPDATE_REQUEST, {
-        progress: this.$Progress,
-        requestId: this.form.requestId,
-        updateText: this.form.requestText,
-        status: this.form.status
-      })
-      if (this.form.status === 'Answered') {
-        this.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
+      if (this.isNew) {
+        await this.$store.dispatch(actions.ADD_REQUEST, {
+          progress: this.$Progress,
+          requestText: this.form.requestText
+        })
+        this.toast.showToast('New prayer request added', { theme: 'success' })
       } else {
-        this.toast.showToast('Request updated', { theme: 'success' })
+        await this.$store.dispatch(actions.UPDATE_REQUEST, {
+          progress: this.$Progress,
+          requestId: this.form.requestId,
+          updateText: this.form.requestText,
+          status: this.form.status
+        })
+        if (this.form.status === 'Answered') {
+          this.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
+        } else {
+          this.toast.showToast('Request updated', { theme: 'success' })
+        }
       }
-      this.closeDialog()
+      this.goBack()
     }
   }
 }
 </script>
+
+<style>
+.mpj-edit-request-form {
+  max-width: 40rem;
+  margin: auto;
+}
+#request_text {
+  width: 100%;
+}
+</style>

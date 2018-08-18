@@ -3,7 +3,10 @@ article.mpj-main-content-wide(role='main')
   page-title(:title='title')
   p(v-if='isLoadingJournal') Loading your prayer journal...
   template(v-else)
-    new-request
+    router-link(:to="{ name: 'EditRequest', params: { id: 'new' } }"
+                role='button')
+      md-icon(icon='add_box')
+      | &nbsp; Add a New Request
     br
     .mpj-journal(v-if='journal.length > 0')
       request-card(v-for='request in journal'
@@ -13,8 +16,6 @@ article.mpj-main-content-wide(role='main')
                    :toast='toast')
     p.text-center(v-else): em.
       No requests found; click the &ldquo;Add a New Request&rdquo; button to add one
-    edit-request(:events='eventBus'
-                 :toast='toast')
     notes-edit(:events='eventBus'
                :toast='toast')
     snooze-request(:events='eventBus'
@@ -27,8 +28,6 @@ article.mpj-main-content-wide(role='main')
 import Vue from 'vue'
 import { mapState } from 'vuex'
 
-import EditRequest from './request/EditRequest'
-import NewRequest from './request/NewRequest'
 import NotesEdit from './request/NotesEdit'
 import RequestCard from './request/RequestCard'
 import SnoozeRequest from './request/SnoozeRequest'
@@ -38,8 +37,6 @@ import actions from '@/store/action-types'
 export default {
   name: 'journal',
   components: {
-    EditRequest,
-    NewRequest,
     NotesEdit,
     RequestCard,
     SnoozeRequest

@@ -3,6 +3,7 @@ import Router from 'vue-router'
 
 import Answered from '@/components/Answered'
 import AnsweredDetail from '@/components/AnsweredDetail'
+import EditRequest from '@/components/request/EditRequest'
 import Home from '@/components/Home'
 import Journal from '@/components/Journal'
 import LogOn from '@/components/user/LogOn'
@@ -45,6 +46,12 @@ export default new Router({
       path: '/legal/terms-of-service',
       name: 'TermsOfService',
       component: TermsOfService
+    },
+    {
+      path: '/request/:id/edit',
+      name: 'EditRequest',
+      component: EditRequest,
+      props: true
     },
     {
       path: '/snoozed',

@@ -9,7 +9,7 @@ import actions from './action-types'
 
 Vue.use(Vuex)
 
-this.auth0 = new AuthService()
+const auth0 = new AuthService()
 
 const logError = function (error) {
   if (error.response) {
@@ -34,11 +34,11 @@ export default new Vuex.Store({
   state: {
     user: JSON.parse(localStorage.getItem('user_profile') || '{}'),
     isAuthenticated: (() => {
-      this.auth0.scheduleRenewal()
-      if (this.auth0.isAuthenticated()) {
+      auth0.scheduleRenewal()
+      if (auth0.isAuthenticated()) {
         api.setBearer(localStorage.getItem('id_token'))
       }
-      return this.auth0.isAuthenticated()
+      return auth0.isAuthenticated()
     })(),
     journal: {},
     isLoadingJournal: false
