@@ -52,6 +52,9 @@ body {
   padding-top: 50px;
   margin: 0;
 }
+h1, h2, h3, h4, h5 {
+  font-weight: 500;
+}
 p {
   margin-bottom: 0;
 }
@@ -138,10 +141,51 @@ a:hover {
 }
 .mpj-text-right {
   text-align: right;
-  color: rgba(0, 0, 0, .60);
 }
 .mpj-muted-text {
-  color: rgba(0, 0, 0, .60);
+  color: rgba(0, 0, 0, .6);
+}
+.mpj-narrow {
+  max-width: 40rem;
+  margin: auto;
+}
+.mpj-modal {
+  position: fixed;
+  z-index: 8;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, .4);
+}
+.mpj-modal-content {
+  background-color: whitesmoke;
+  border: solid 1px #050;
+  border-radius: .5rem;
+  animation-name: animatetop;
+  animation-duration: 0.4s;
+  padding: 1rem;
+  margin-top: 4rem;
+}
+@keyframes animatetop {
+  from {
+    top: -300px;
+    opacity: 0;
+  }
+  to {
+    top: 0;
+    opacity: 1;
+  }
+}
+.mpj-modal-content header {
+  margin: -1rem -1rem .5rem;
+  border-radius: .4rem;
+}
+.mpj-modal-content header h3 {
+  color: white;
+  margin: 0;
+  padding: 1rem;
 }
 .mpj-margin {
   margin-left: 1rem;

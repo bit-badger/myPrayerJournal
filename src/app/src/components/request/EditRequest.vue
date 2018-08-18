@@ -1,7 +1,7 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
   page-title(:title='title')
-  form.mpj-edit-request-form
+  .mpj-narrow
     label(for='request_text') Prayer Request
     br
     textarea#request_text(v-model='form.requestText'
@@ -28,14 +28,14 @@ article.mpj-main-content(role='main')
             v-model='form.status')
       label(for='status_answered')= ' Answered'
     br(v-else)
-  div.mpj-edit-request-form.mpj-text-right
-    button(@click.stop='saveRequest()').primary
-      md-icon(icon='save')
-      = ' Save'
-    | &nbsp; &nbsp;
-    button(@click.stop='goBack()')
-      md-icon(icon='arrow_back')
-      = ' Cancel'
+    .mpj-text-right
+      button(@click.stop='saveRequest()').primary
+        md-icon(icon='save')
+        = ' Save'
+      | &nbsp; &nbsp;
+      button(@click.stop='goBack()')
+        md-icon(icon='arrow_back')
+        = ' Cancel'
 </template>
 
 <script>
@@ -122,11 +122,7 @@ export default {
 }
 </script>
 
-<style>
-.mpj-edit-request-form {
-  max-width: 40rem;
-  margin: auto;
-}
+<style scoped>
 #request_text {
   width: 100%;
 }
