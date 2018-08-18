@@ -3,22 +3,18 @@ p.mpj-request-text
   | {{ request.text }}
   br
   br
-  router-link(:to="{ name: 'FullRequest', params: { id: request.requestId } }"
-              role='button'
-              title='View Full Request')
-    md-icon(icon='description')
-    = ' View Full Request'
-  | &nbsp;
-  router-link(v-if='!isAnswered'
-              :to="{ name: 'EditRequest', params: { id: request.requestId } }"
-              role='button'
-              title='Edit Request')
-    md-icon(icon='edit')
-    = ' Edit Request'
-  | &nbsp;
-  button(v-if='isSnoozed' @click='cancelSnooze()')
-    md-icon(icon='restore')
-    = ' Cancel Snooze'
+  button(@click='viewFull'
+         title='View Full Request').
+    #[md-icon(icon='description')] View Full Request
+  | &nbsp; &nbsp;
+  button(v-if='!isAnswered'
+         @click='editRequest'
+         title='Edit Request').
+    #[md-icon(icon='edit')] Edit Request
+  | &nbsp; &nbsp;
+  button(v-if='isSnoozed'
+         @click='cancelSnooze()').
+    #[md-icon(icon='restore')] Cancel Snooze
   br(v-if='isSnoozed || isAnswered')
   small(v-if='isSnoozed').mpj-muted-text: em.
     &nbsp; Snooze expires #[date-from-now(:value='request.snoozedUntil')]
@@ -34,7 +30,8 @@ import actions from '@/store/action-types'
 export default {
   name: 'request-list-item',
   props: {
-    request: { required: true }
+    request: { required: true },
+    toast: { required: true }
   },
   data () {
     return {}
@@ -58,7 +55,13 @@ export default {
         until: 0
       })
       this.toast.showToast('Request un-snoozed', { theme: 'success' })
-      // FIXME: communicate with the parent to refresh // this.ensureJournal()
+      this.$parent.$emit('requestUnsnoozed')
+    },
+    editRequest () {
+      this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
+    },
+    viewFull () {
+      this.$router.push({ name: 'FullRequest', params: { id: this.request.requestId } })
     }
   }
 }

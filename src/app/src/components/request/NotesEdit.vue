@@ -1,9 +1,8 @@
 <template lang="pug">
-.mpj-modal(v-show='notesVisible'
-           @edit='openDialog()')
+.mpj-modal(v-show='notesVisible')
   .mpj-modal-content.mpj-narrow
     header.mpj-bg
-      h3 Add Notes to Prayer Request
+      h5 Add Notes to Prayer Request
     label(for='notes') Notes
     br
     textarea#notes(v-model='form.notes'

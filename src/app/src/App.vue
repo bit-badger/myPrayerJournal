@@ -54,18 +54,40 @@ body {
 }
 h1, h2, h3, h4, h5 {
   font-weight: 500;
+  margin-top: 0;
+}
+h1 {
+  font-size: 2.5rem;
+}
+h2 {
+  font-size: 2rem;
+}
+h3 {
+  font-size: 1.75rem;
+}
+h4 {
+  font-size: 1.5rem;
+}
+h5 {
+  font-size: 1.25rem;
 }
 p {
   margin-bottom: 0;
+}
+input, textarea {
+  border-radius: .25rem;
 }
 button,
 a[role="button"] {
   border: solid 1px #050;
   border-radius: .5rem;
-  background-color: whitesmoke;
-}
-a[role="button"] {
+  background-color: rgb(235, 235, 235);
   padding: .25rem;
+  font-size: 1rem;
+}
+a[role="button"]:link,
+a[role="button"]:visited {
+  color: black;
 }
 button.primary,
 a[role="button"].primary {
@@ -149,6 +171,10 @@ a:hover {
   max-width: 40rem;
   margin: auto;
 }
+.mpj-skinny {
+  max-width: 20rem;
+  margin: auto;
+}
 .mpj-modal {
   position: fixed;
   z-index: 8;
@@ -182,7 +208,7 @@ a:hover {
   margin: -1rem -1rem .5rem;
   border-radius: .4rem;
 }
-.mpj-modal-content header h3 {
+.mpj-modal-content header h5 {
   color: white;
   margin: 0;
   padding: 1rem;

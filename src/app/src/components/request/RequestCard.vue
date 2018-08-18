@@ -28,7 +28,8 @@ export default {
   },
   computed: {
     shouldDisplay () {
-      return Date.now() >= this.request.showAfter
+      const now = Date.now()
+      return Math.max(now, this.request.showAfter, this.request.snoozedUntil) === now
     }
   },
   methods: {
@@ -77,7 +78,10 @@ export default {
 }
 .mpj-card-header button {
   margin: .25rem;
-  font-size: .8rem;
+  padding: 0 .25rem;
+}
+.mpj-card-header button .material-icons {
+  font-size: 1.3rem;
 }
 .mpj-request-card .card-text {
   margin-left: 1rem;
