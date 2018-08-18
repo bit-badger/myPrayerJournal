@@ -101,6 +101,14 @@ a[role="button"]:hover {
   color: white;
   text-decoration: none;
 }
+label {
+  font-variant: small-caps;
+  font-size: 1.1rem;
+}
+label.normal {
+  font-variant: unset;
+  font-size: unset;
+}
 footer {
   border-top: solid 1px lightgray;
   margin-top: 1rem;

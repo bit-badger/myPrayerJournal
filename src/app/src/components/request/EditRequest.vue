@@ -12,22 +12,52 @@ article.mpj-main-content(role='main')
     template(v-if='!isNew')
       label Also Mark As
       br
-      input(type='radio'
-            id='status_updated'
-            value='Updated'
-            v-model='form.status')
-      label(for='status_updated')= ' Updated'
-      input(type='radio'
-            id='status_prayed'
-            value='Prayed'
-            v-model='form.status')
-      label(for='status_prayed')= ' Prayed'
-      input(type='radio'
-            id='status_answered'
-            value='Answered'
-            v-model='form.status')
-      label(for='status_answered')= ' Answered'
-    br(v-else)
+      label.normal
+        input(v-model='form.status'
+              type='radio'
+              name='status'
+              value='Updated')
+        | Updated
+      | &nbsp; &nbsp;
+      label.normal
+        input(v-model='form.status'
+              type='radio'
+              name='status'
+              value='Prayed')
+        | Prayed
+      | &nbsp; &nbsp;
+      label.normal
+        input(v-model='form.status'
+              type='radio'
+              name='status'
+              value='Answered')
+        | Answered
+      br
+    label Recurrence
+    | &nbsp; &nbsp;
+    em.mpj-muted-text After prayer, request reappears...
+    br
+    label.normal
+      input(v-model='form.recur.typ'
+            type='radio'
+            name='recur'
+            value='immediate')
+      | Immediately
+    | &nbsp; &nbsp;
+    label.normal
+      input(v-model='form.recur.typ'
+            type='radio'
+            name='recur'
+            value='other')
+      | Every...
+    input#recur_count(v-model='form.recur.count'
+                      type='number'
+                      :disabled='!showRecurrence')
+    select(v-model='form.recur.other'
+           :disabled='!showRecurrence')
+      option(value='hours') hours
+      option(value='days') days
+      option(value='weeks') weeks
     .mpj-text-right
       button(@click.stop='saveRequest()').primary
         md-icon(icon='save')
@@ -60,13 +90,21 @@ export default {
       form: {
         requestId: '',
         requestText: '',
-        status: 'Updated'
+        status: 'Updated',
+        recur: {
+          typ: 'immediate',
+          other: '',
+          count: ''
+        }
       }
     }
   },
   computed: {
     toast () {
       return this.$parent.$refs.toast
+    },
+    showRecurrence () {
+      this.form.recur.typ !== 'immediate'
     },
     ...mapState(['journal'])
   },
@@ -77,6 +115,9 @@ export default {
       this.form.requestId = ''
       this.form.requestText = ''
       this.form.status = 'Created'
+      this.form.recur.typ = 'immediate'
+      this.form.recur.other = ''
+      this.form.recur.count = ''
     } else {
       this.title = 'Edit Prayer Request'
       this.isNew = false
@@ -87,6 +128,15 @@ export default {
       this.form.requestId = this.id
       this.form.requestText = req.text
       this.form.status = 'Updated'
+      if (req.recurType === 'immediate') {
+        this.form.recur.typ = 'immediate'
+        this.form.recur.other = ''
+        this.form.recur.count = ''
+      } else {
+        this.form.recur.typ = 'other'
+        this.form.recur.other = req.recurType
+        this.form.recur.count = req.recurCount
+      }
     }
   },
   methods: {
@@ -125,5 +175,8 @@ export default {
 <style scoped>
 #request_text {
   width: 100%;
+}
+#recur_count {
+  width: 3rem;
 }
 </style>
