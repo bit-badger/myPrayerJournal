@@ -19,7 +19,7 @@
 <script>
 'use strict'
 
-import Navigation from './components/Navigation.vue'
+import Navigation from './components/common/Navigation.vue'
 
 import { version } from '../package.json'
 
@@ -74,8 +74,15 @@ h5 {
 p {
   margin-bottom: 0;
 }
-input, textarea {
+input, textarea, select {
   border-radius: .25rem;
+  font-size: 1rem;
+}
+textarea {
+  font-family: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,Courier,monospace;
+}
+input, select {
+  font-family: inherit;
 }
 button,
 a[role="button"] {
@@ -182,6 +189,9 @@ a:hover {
 .mpj-skinny {
   max-width: 20rem;
   margin: auto;
+}
+.mpj-full-width {
+  width: 100%;
 }
 .mpj-modal {
   position: fixed;

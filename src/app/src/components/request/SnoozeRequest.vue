@@ -4,11 +4,11 @@
     header.mpj-bg
       h5 Snooze Prayer Request
     p.mpj-text-center
-      label(for='until') Until
-      = ' '
-      input#until(type='date'
-                  v-model='form.snoozedUntil'
-                  autofocus)
+      label
+        = 'Until '
+        input(v-model='form.snoozedUntil'
+              type='date'
+              autofocus)
     br
     .mpj-text-right
       button.primary(:disabled='!isValid'

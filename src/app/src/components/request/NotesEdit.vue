@@ -3,11 +3,12 @@
   .mpj-modal-content.mpj-narrow
     header.mpj-bg
       h5 Add Notes to Prayer Request
-    label(for='notes') Notes
-    br
-    textarea#notes(v-model='form.notes'
-                   :rows='10'
-                   @blur='trimText()')
+    label
+      | Notes
+      br
+      textarea(v-model='form.notes'
+               :rows='10'
+               @blur='trimText()').mpj-full-width
     .mpj-text-right
       button(@click='saveNotes()').primary.
         #[md-icon(icon='save')] Save
@@ -75,7 +76,6 @@ export default {
       try {
         const notes = await api.getNotes(this.form.requestId)
         this.priorNotes = notes.data
-        console.log(this.priorNotes)
         this.$Progress.finish()
       } catch (e) {
         console.error(e)
@@ -85,7 +85,6 @@ export default {
       }
     },
     openDialog (request) {
-      console.log('Received openDialog event')
       this.form.requestId = request.requestId
       this.notesVisible = true
     },
@@ -108,10 +107,7 @@ export default {
 }
 </script>
 
-<style scoped>
-#notes {
-  width: 100%;
-}
+<style>
 .mpj-note-list p {
   border-top: dotted 1px lightgray;
 }

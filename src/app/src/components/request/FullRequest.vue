@@ -55,11 +55,12 @@ export default {
         .sort(asOfDesc)[0].text.fields[0]
     },
     log () {
-      return (this.request.notes || [])
+      const allHistory = (this.request.notes || [])
         .map(note => ({ asOf: note.asOf, text: { case: 'Some', fields: [ note.notes ] }, status: 'Notes' }))
         .concat(this.request.history)
         .sort(asOfDesc)
-        .slice(1)
+      // Skip the first entry for answered requests; that info is already displayed
+      return this.isAnswered ? allHistory.slice(1) : allHistory
     },
     openDays () {
       const asOf = this.isAnswered ? this.answered : Date.now()

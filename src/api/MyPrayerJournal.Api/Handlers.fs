@@ -95,6 +95,15 @@ module Models =
       notes : string
       }
   
+  /// Recurrence update
+  [<CLIMutable>]
+  type Recurrence =
+    { /// The recurrence type
+      recurType  : string
+      /// The recurrence cound
+      recurCount : int16
+      }
+
   /// A prayer request
   [<CLIMutable>]
   type Request =
@@ -103,9 +112,16 @@ module Models =
       /// The recurrence type
       recurType   : string
       /// The recurrence count
-      recurCount  : int16 option
+      recurCount  : int16
       }
   
+  /// Reset the "showAfter" property on a request
+  [<CLIMutable>]
+  type Show =
+    { /// The time after which the request should appear
+      showAfter : int64
+      }
+
   /// The time until which a request should not appear in the journal
   [<CLIMutable>]
   type SnoozeUntil =
@@ -156,7 +172,7 @@ module Request =
             enteredOn  = now
             showAfter  = now
             recurType  = r.recurType
-            recurCount = defaultArg r.recurCount 0s
+            recurCount = r.recurCount
           }
         |> db.AddEntry
         { History.empty with
@@ -255,7 +271,23 @@ module Request =
         return! json notes next ctx
         }
   
-  /// POST /api/request/[req-id]/snooze
+  /// PATCH /api/request/[req-id]/show
+  let show reqId : HttpHandler =
+    authorize
+    >=> fun next ctx ->
+      task {
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
+        | Some req ->
+            let! show = ctx.BindJsonAsync<Models.Show> ()
+            { req with showAfter = show.showAfter }
+            |> db.UpdateEntry
+            let! _ = db.SaveChangesAsync ()
+            return! setStatusCode 204 next ctx
+        | None -> return! Error.notFound next ctx
+        }
+  
+  /// PATCH /api/request/[req-id]/snooze
   let snooze reqId : HttpHandler =
     authorize
     >=> fun next ctx ->
@@ -265,6 +297,22 @@ module Request =
         | Some req ->
             let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
             { req with snoozedUntil = until.until; showAfter = until.until }
+            |> db.UpdateEntry
+            let! _ = db.SaveChangesAsync ()
+            return! setStatusCode 204 next ctx
+        | None -> return! Error.notFound next ctx
+        }
+
+  /// PATCH /api/request/[req-id]/recurrence
+  let updateRecurrence reqId : HttpHandler =
+    authorize
+    >=> fun next ctx ->
+      task {
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
+        | Some req ->
+            let! recur = ctx.BindJsonAsync<Models.Recurrence> ()
+            { req with recurType = recur.recurType; recurCount = recur.recurCount }
             |> db.UpdateEntry
             let! _ = db.SaveChangesAsync ()
             return! setStatusCode 204 next ctx

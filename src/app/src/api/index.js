@@ -32,8 +32,10 @@ export default {
   /**
    * Add a new prayer request
    * @param {string} requestText The text of the request to be added
+   * @param {string} recurType The type of recurrence for this request
+   * @param {number} recurCount The number of intervals of recurrence
    */
-  addRequest: requestText => http.post('request', { requestText, recurType: 'immediate' }),
+  addRequest: (requestText, recurType, recurCount) => http.post('request', { requestText, recurType, recurCount }),
 
   /**
    * Get all answered requests, along with the text they had when it was answered
@@ -64,19 +66,33 @@ export default {
   journal: () => http.get('journal'),
 
   /**
-   * Snooze a request until the given time
-   * @param requestId {string} The ID of the prayer request to be snoozed
-   * @param until {number} The ticks until which the request should be snoozed
+   * Show a request after the given date (used for "show now")
+   * @param {string} requestId The ID of the request which should be shown
+   * @param {number} showAfter The ticks after which the request should be shown
    */
-  snoozeRequest: (requestId, until) => http.post(`request/${requestId}/snooze`, { until }),
+  showRequest: (requestId, showAfter) => http.patch(`request/${requestId}/show`, { showAfter }),
+
+  /**
+   * Snooze a request until the given time
+   * @param {string} requestId The ID of the prayer request to be snoozed
+   * @param {number} until The ticks until which the request should be snoozed
+   */
+  snoozeRequest: (requestId, until) => http.patch(`request/${requestId}/snooze`, { until }),
+
+  /**
+   * Update recurrence for a prayer request
+   * @param {string} requestId The ID of the prayer request for which recurrence is being updated
+   * @param {string} recurType The type of recurrence to set
+   * @param {number} recurCount The number of recurrence intervals to set
+   */
+  updateRecurrence: (requestId, recurType, recurCount) =>
+    http.patch(`request/${requestId}/recurrence`, { recurType, recurCount }),
 
   /**
    * Update a prayer request
-   * @param request The request (should have requestId, status, and updateText properties)
+   * @param {string} requestId The ID of the request to be updated
+   * @param {string} status The status of the update
+   * @param {string} updateText The text of the update (optional)
    */
-  updateRequest: request => http.post(`request/${request.requestId}/history`, {
-    status: request.status,
-    updateText: request.updateText
-  })
-
+  updateRequest: (requestId, status, updateText) => http.post(`request/${requestId}/history`, { status, updateText })
 }

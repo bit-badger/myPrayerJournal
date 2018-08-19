@@ -38,7 +38,8 @@ export default {
     ...mapState(['journal', 'isLoadingJournal'])
   },
   created () {
-    this.$on('requestSnoozed', this.ensureJournal)
+    this.$on('requestUnsnoozed', this.ensureJournal)
+    this.$on('requestNowShown', this.ensureJournal)
   },
   methods: {
     async ensureJournal () {

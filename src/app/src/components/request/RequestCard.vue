@@ -1,7 +1,7 @@
 <template lang="pug">
-.mpj-request-card
+.mpj-request-card(v-if='shouldDisplay')
   header.mpj-card-header(role='toolbar').
-    #[button.primary(@click='markPrayed()' title='Pray'): md-icon(icon='done')]
+    #[button(@click='markPrayed()' title='Pray').primary: md-icon(icon='done')]
     #[button(@click.stop='showEdit()' title='Edit'): md-icon(icon='edit')]
     #[button(@click.stop='showNotes()' title='Add Notes'): md-icon(icon='comment')]
     #[button(@click.stop='snooze()' title='Snooze Request'): md-icon(icon='schedule')]

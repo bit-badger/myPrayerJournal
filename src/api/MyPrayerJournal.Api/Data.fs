@@ -245,7 +245,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
       .OrderBy(fun r -> r.asOf)
   
   /// Retrieve a request by its ID and user ID
-  member this.TryRequestById reqId userId : Task<Request option> =
+  member this.TryRequestById reqId userId =
     task {
       let! req = this.Requests.AsNoTracking().FirstOrDefaultAsync(fun r -> r.requestId = reqId && r.userId = userId)
       return toOption req

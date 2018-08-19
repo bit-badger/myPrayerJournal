@@ -58,10 +58,17 @@ module Configure =
         GET [
           route    "journal" Handlers.Journal.journal
           subRoute "request" [
-            route  "s/answered"   Handlers.Request.answered
-            routef "/%s/full"     Handlers.Request.getFull
-            routef "/%s/notes"    Handlers.Request.getNotes
-            routef "/%s"          Handlers.Request.get
+            route  "s/answered" Handlers.Request.answered
+            routef "/%s/full"   Handlers.Request.getFull
+            routef "/%s/notes"  Handlers.Request.getNotes
+            routef "/%s"        Handlers.Request.get
+            ]
+          ]
+        PATCH [
+          subRoute "request" [
+            routef "/%s/recurrence" Handlers.Request.updateRecurrence
+            routef "/%s/show"       Handlers.Request.show
+            routef "/%s/snooze"     Handlers.Request.snooze
             ]
           ]
         POST [
@@ -69,7 +76,6 @@ module Configure =
             route  ""            Handlers.Request.add
             routef "/%s/history" Handlers.Request.addHistory
             routef "/%s/note"    Handlers.Request.addNote
-            routef "/%s/snooze"  Handlers.Request.snooze
             ]
           ]
         ]
