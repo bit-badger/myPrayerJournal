@@ -1,5 +1,5 @@
 <template lang="pug">
-article
+article.mpj-main-content(role='main')
   pageTitle(title='Logging On')
   p Logging you on...
 </template>

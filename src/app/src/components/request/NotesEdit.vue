@@ -1,36 +1,33 @@
 <template lang="pug">
-b-modal(v-model='notesVisible'
-        header-bg-variant='mpj'
-        header-text-variant='light'
-        size='lg'
-        title='Add Notes to Prayer Request'
-        @edit='openDialog()'
-        @shows='focusNotes')
-  b-form
-    b-form-group(label='Notes'
-                 label-for='notes')
-      b-textarea#notes(ref='toFocus'
-                       v-model='form.notes'
-                       :rows='10'
-                       @blur='trimText()')
-  div(v-if='hasPriorNotes')
-    p.text-center: strong Prior Notes for This Request
-    b-list-group(flush)
-      b-list-group-item(v-for='note in priorNotes'
-                        :key='note.asOf')
-        small.text-muted: date-from-now(:value='note.asOf')
-        br
-        div.mpj-request-text {{ note.notes }}
-  div(v-else-if='noPriorNotes').text-center.text-muted There are no prior notes for this request
-  div(v-else).text-center
-    b-btn(variant='outline-secondary'
-          @click='loadNotes()') Load Prior Notes
-  div.w-100.text-right(slot='modal-footer')
-    b-btn(variant='primary'
-          @click='saveNotes()') Save
-    | &nbsp; &nbsp;
-    b-btn(variant='outline-secondary'
-          @click='closeDialog()') Cancel
+.mpj-modal(v-show='notesVisible')
+  .mpj-modal-content.mpj-narrow
+    header.mpj-bg
+      h5 Add Notes to Prayer Request
+    label
+      | Notes
+      br
+      textarea(v-model='form.notes'
+               :rows='10'
+               @blur='trimText()').mpj-full-width
+    .mpj-text-right
+      button(@click='saveNotes()').primary.
+        #[md-icon(icon='save')] Save
+      | &nbsp; &nbsp;
+      button(@click='closeDialog()').
+        #[md-icon(icon='undo')] Cancel
+    hr
+    div(v-if='hasPriorNotes')
+      p.mpj-text-center: strong Prior Notes for This Request
+      .mpj-note-list
+        p(v-for='note in priorNotes'
+          :key='note.asOf')
+          small.mpj-muted-text: date-from-now(:value='note.asOf')
+          br
+          span.mpj-request-text {{ note.notes }}
+    div(v-else-if='noPriorNotes').mpj-text-center.mpj-muted-text There are no prior notes for this request
+    div(v-else).mpj-text-center
+      button(@click='loadNotes()').
+        #[md-icon(icon='cloud_download')] Load Prior Notes
 </template>
 
 <script>
@@ -74,15 +71,11 @@ export default {
       this.priorNotesLoaded = false
       this.notesVisible = false
     },
-    focusNotes (e) {
-      this.$refs.toFocus.focus()
-    },
     async loadNotes () {
       this.$Progress.start()
       try {
         const notes = await api.getNotes(this.form.requestId)
         this.priorNotes = notes.data
-        console.log(this.priorNotes)
         this.$Progress.finish()
       } catch (e) {
         console.error(e)
@@ -94,7 +87,6 @@ export default {
     openDialog (request) {
       this.form.requestId = request.requestId
       this.notesVisible = true
-      this.focusNotes(null)
     },
     async saveNotes () {
       this.$Progress.start()
@@ -114,3 +106,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.mpj-note-list p {
+  border-top: dotted 1px lightgray;
+}
+</style>

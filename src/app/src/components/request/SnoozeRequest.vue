@@ -1,23 +1,22 @@
 <template lang="pug">
-b-modal(v-model='snoozeVisible'
-        header-bg-variant='mpj'
-        header-text-variant='light'
-        size='lg'
-        title='Snooze Prayer Request'
-        @edit='openDialog()')
-  b-form
-    b-form-group(label='Until'
-                 label-for='until')
-      b-input#until(type='date'
-                    v-model='form.snoozedUntil'
-                    autofocus)
-  div.w-100.text-right(slot='modal-footer')
-    b-btn(variant='primary'
-          :disabled='!isValid'
-          @click='snoozeRequest()') Snooze
-    | &nbsp; &nbsp;
-    b-btn(variant='outline-secondary'
-          @click='closeDialog()') Cancel
+.mpj-modal(v-show='snoozeVisible')
+  .mpj-modal-content.mpj-skinny
+    header.mpj-bg
+      h5 Snooze Prayer Request
+    p.mpj-text-center
+      label
+        = 'Until '
+        input(v-model='form.snoozedUntil'
+              type='date'
+              autofocus)
+    br
+    .mpj-text-right
+      button.primary(:disabled='!isValid'
+                     @click='snoozeRequest()').
+        #[md-icon(icon='snooze')] Snooze
+      | &nbsp; &nbsp;
+      button(@click='closeDialog()').
+        #[md-icon(icon='undo')] Cancel
 </template>
 
 <script>

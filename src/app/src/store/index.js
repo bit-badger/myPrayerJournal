@@ -1,3 +1,5 @@
+'use strict'
+
 import Vue from 'vue'
 import Vuex from 'vuex'
 
@@ -71,10 +73,10 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    async [actions.ADD_REQUEST] ({ commit }, { progress, requestText }) {
+    async [actions.ADD_REQUEST] ({ commit }, { progress, requestText, recurType, recurCount }) {
       progress.start()
       try {
-        const newRequest = await api.addRequest(requestText)
+        const newRequest = await api.addRequest(requestText, recurType, recurCount)
         commit(mutations.REQUEST_ADDED, newRequest.data)
         progress.finish()
       } catch (err) {
@@ -98,10 +100,28 @@ export default new Vuex.Store({
         commit(mutations.LOADING_JOURNAL, false)
       }
     },
-    async [actions.UPDATE_REQUEST] ({ commit }, { progress, requestId, status, updateText }) {
+    async [actions.UPDATE_REQUEST] ({ commit, state }, { progress, requestId, status, updateText, recurType, recurCount }) {
       progress.start()
       try {
-        await api.updateRequest({ requestId, status, updateText })
+        let oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
+        if (status !== 'Updated' || oldReq.text !== updateText) {
+          await api.updateRequest(requestId, status, updateText)
+        }
+        if (status === 'Updated' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
+          await api.updateRecurrence(requestId, recurType, recurCount)
+        }
+        const request = await api.getRequest(requestId)
+        commit(mutations.REQUEST_UPDATED, request.data)
+        progress.finish()
+      } catch (err) {
+        logError(err)
+        progress.fail()
+      }
+    },
+    async [actions.SHOW_REQUEST_NOW] ({ commit }, { progress, requestId, showAfter }) {
+      progress.start()
+      try {
+        await api.showRequest(requestId, showAfter)
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
         progress.finish()

@@ -1,5 +1,5 @@
 <template lang="pug">
-article
+article.mpj-main-content(role='main')
   page-title(title='Welcome!'
              hideOnPage='true')
   p &nbsp;

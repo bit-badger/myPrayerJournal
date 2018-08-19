@@ -88,7 +88,7 @@ module Entities =
           m.Property(fun e -> e.notes).IsRequired () |> ignore)
       |> ignore
 
-  // Request is the identifying record for a prayer request.
+  /// Request is the identifying record for a prayer request
   and [<CLIMutable; NoComparison; NoEquality>] Request =
     { /// The ID of the request
       requestId    : RequestId
@@ -96,8 +96,14 @@ module Entities =
       enteredOn    : int64
       /// The ID of the user to whom this request belongs ("sub" from the JWT)
       userId       : string
-      /// The time that this request should reappear in the user's journal
+      /// The time at which this request should reappear in the user's journal by manual user choice
       snoozedUntil : int64
+      /// The time at which this request should reappear in the user's journal by recurrence
+      showAfter    : int64
+      /// The type of recurrence for this request
+      recurType    : string
+      /// How many of the recurrence intervals should occur between appearances in the journal
+      recurCount   : int16
       /// The history entries for this request
       history      : ICollection<History>
       /// The notes for this request
@@ -110,6 +116,9 @@ module Entities =
         enteredOn    = 0L
         userId       = ""
         snoozedUntil = 0L
+        showAfter    = 0L
+        recurType    = "immediate"
+        recurCount   = 0s
         history      = List<History> ()
         notes        = List<Note> ()
         }
@@ -123,6 +132,9 @@ module Entities =
           m.Property(fun e -> e.enteredOn).IsRequired () |> ignore
           m.Property(fun e -> e.userId).IsRequired () |> ignore
           m.Property(fun e -> e.snoozedUntil).IsRequired () |> ignore
+          m.Property(fun e -> e.showAfter).IsRequired () |> ignore
+          m.Property(fun e -> e.recurType).IsRequired() |> ignore
+          m.Property(fun e -> e.recurCount).IsRequired() |> ignore
           m.HasMany(fun e -> e.history :> IEnumerable<History>)
             .WithOne()
             .HasForeignKey(fun e -> e.requestId :> obj)
@@ -149,6 +161,12 @@ module Entities =
       lastStatus   : string
       /// The time that this request should reappear in the user's journal
       snoozedUntil : int64
+      /// The time after which this request should reappear in the user's journal by configured recurrence
+      showAfter    : int64
+      /// The type of recurrence for this request
+      recurType    : string
+      /// How many of the recurrence intervals should occur between appearances in the journal
+      recurCount   : int16
       /// History entries for the request
       history      : History list
       /// Note entries for the request
@@ -227,7 +245,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
       .OrderBy(fun r -> r.asOf)
   
   /// Retrieve a request by its ID and user ID
-  member this.TryRequestById reqId userId : Task<Request option> =
+  member this.TryRequestById reqId userId =
     task {
       let! req = this.Requests.AsNoTracking().FirstOrDefaultAsync(fun r -> r.requestId = reqId && r.userId = userId)
       return toOption req
@@ -236,8 +254,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
   /// Retrieve notes for a request by its ID and user ID
   member this.NotesById reqId userId =
     task {
-      let! req = this.TryRequestById reqId userId
-      match req with
+      match! this.TryRequestById reqId userId with
       | Some _ -> return this.Notes.AsNoTracking().Where(fun n -> n.requestId = reqId) |> List.ofSeq
       | None -> return []
       }
@@ -250,34 +267,17 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
       }
   
   /// Retrieve a request, including its history and notes, by its ID and user ID
-  member this.TryCompleteRequestById requestId userId =
+  member this.TryFullRequestById requestId userId =
     task {
-      let! req = this.TryJournalById requestId userId
-      match req with
-      | Some r ->
+      match! this.TryJournalById requestId userId with
+      | Some req ->
           let! fullReq =
             this.Requests.AsNoTracking()
               .Include(fun r -> r.history)
               .Include(fun r -> r.notes)
               .FirstOrDefaultAsync(fun r -> r.requestId = requestId && r.userId = userId)
           match toOption fullReq with
-          | Some _ -> return Some { r with history = List.ofSeq fullReq.history; notes = List.ofSeq fullReq.notes }
-          | None -> return None
-      | None -> return None
-      }
-  
-  /// Retrieve a request, including its history, by its ID and user ID
-  member this.TryFullRequestById requestId userId =
-    task {
-      let! req = this.TryJournalById requestId userId
-      match req with
-      | Some r ->
-          let! fullReq =
-            this.Requests.AsNoTracking()
-              .Include(fun r -> r.history)
-              .FirstOrDefaultAsync(fun r -> r.requestId = requestId && r.userId = userId)
-          match toOption fullReq with
-          | Some _ -> return Some { r with history = List.ofSeq fullReq.history }
+          | Some _ -> return Some { req with history = List.ofSeq fullReq.history; notes = List.ofSeq fullReq.notes }
           | None -> return None
       | None -> return None
       }

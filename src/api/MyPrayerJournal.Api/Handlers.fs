@@ -6,6 +6,14 @@ open Giraffe
 open MyPrayerJournal
 open System
 
+/// Handler to return Vue files
+module Vue =
+  
+  /// The application index page
+  let app : HttpHandler = htmlFile "wwwroot/index.html"
+
+
+/// Handlers for error conditions
 module Error =
 
   open Microsoft.Extensions.Logging
@@ -18,12 +26,12 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     fun next ctx ->
-      [ "/answered"; "/journal"; "/snoozed"; "/user" ]
+      [ "/journal"; "/legal"; "/request"; "/user" ]
       |> List.filter ctx.Request.Path.Value.StartsWith
       |> List.length
       |> function
       | 0 -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
-      | _ -> htmlFile "wwwroot/index.html" next ctx
+      | _ -> Vue.app next ctx
 
 
 /// Handler helpers
@@ -87,13 +95,33 @@ module Models =
       notes : string
       }
   
+  /// Recurrence update
+  [<CLIMutable>]
+  type Recurrence =
+    { /// The recurrence type
+      recurType  : string
+      /// The recurrence cound
+      recurCount : int16
+      }
+
   /// A prayer request
   [<CLIMutable>]
   type Request =
     { /// The text of the request
       requestText : string
+      /// The recurrence type
+      recurType   : string
+      /// The recurrence count
+      recurCount  : int16
       }
   
+  /// Reset the "showAfter" property on a request
+  [<CLIMutable>]
+  type Show =
+    { /// The time after which the request should appear
+      showAfter : int64
+      }
+
   /// The time until which a request should not appear in the journal
   [<CLIMutable>]
   type SnoozeUntil =
@@ -119,6 +147,15 @@ module Request =
   
   open NCuid
   
+  /// Ticks per recurrence
+  let private recurrence =
+    [ "immediate",         0L
+      "hours",       3600000L
+      "days",       86400000L
+      "weeks",     604800000L
+      ]
+    |> Map.ofList
+
   /// POST /api/request
   let add : HttpHandler =
     authorize
@@ -130,10 +167,12 @@ module Request =
         let  usrId = userId ctx
         let  now   = jsNow ()
         { Request.empty with
-            requestId    = reqId
-            userId       = usrId
-            enteredOn    = now
-            snoozedUntil = 0L
+            requestId  = reqId
+            userId     = usrId
+            enteredOn  = now
+            showAfter  = now
+            recurType  = r.recurType
+            recurCount = r.recurCount
           }
         |> db.AddEntry
         { History.empty with
@@ -144,9 +183,8 @@ module Request =
             }
         |> db.AddEntry
         let! _   = db.SaveChangesAsync ()
-        let! req = db.TryJournalById reqId usrId
-        match req with
-        | Some rqst -> return! (setStatusCode 201 >=> json rqst) next ctx
+        match! db.TryJournalById reqId usrId with
+        | Some req -> return! (setStatusCode 201 >=> json req) next ctx
         | None -> return! Error.notFound next ctx
         }
 
@@ -155,18 +193,22 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        let  db  = db ctx
-        let! req = db.TryRequestById reqId (userId ctx)
-        match req with
-        | Some _ ->
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
+        | Some req ->
             let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
+            let  now  = jsNow ()
             { History.empty with
                 requestId = reqId
-                asOf      = jsNow ()
+                asOf      = now
                 status    = hist.status
                 text      = match hist.updateText with null | "" -> None | x -> Some x
               }
             |> db.AddEntry
+            match hist.status with
+            | "Prayed" ->
+                db.UpdateEntry { req with showAfter = now + (recurrence.[req.recurType] * int64 req.recurCount) }
+            | _ -> ()
             let! _ = db.SaveChangesAsync ()
             return! created next ctx
         | None -> return! Error.notFound next ctx
@@ -177,15 +219,14 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        let  db  = db ctx
-        let! req = db.TryRequestById reqId (userId ctx)
-        match req with
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
         | Some _ ->
             let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
             { Note.empty with
                 requestId = reqId
-                asOf = jsNow ()
-                notes = notes.notes
+                asOf      = jsNow ()
+                notes     = notes.notes
               }
             |> db.AddEntry
             let! _ = db.SaveChangesAsync ()
@@ -206,20 +247,8 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        let! req = (db ctx).TryJournalById reqId (userId ctx)
-        match req with
-        | Some r -> return! json r next ctx
-        | None -> return! Error.notFound next ctx
-        }
-  
-  /// GET /api/request/[req-id]/complete
-  let getComplete reqId : HttpHandler =
-    authorize
-    >=> fun next ctx ->
-      task {
-        let! req = (db ctx).TryCompleteRequestById reqId (userId ctx)
-        match req with
-        | Some r -> return! json r next ctx
+        match! (db ctx).TryJournalById reqId (userId ctx) with
+        | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }
   
@@ -228,9 +257,8 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        let! req = (db ctx).TryFullRequestById reqId (userId ctx)
-        match req with
-        | Some r -> return! json r next ctx
+        match! (db ctx).TryFullRequestById reqId (userId ctx) with
+        | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }
   
@@ -243,17 +271,48 @@ module Request =
         return! json notes next ctx
         }
   
-  /// POST /api/request/[req-id]/snooze
+  /// PATCH /api/request/[req-id]/show
+  let show reqId : HttpHandler =
+    authorize
+    >=> fun next ctx ->
+      task {
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
+        | Some req ->
+            let! show = ctx.BindJsonAsync<Models.Show> ()
+            { req with showAfter = show.showAfter }
+            |> db.UpdateEntry
+            let! _ = db.SaveChangesAsync ()
+            return! setStatusCode 204 next ctx
+        | None -> return! Error.notFound next ctx
+        }
+  
+  /// PATCH /api/request/[req-id]/snooze
   let snooze reqId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let  db  = db ctx
-        let! req = db.TryRequestById reqId (userId ctx)
-        match req with
-        | Some r ->
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
+        | Some req ->
             let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
-            { r with snoozedUntil = until.until }
+            { req with snoozedUntil = until.until; showAfter = until.until }
+            |> db.UpdateEntry
+            let! _ = db.SaveChangesAsync ()
+            return! setStatusCode 204 next ctx
+        | None -> return! Error.notFound next ctx
+        }
+
+  /// PATCH /api/request/[req-id]/recurrence
+  let updateRecurrence reqId : HttpHandler =
+    authorize
+    >=> fun next ctx ->
+      task {
+        let db = db ctx
+        match! db.TryRequestById reqId (userId ctx) with
+        | Some req ->
+            let! recur = ctx.BindJsonAsync<Models.Recurrence> ()
+            { req with recurType = recur.recurType; recurCount = recur.recurCount }
             |> db.UpdateEntry
             let! _ = db.SaveChangesAsync ()
             return! setStatusCode 204 next ctx

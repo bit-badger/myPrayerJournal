@@ -1,23 +1,23 @@
 <template lang="pug">
-article
+article.mpj-main-content-wide(role='main')
   page-title(:title='title')
   p(v-if='isLoadingJournal') Loading your prayer journal...
-  template(v-if='!isLoadingJournal')
-    new-request
+  template(v-else)
+    .mpj-text-center
+      router-link(:to="{ name: 'EditRequest', params: { id: 'new' } }"
+                  role='button').
+        #[md-icon(icon='add_box')] Add a New Request
     br
-    b-row(v-if='journal.length > 0')
+    .mpj-journal(v-if='journal.length > 0')
       request-card(v-for='request in journal'
                    :key='request.requestId'
                    :request='request'
                    :events='eventBus'
                    :toast='toast')
-    p.text-center(v-if='journal.length === 0'): em.
+    p.text-center(v-else): em.
       No requests found; click the &ldquo;Add a New Request&rdquo; button to add one
-    edit-request(:events='eventBus'
-                 :toast='toast')
     notes-edit(:events='eventBus'
                :toast='toast')
-    full-request(:events='eventBus')
     snooze-request(:events='eventBus'
                    :toast='toast')
 </template>
@@ -28,9 +28,6 @@ article
 import Vue from 'vue'
 import { mapState } from 'vuex'
 
-import EditRequest from './request/EditRequest'
-import FullRequest from './request/FullRequest'
-import NewRequest from './request/NewRequest'
 import NotesEdit from './request/NotesEdit'
 import RequestCard from './request/RequestCard'
 import SnoozeRequest from './request/SnoozeRequest'
@@ -40,9 +37,6 @@ import actions from '@/store/action-types'
 export default {
   name: 'journal',
   components: {
-    EditRequest,
-    FullRequest,
-    NewRequest,
     NotesEdit,
     RequestCard,
     SnoozeRequest
@@ -67,3 +61,12 @@ export default {
   }
 }
 </script>
+
+<style>
+.mpj-journal {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+</style>

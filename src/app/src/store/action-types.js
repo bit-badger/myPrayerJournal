@@ -7,6 +7,8 @@ export default {
   LOAD_JOURNAL: 'load-journal',
   /** Action to update a request */
   UPDATE_REQUEST: 'update-request',
+  /** Action to skip the remaining recurrence period */
+  SHOW_REQUEST_NOW: 'show-request-now',
   /** Action to snooze a request */
   SNOOZE_REQUEST: 'snooze-request'
 }

@@ -1,19 +1,17 @@
 <template lang="pug">
-b-col(v-if="!isSnoozed" md='6' lg='4')
-  .mpj-request-card
-    b-card-header.text-center.py-1.
-      #[b-btn(@click='markPrayed()' variant='outline-primary' title='Pray' size='sm'): icon(name='check')]
-      #[b-btn(@click.stop='showEdit()' variant='outline-secondary' title='Edit' size='sm'): icon(name='pencil')]
-      #[b-btn(@click.stop='showNotes()' variant='outline-secondary' title='Add Notes' size='sm'): icon(name='file-text-o')]
-      #[b-btn(@click.stop='showFull()' variant='outline-secondary' title='View Full Request' size='sm'): icon(name='search')]
-      #[b-btn(@click.stop='snooze()' variant='outline-secondary' title='Snooze Request' size='sm'): icon(name='clock-o')]
-    b-card-body.p-0
-      p.card-text.mpj-request-text.mb-1.px-3.pt-3
-        | {{ request.text }}
-      p.card-text.p-0.pr-1.text-right: small.text-muted: em
-        = '(last activity '
-        date-from-now(:value='request.asOf')
-        | )
+.mpj-request-card(v-if='shouldDisplay')
+  header.mpj-card-header(role='toolbar').
+    #[button(@click='markPrayed()' title='Pray').primary: md-icon(icon='done')]
+    #[button(@click.stop='showEdit()' title='Edit'): md-icon(icon='edit')]
+    #[button(@click.stop='showNotes()' title='Add Notes'): md-icon(icon='comment')]
+    #[button(@click.stop='snooze()' title='Snooze Request'): md-icon(icon='schedule')]
+  div
+    p.card-text.mpj-request-text
+      | {{ request.text }}
+    p.as-of.mpj-text-right: small.mpj-muted-text: em
+      = '(last activity '
+      date-from-now(:value='request.asOf')
+      | )
 </template>
 
 <script>
@@ -29,8 +27,9 @@ export default {
     events: { required: true }
   },
   computed: {
-    isSnoozed () {
-      return Date.now() < this.request.snoozedUntil
+    shouldDisplay () {
+      const now = Date.now()
+      return Math.max(now, this.request.showAfter, this.request.snoozedUntil) === now
     }
   },
   methods: {
@@ -44,10 +43,7 @@ export default {
       this.toast.showToast('Request marked as prayed', { theme: 'success' })
     },
     showEdit () {
-      this.events.$emit('edit', this.request)
-    },
-    showFull () {
-      this.events.$emit('full', this.request.requestId)
+      this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
     },
     showNotes () {
       this.events.$emit('notes', this.request)
@@ -63,6 +59,35 @@ export default {
 .mpj-request-card {
   border: solid 1px darkgray;
   border-radius: 5px;
-  margin-bottom: 15px;
+  width: 20rem;
+  margin: .5rem;
+}
+@media screen and (max-width: 20rem) {
+  .mpj-request-card {
+    width: 100%;
+  }
+}
+.mpj-card-header {
+  display: flex;
+  flex-flow: row;
+  justify-content: center;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(lightgray), to(whitesmoke));
+  background-image: -webkit-linear-gradient(top, lightgray, whitesmoke);
+  background-image: -moz-linear-gradient(top, lightgray, whitesmoke);
+  background-image: linear-gradient(to bottom, lightgray, whitesmoke);
+}
+.mpj-card-header button {
+  margin: .25rem;
+  padding: 0 .25rem;
+}
+.mpj-card-header button .material-icons {
+  font-size: 1.3rem;
+}
+.mpj-request-card .card-text {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+.mpj-request-card .as-of {
+  margin-right: .25rem;
 }
 </style>
