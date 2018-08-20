@@ -1,6 +1,6 @@
 {
   "name": "my-prayer-journal",
-  "version": "0.9.8",
+  "version": "1.0.0",
   "description": "myPrayerJournal - Front End",
   "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
   "private": true,
@@ -30,7 +30,9 @@
     "@vue/cli-plugin-eslint": "^3.0.0",
     "@vue/cli-service": "^3.0.0",
     "@vue/eslint-config-standard": "^3.0.0",
+    "css-loader": "^1.0.0",
     "pug-plain-loader": "^1.0.0",
+    "vue-style-loader": "^4.1.2",
     "vue-template-compiler": "^2.5.17"
   }
 }
