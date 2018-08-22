@@ -50,6 +50,6 @@ The "Active" link will show all requests that have not yet been marked answered,
 
 ## Final Notes
 
-- myPrayerJournal is nearing the end of its public beta, approaching its first official release. If you encounter errors, please [file an issue on GitHub](https://github.com/bit-badger/myPrayerJournal/issues) with as much detail as possible. You can also browse the list of issues to see what has been done and what is still left to do.
+- If you encounter errors, please [file an issue on GitHub](https://github.com/bit-badger/myPrayerJournal/issues) with as much detail as possible. You can also provide suggestions, or browse the list of currently open issues.
 - Prayer requests and their history are securely backed up nightly along with other Bit Badger Solutions data.
 - Prayer changes things - most of all, the one doing the praying. I pray that this tool enables you to deepen and strengthen your prayer life.
