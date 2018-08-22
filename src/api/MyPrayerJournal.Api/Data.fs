@@ -242,7 +242,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
   member this.JournalByUserId userId : JournalRequest seq =
     upcast this.Journal
       .Where(fun r -> r.userId = userId && r.lastStatus <> "Answered")
-      .OrderBy(fun r -> r.asOf)
+      .OrderBy(fun r -> r.showAfter)
   
   /// Retrieve a request by its ID and user ID
   member this.TryRequestById reqId userId =
