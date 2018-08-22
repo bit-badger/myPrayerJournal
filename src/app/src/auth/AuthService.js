@@ -8,7 +8,6 @@ import mutations from '@/store/mutation-types'
 var tokenRenewalTimeout
 
 export default class AuthService {
-
   constructor () {
     this.login = this.login.bind(this)
     this.setSession = this.setSession.bind(this)

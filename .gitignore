@@ -254,8 +254,10 @@ paket-files/
 
 # Compiled files / application
 src/api/build
+src/api/MyPrayerJournal.Api/wwwroot/favicon.ico
 src/api/MyPrayerJournal.Api/wwwroot/index.html
-src/api/MyPrayerJournal.Api/wwwroot/static
+src/api/MyPrayerJournal.Api/wwwroot/css
+src/api/MyPrayerJournal.Api/wwwroot/js
 src/api/MyPrayerJournal.Api/appsettings.development.json
 /build
 src/*.exe
