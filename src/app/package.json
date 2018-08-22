@@ -9,16 +9,12 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "apistart": "cd ../api/MyPrayerJournal.Api && dotnet run",
-    "vue": "vue-cli-service build && cd ../api/MyPrayerJournal.Api && dotnet run"
+    "vue": "vue-cli-service build --modern && cd ../api/MyPrayerJournal.Api && dotnet run"
   },
-  "sideEffects": [
-    "**/*.css"
-  ],
   "dependencies": {
     "auth0-js": "^9.7.3",
     "axios": "^0.18.0",
     "moment": "^2.18.1",
-    "pug": "^2.0.1",
     "vue": "^2.5.15",
     "vue-progressbar": "^0.7.3",
     "vue-router": "^3.0.0",
@@ -30,9 +26,8 @@
     "@vue/cli-plugin-eslint": "^3.0.0",
     "@vue/cli-service": "^3.0.0",
     "@vue/eslint-config-standard": "^3.0.0",
-    "css-loader": "^1.0.0",
+    "pug": "^2.0.1",
     "pug-plain-loader": "^1.0.0",
-    "vue-style-loader": "^4.1.2",
     "vue-template-compiler": "^2.5.17"
   }
 }

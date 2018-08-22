@@ -29,7 +29,7 @@ export default {
     Navigation
   },
   data () {
-    return { version }
+    return {}
   },
   mounted () {
     this.$refs.toast.setOptions({ position: 'bottom right' })
@@ -37,6 +37,9 @@ export default {
   computed: {
     toast () {
       return this.$refs.toast
+    },
+    version () {
+      return version.endsWith('.0') ? version.substr(0, version.length - 2) : version
     }
   }
 }
