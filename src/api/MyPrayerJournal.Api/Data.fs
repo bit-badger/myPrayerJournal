@@ -2,14 +2,7 @@
 
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.EntityFrameworkCore
-
-/// Helpers for this file
-[<AutoOpen>]
-module private Helpers =
-  
-  /// Convert any item to an option (Option.ofObj does not work for non-nullable types)
-  let toOption<'T> (x : 'T) = match box x with null -> None | _ -> Some x
-
+open Microsoft.FSharpLu
 
 /// Entities for use in the data model for myPrayerJournal
 [<AutoOpen>]
@@ -247,7 +240,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
   member this.TryRequestById reqId userId =
     task {
       let! req = this.Requests.AsNoTracking().FirstOrDefaultAsync(fun r -> r.requestId = reqId && r.userId = userId)
-      return toOption req
+      return Option.fromObject req
       }
 
   /// Retrieve notes for a request by its ID and user ID
@@ -262,7 +255,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
   member this.TryJournalById reqId userId =
     task {
       let! req = this.Journal.FirstOrDefaultAsync(fun r -> r.requestId = reqId && r.userId = userId)
-      return toOption req
+      return Option.fromObject req
       }
   
   /// Retrieve a request, including its history and notes, by its ID and user ID
@@ -275,7 +268,7 @@ type AppDbContext (opts : DbContextOptions<AppDbContext>) =
               .Include(fun r -> r.history)
               .Include(fun r -> r.notes)
               .FirstOrDefaultAsync(fun r -> r.requestId = requestId && r.userId = userId)
-          match toOption fullReq with
+          match Option.fromObject fullReq with
           | Some _ -> return Some { req with history = List.ofSeq fullReq.history; notes = List.ofSeq fullReq.notes }
           | None -> return None
       | None -> return None

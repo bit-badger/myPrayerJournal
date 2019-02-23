@@ -4,11 +4,11 @@ open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
 open System
 
-
 /// Configuration functions for the application
 module Configure =
   
   open Giraffe
+  open Giraffe.Serialization
   open Giraffe.TokenRouter
   open Microsoft.AspNetCore.Authentication.JwtBearer
   open Microsoft.AspNetCore.Server.Kestrel.Core
@@ -16,7 +16,9 @@ module Configure =
   open Microsoft.Extensions.Configuration
   open Microsoft.Extensions.DependencyInjection
   open Microsoft.Extensions.Logging
+  open Microsoft.FSharpLu.Json
   open MyPrayerJournal
+  open Newtonsoft.Json
 
   /// Set up the configuration for the app
   let configuration (ctx : WebHostBuilderContext) (cfg : IConfigurationBuilder) =
@@ -29,6 +31,15 @@ module Configure =
   /// Configure Kestrel from appsettings.json
   let kestrel (ctx : WebHostBuilderContext) (opts : KestrelServerOptions) =
     (ctx.Configuration.GetSection >> opts.Configure >> ignore) "Kestrel"
+
+  /// Custom settings for the JSON serializer (uses compact representation for options and DUs)
+  let jsonSettings =
+    let x = NewtonsoftJsonSerializer.DefaultSettings
+    x.Converters.Add (CompactUnionJsonConverter (true))
+    x.NullValueHandling     <- NullValueHandling.Ignore
+    x.MissingMemberHandling <- MissingMemberHandling.Error
+    x.Formatting            <- Formatting.Indented
+    x
 
   /// Configure dependency injection
   let services (sc : IServiceCollection) =
@@ -48,6 +59,7 @@ module Configure =
           opts.Audience  <- jwtCfg.["Id"])
     |> ignore
     sc.AddDbContext<AppDbContext>(fun opts -> opts.UseNpgsql(cfg.GetConnectionString "mpj") |> ignore)
+      .AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer jsonSettings)
     |> ignore
   
   /// Routes for the available URLs within myPrayerJournal

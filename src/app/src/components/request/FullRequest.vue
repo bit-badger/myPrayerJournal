@@ -15,7 +15,7 @@ article.mpj-main-content(role='main')
       tbody
         tr(v-for='item in log' :key='item.asOf')
           td {{ item.status }} on #[span.mpj-text-nowrap {{ formatDate(item.asOf) }}]
-          td(v-if='item.text').mpj-request-text {{ item.text.fields[0] }}
+          td(v-if='item.text').mpj-request-text {{ item.text }}
           td(v-else) &nbsp;
   p(v-else) Loading request...
 </template>
@@ -52,11 +52,11 @@ export default {
     lastText () {
       return this.request.history
         .filter(hist => hist.text)
-        .sort(asOfDesc)[0].text.fields[0]
+        .sort(asOfDesc)[0].text
     },
     log () {
       const allHistory = (this.request.notes || [])
-        .map(note => ({ asOf: note.asOf, text: { case: 'Some', fields: [ note.notes ] }, status: 'Notes' }))
+        .map(note => ({ asOf: note.asOf, text: note.notes, status: 'Notes' }))
         .concat(this.request.history)
         .sort(asOfDesc)
       // Skip the first entry for answered requests; that info is already displayed
