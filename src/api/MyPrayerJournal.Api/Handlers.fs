@@ -2,6 +2,7 @@
 [<RequireQualifiedAccess>]
 module MyPrayerJournal.Api.Handlers
 
+open FSharp.Control.Tasks.V2.ContextInsensitive
 open Giraffe
 open MyPrayerJournal
 open System

@@ -1,6 +1,6 @@
 ﻿namespace MyPrayerJournal
 
-open FSharp.Control.Tasks.ContextInsensitive
+open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.EntityFrameworkCore
 
 /// Helpers for this file
@@ -183,7 +183,6 @@ module Entities =
 
 
 open System.Linq
-open System.Threading.Tasks
 
 /// Data context
 type AppDbContext (opts : DbContextOptions<AppDbContext>) =

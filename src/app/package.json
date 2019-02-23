@@ -1,12 +1,12 @@
 {
   "name": "my-prayer-journal",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "myPrayerJournal - Front End",
   "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "build": "vue-cli-service build --modern",
     "lint": "vue-cli-service lint",
     "apistart": "cd ../api/MyPrayerJournal.Api && dotnet run",
     "vue": "vue-cli-service build --modern && cd ../api/MyPrayerJournal.Api && dotnet run"
