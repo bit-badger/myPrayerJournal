@@ -253,11 +253,11 @@ paket-files/
 *.sln.iml
 
 # Compiled files / application
-src/api/build
-src/api/MyPrayerJournal.Api/wwwroot/favicon.ico
-src/api/MyPrayerJournal.Api/wwwroot/index.html
-src/api/MyPrayerJournal.Api/wwwroot/css
-src/api/MyPrayerJournal.Api/wwwroot/js
-src/api/MyPrayerJournal.Api/appsettings.development.json
+src/build
+src/MyPrayerJournal.Api/wwwroot/favicon.ico
+src/MyPrayerJournal.Api/wwwroot/index.html
+src/MyPrayerJournal.Api/wwwroot/css
+src/MyPrayerJournal.Api/wwwroot/js
+src/MyPrayerJournal.Api/appsettings.development.json
 /build
 src/*.exe
