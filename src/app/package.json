@@ -1,6 +1,6 @@
 {
   "name": "my-prayer-journal",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "myPrayerJournal - Front End",
   "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
   "private": true,
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "auth0-js": "^9.7.3",
-    "axios": "^0.18.0",
+    "axios": "^0.19.0",
     "moment": "^2.18.1",
     "vue": "^2.5.15",
     "vue-progressbar": "^0.7.3",
