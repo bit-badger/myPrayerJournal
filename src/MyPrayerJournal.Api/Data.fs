@@ -4,6 +4,130 @@ open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.EntityFrameworkCore
 open Microsoft.FSharpLu
 
+open Newtonsoft.Json
+open Raven.Client.Documents.Indexes
+open System
+open System.Collections.Generic
+
+/// JSON converter for request IDs
+type RequestIdJsonConverter() =
+  inherit JsonConverter<RequestId>()
+  override __.WriteJson(writer : JsonWriter, value : RequestId, _ : JsonSerializer) =
+    (string >> writer.WriteValue) value
+  override __.ReadJson(reader: JsonReader, _ : Type, _ : RequestId, _ : bool, _ : JsonSerializer) =
+    (string >> RequestId.fromIdString) reader.Value
+
+
+/// JSON converter for user IDs
+type UserIdJsonConverter() =
+  inherit JsonConverter<UserId>()
+  override __.WriteJson(writer : JsonWriter, value : UserId, _ : JsonSerializer) =
+    (string >> writer.WriteValue) value
+  override __.ReadJson(reader: JsonReader, _ : Type, _ : UserId, _ : bool, _ : JsonSerializer) =
+    (string >> UserId) reader.Value
+
+
+/// JSON converter for Ticks
+type TicksJsonConverter() =
+  inherit JsonConverter<Ticks>()
+  override __.WriteJson(writer : JsonWriter, value : Ticks, _ : JsonSerializer) =
+    writer.WriteValue (value.toLong ())
+  override __.ReadJson(reader: JsonReader, _ : Type, _ : Ticks, _ : bool, _ : JsonSerializer) =
+    (string >> int64 >> Ticks) reader.Value
+
+/// Index episodes by their series Id
+type Requests_ByUserId () as this =
+  inherit AbstractJavaScriptIndexCreationTask ()
+  do
+    this.Maps <- HashSet<string> [ "map('Requests', function (req) { return { userId : req.userId } })" ]
+
+
+/// Extensions on the IAsyncDocumentSession interface to support our data manipulation needs
+[<AutoOpen>]
+module Extensions =
+  
+  open Raven.Client.Documents.Commands.Batches
+  open Raven.Client.Documents.Operations
+  open Raven.Client.Documents.Session
+  open System
+
+  /// Format an RQL query by a strongly-typed index
+  let fromIndex (typ : Type) =
+    typ.Name.Replace ("_", "/") |> sprintf "from index '%s'"
+
+  /// Utility method to create patch requests
+  let createPatch<'T> collName itemId (item : 'T) =
+    let r = PatchRequest()
+    r.Script          <- sprintf "this.%s.push(args.Item)" collName
+    r.Values.["Item"] <- item
+    PatchCommandData (itemId, null, r, null)
+
+  // Extensions for the RavenDB session type
+  type IAsyncDocumentSession with
+    
+    /// Add a history entry
+    member this.AddHistory (reqId : RequestId) (hist : History) =
+      createPatch "history" (string reqId) hist
+      |> this.Advanced.Defer
+
+    /// Add a request
+    member this.AddRequest req =
+      this.StoreAsync (req, req.Id)
+
+    /// Retrieve all answered requests for the given user
+    // TODO: not right
+    member this.AnsweredRequests (userId : UserId) =
+      sprintf "%s where userId = '%s' and lastStatus = 'Answered' order by asOf as long desc"
+        (fromIndex typeof<Requests_ByUserId>) (string userId)
+      |> this.Advanced.AsyncRawQuery<JournalRequest>
+    
+    /// Retrieve the user's current journal
+    // TODO: probably not right either
+    member this.JournalByUserId (userId : UserId) =
+      sprintf "%s where userId = '%s' and lastStatus <> 'Answered' order by showAfter as long"
+        (fromIndex typeof<Requests_ByUserId>) (string userId)
+      |> this.Advanced.AsyncRawQuery<JournalRequest>
+    
+    /// Retrieve a request by its ID and user ID
+    member this.TryRequestById (reqId : RequestId) userId =
+      task {
+        let! req = this.LoadAsync (string reqId)
+        match Option.fromObject req with
+        | Some r when r.userId = userId -> return Some r
+        | _ -> return None
+        }
+
+    /// Retrieve notes for a request by its ID and user ID
+    member this.NotesById reqId userId =
+      task {
+        match! this.TryRequestById reqId userId with
+        | Some _ -> return this.Notes.AsNoTracking().Where(fun n -> n.requestId = reqId) |> List.ofSeq
+        | None -> return []
+        }
+
+    /// Retrieve a journal request by its ID and user ID
+    member this.TryJournalById reqId userId =
+      task {
+        let! req = this.Journal.FirstOrDefaultAsync(fun r -> r.requestId = reqId && r.userId = userId)
+        return Option.fromObject req
+        }
+    
+    /// Retrieve a request, including its history and notes, by its ID and user ID
+    member this.TryFullRequestById requestId userId =
+      task {
+        match! this.TryJournalById requestId userId with
+        | Some req ->
+            let! fullReq =
+              this.Requests.AsNoTracking()
+                .Include(fun r -> r.history)
+                .Include(fun r -> r.notes)
+                .FirstOrDefaultAsync(fun r -> r.requestId = requestId && r.userId = userId)
+            match Option.fromObject fullReq with
+            | Some _ -> return Some { req with history = List.ofSeq fullReq.history; notes = List.ofSeq fullReq.notes }
+            | None -> return None
+        | None -> return None
+        }
+
 /// Entity Framework configuration for myPrayerJournal
 module internal EFConfig =
   
