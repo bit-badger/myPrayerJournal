@@ -104,11 +104,13 @@ export default new Vuex.Store({
       progress.start()
       try {
         let oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
-        if (status !== 'Updated' || oldReq.text !== updateText) {
-          await api.updateRequest(requestId, status, updateText)
+        if (!(status === 'Prayed' && updateText === '')) {
+          if (status !== 'Answered' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
+            await api.updateRecurrence(requestId, recurType, recurCount)
+          }
         }
-        if (status === 'Updated' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
-          await api.updateRecurrence(requestId, recurType, recurCount)
+        if (status !== 'Updated' || oldReq.text !== updateText) {
+          await api.updateRequest(requestId, status, oldReq.text !== updateText ? updateText : '')
         }
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)

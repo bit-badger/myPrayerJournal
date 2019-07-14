@@ -252,6 +252,9 @@ paket-files/
 .idea/
 *.sln.iml
 
+# Ionide VSCode extension
+.ionide
+
 # Compiled files / application
 src/build
 src/MyPrayerJournal.Api/wwwroot/favicon.ico
