@@ -58,6 +58,13 @@ with
     | "days" -> Days
     | "weeks" -> Weeks
     | _ -> invalidOp (sprintf "%s is not a valid recurrence" x)
+  /// The duration of the recurrence
+  member x.duration =
+    match x with
+    | Immediate ->     0L
+    | Hours ->   3600000L
+    | Days ->   86400000L
+    | Weeks -> 604800000L
 
 
 /// History is a record of action taken on a prayer request, including updates to its text

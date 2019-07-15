@@ -2,22 +2,11 @@ namespace MyPrayerJournal.Api
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
-open System
 
 /// Configuration functions for the application
 module Configure =
   
-  open Giraffe
-  open Giraffe.Serialization
-  open Giraffe.TokenRouter
-  open Microsoft.AspNetCore.Authentication.JwtBearer
-  open Microsoft.AspNetCore.Server.Kestrel.Core
-  open Microsoft.EntityFrameworkCore
   open Microsoft.Extensions.Configuration
-  open Microsoft.Extensions.DependencyInjection
-  open Microsoft.Extensions.Logging
-  open Microsoft.FSharpLu.Json
-  open MyPrayerJournal
   open Newtonsoft.Json
 
   /// Set up the configuration for the app
@@ -28,9 +17,14 @@ module Configure =
       .AddEnvironmentVariables()
     |> ignore
     
+  open Microsoft.AspNetCore.Server.Kestrel.Core
+
   /// Configure Kestrel from appsettings.json
   let kestrel (ctx : WebHostBuilderContext) (opts : KestrelServerOptions) =
     (ctx.Configuration.GetSection >> opts.Configure >> ignore) "Kestrel"
+
+  open Giraffe.Serialization
+  open Microsoft.FSharpLu.Json
 
   /// Custom settings for the JSON serializer (uses compact representation for options and DUs)
   let jsonSettings =
@@ -40,6 +34,15 @@ module Configure =
     x.MissingMemberHandling <- MissingMemberHandling.Error
     x.Formatting            <- Formatting.Indented
     x
+
+  open Giraffe
+  open Giraffe.TokenRouter
+  open Microsoft.AspNetCore.Authentication.JwtBearer
+  open Microsoft.Extensions.DependencyInjection
+  open MyPrayerJournal
+  open Raven.Client.Documents
+  open Raven.Client.Documents.Indexes
+  open System.Security.Cryptography.X509Certificates
 
   /// Configure dependency injection
   let services (sc : IServiceCollection) =
@@ -58,9 +61,21 @@ module Configure =
           opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
           opts.Audience  <- jwtCfg.["Id"])
     |> ignore
-    sc.AddDbContext<AppDbContext>(fun opts -> opts.UseNpgsql(cfg.GetConnectionString "mpj") |> ignore)
-      .AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer jsonSettings)
+    sc.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer jsonSettings)
     |> ignore
+    let config = sc.BuildServiceProvider().GetRequiredService<IConfiguration>().GetSection "RavenDB"
+    let store = new DocumentStore ()
+    store.Urls        <- [| config.["URLs"] |]
+    store.Database    <- config.["Database"]
+    store.Certificate <- new X509Certificate2 (config.["Certificate"], config.["Password"])
+    store.Conventions.CustomizeJsonSerializer <- (fun x ->
+        x.Converters.Add (RequestIdJsonConverter ())
+        x.Converters.Add (TicksJsonConverter ())
+        x.Converters.Add (UserIdJsonConverter ())
+        x.Converters.Add (CompactUnionJsonConverter true))
+    store.Initialize () |> sc.AddSingleton |> ignore
+    IndexCreation.CreateIndexes (typeof<Requests_ByUserId>.Assembly, store)
+
   
   /// Routes for the available URLs within myPrayerJournal
   let webApp =
@@ -106,6 +121,8 @@ module Configure =
           .UseGiraffe webApp
     |> ignore
 
+  open Microsoft.Extensions.Logging
+
   /// Configure logging
   let logging (log : ILoggingBuilder) =
     let env = log.Services.BuildServiceProvider().GetService<IHostingEnvironment> ()
@@ -118,6 +135,7 @@ module Configure =
 
 module Program =
   
+  open System
   open System.IO
 
   let exitCode = 0
