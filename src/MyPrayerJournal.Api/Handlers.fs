@@ -44,10 +44,6 @@ module private Helpers =
   open System.Threading.Tasks
   open System.Security.Claims
 
-  /// Get the database context from DI
-//  let db (ctx : HttpContext) =
-  //  ctx.GetService<AppDbContext> ()
-
   /// Create a RavenDB session
   let session (ctx : HttpContext) =
     ctx.GetService<IDocumentStore>().OpenAsyncSession ()
@@ -62,7 +58,7 @@ module private Helpers =
     ((user >> Option.get) ctx).Value |> UserId
 
   /// Create a request ID from a string
-  let toReqId = Domain.Cuid >> RequestId
+  let toReqId = Cuid >> RequestId
 
   /// Return a 201 CREATED response
   let created next ctx =
@@ -170,7 +166,7 @@ module Request =
         let  now   = jsNow ()
         do! sess.AddRequest
               { Request.empty with
-                  Id         = string reqId
+                  Id         = RequestId.toString reqId
                   userId     = usrId
                   enteredOn  = now
                   showAfter  = now
@@ -209,7 +205,8 @@ module Request =
             |> sess.AddHistory reqId
             match hist.status with
             | "Prayed" ->
-                (Ticks >> sess.UpdateShowAfter reqId) <| now.toLong () + (req.recurType.duration * int64 req.recurCount)
+                (Ticks.toLong now) + (Recurrence.duration req.recurType * int64 req.recurCount)
+                |> (Ticks >> sess.UpdateShowAfter reqId)
             | _ -> ()
             do! sess.SaveChangesAsync ()
             return! created next ctx

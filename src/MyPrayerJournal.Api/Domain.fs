@@ -5,35 +5,35 @@ module MyPrayerJournal.Domain
 /// A Collision-resistant Unique IDentifier
 type Cuid =
   | Cuid of string
-with
+module Cuid =
   /// The string value of the CUID
-  override x.ToString () = match x with Cuid y -> y
+  let toString x = match x with Cuid y -> y
 
 
 /// Request ID is a CUID
 type RequestId =
   | RequestId of Cuid
-with
+module RequestId =
   /// The string representation of the request ID
-  override x.ToString () = match x with RequestId y -> (string >> sprintf "Requests/%s") y
+  let toString x = match x with RequestId y -> (Cuid.toString >> sprintf "Requests/%s") y
   /// Create a request ID from a string representation
-  static member fromIdString (y : string) = (Cuid >> RequestId) <| y.Replace("Requests/", "")
+  let fromIdString (y : string) = (Cuid >> RequestId) <| y.Replace("Requests/", "")
 
 
 /// User ID is a string (the "sub" part of the JWT)
 type UserId =
   | UserId of string
-with
+module UserId =
   /// The string representation of the user ID
-  override x.ToString () = match x with UserId y -> y
+  let toString x = match x with UserId y -> y
 
 
 /// A long integer representing seconds since the epoch
 type Ticks =
   | Ticks of int64
-with
+module Ticks =
   /// The int64 (long) representation of ticks
-  member x.toLong () = match x with Ticks y -> y
+  let toLong x = match x with Ticks y -> y
 
 
 /// How frequently a request should reappear after it is marked "Prayed"
@@ -42,16 +42,16 @@ type Recurrence =
   | Hours
   | Days
   | Weeks
-with
+module Recurrence =
   /// The string reprsentation used in the database and the web app
-  override x.ToString () =
+  let toString x =
     match x with
     | Immediate -> "immediate"
     | Hours -> "hours"
     | Days -> "days"
     | Weeks -> "weeks"
   /// Create a recurrence value from a string
-  static member fromString x =
+  let fromString x =
     match x with
     | "immediate" -> Immediate
     | "hours" -> Hours
@@ -59,7 +59,7 @@ with
     | "weeks" -> Weeks
     | _ -> invalidOp (sprintf "%s is not a valid recurrence" x)
   /// The duration of the recurrence
-  member x.duration =
+  let duration x =
     match x with
     | Immediate ->     0L
     | Hours ->   3600000L

@@ -14,7 +14,7 @@ module Configure =
     cfg.SetBasePath(ctx.HostingEnvironment.ContentRootPath)
       .AddJsonFile("appsettings.json", optional = true, reloadOnChange = true)
       .AddJsonFile(sprintf "appsettings.%s.json" ctx.HostingEnvironment.EnvironmentName)
-      .AddEnvironmentVariables()
+      .AddEnvironmentVariables ()
     |> ignore
     
   open Microsoft.AspNetCore.Server.Kestrel.Core
@@ -46,7 +46,7 @@ module Configure =
 
   /// Configure dependency injection
   let services (sc : IServiceCollection) =
-    use sp  = sc.BuildServiceProvider()
+    use sp  = sc.BuildServiceProvider ()
     let cfg = sp.GetRequiredService<IConfiguration> ()
     sc.AddGiraffe()
       .AddAuthentication(
@@ -61,7 +61,7 @@ module Configure =
           opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
           opts.Audience  <- jwtCfg.["Id"])
     |> ignore
-    sc.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer jsonSettings)
+    sc.AddSingleton<IJsonSerializer> (NewtonsoftJsonSerializer jsonSettings)
     |> ignore
     let config = sc.BuildServiceProvider().GetRequiredService<IConfiguration>().GetSection "RavenDB"
     let store = new DocumentStore ()

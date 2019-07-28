@@ -2,37 +2,36 @@
 
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open Microsoft.FSharpLu
-
 open Newtonsoft.Json
+open Raven.Client.Documents
 open Raven.Client.Documents.Indexes
+open Raven.Client.Documents.Linq
 open System
 open System.Collections.Generic
-open Raven.Client.Documents.Linq
-open Raven.Client.Documents
 
 /// JSON converter for request IDs
-type RequestIdJsonConverter() =
-  inherit JsonConverter<RequestId>()
+type RequestIdJsonConverter () =
+  inherit JsonConverter<RequestId> ()
   override __.WriteJson(writer : JsonWriter, value : RequestId, _ : JsonSerializer) =
-    (string >> writer.WriteValue) value
+    (RequestId.toString >> writer.WriteValue) value
   override __.ReadJson(reader: JsonReader, _ : Type, _ : RequestId, _ : bool, _ : JsonSerializer) =
     (string >> RequestId.fromIdString) reader.Value
 
 
 /// JSON converter for user IDs
-type UserIdJsonConverter() =
-  inherit JsonConverter<UserId>()
+type UserIdJsonConverter () =
+  inherit JsonConverter<UserId> ()
   override __.WriteJson(writer : JsonWriter, value : UserId, _ : JsonSerializer) =
-    (string >> writer.WriteValue) value
+    (UserId.toString >> writer.WriteValue) value
   override __.ReadJson(reader: JsonReader, _ : Type, _ : UserId, _ : bool, _ : JsonSerializer) =
     (string >> UserId) reader.Value
 
 
 /// JSON converter for Ticks
-type TicksJsonConverter() =
-  inherit JsonConverter<Ticks>()
+type TicksJsonConverter () =
+  inherit JsonConverter<Ticks> ()
   override __.WriteJson(writer : JsonWriter, value : Ticks, _ : JsonSerializer) =
-    writer.WriteValue (value.toLong ())
+    (Ticks.toLong >> writer.WriteValue) value
   override __.ReadJson(reader: JsonReader, _ : Type, _ : Ticks, _ : bool, _ : JsonSerializer) =
     (string >> int64 >> Ticks) reader.Value
 
@@ -72,7 +71,6 @@ module Extensions =
   open Raven.Client.Documents.Commands.Batches
   open Raven.Client.Documents.Operations
   open Raven.Client.Documents.Session
-  open System
 
   /// Format an RQL query by a strongly-typed index
   let fromIndex (typ : Type) =
@@ -98,12 +96,12 @@ module Extensions =
     
     /// Add a history entry
     member this.AddHistory (reqId : RequestId) (hist : History) =
-      listPush "history" (string reqId) hist
+      listPush "history" (RequestId.toString reqId) hist
       |> this.Advanced.Defer
 
     /// Add a note
     member this.AddNote (reqId : RequestId) (note : Note) =
-      listPush "notes" (string reqId) note
+      listPush "notes" (RequestId.toString reqId) note
       |> this.Advanced.Defer
 
     /// Add a request
@@ -114,20 +112,20 @@ module Extensions =
     // TODO: not right
     member this.AnsweredRequests (userId : UserId) =
       sprintf "%s where userId = '%s' and lastStatus = 'Answered' order by asOf as long desc"
-        (fromIndex typeof<Requests_AsJournal>) (string userId)
+        (fromIndex typeof<Requests_AsJournal>) (UserId.toString userId)
       |> this.Advanced.AsyncRawQuery<JournalRequest>
     
     /// Retrieve the user's current journal
     // TODO: probably not right either
     member this.JournalByUserId (userId : UserId) =
       sprintf "%s where userId = '%s' and lastStatus <> 'Answered' order by showAfter as long"
-        (fromIndex typeof<Requests_AsJournal>) (string userId)
+        (fromIndex typeof<Requests_AsJournal>) (UserId.toString userId)
       |> this.Advanced.AsyncRawQuery<JournalRequest>
     
     /// Retrieve a request, including its history and notes, by its ID and user ID
     member this.TryFullRequestById (reqId : RequestId) userId =
       task {
-        let! req = this.LoadAsync (string reqId)
+        let! req = RequestId.toString reqId |> this.LoadAsync
         match Option.fromObject req with
         | Some r when r.userId = userId -> return Some r
         | _ -> return None
@@ -154,7 +152,7 @@ module Extensions =
       task {
         let! req =
           this.Query<Request, Requests_AsJournal>()
-            .Where(fun x -> x.Id = (string reqId) && x.userId = userId)
+            .Where(fun x -> x.Id = (RequestId.toString reqId) && x.userId = userId)
             .ProjectInto<JournalRequest>()
             .FirstOrDefaultAsync ()
         return Option.fromObject req
@@ -166,19 +164,19 @@ module Extensions =
       r.Script           <- "this.recurType = args.Type; this.recurCount = args.Count"
       r.Values.["Type"]  <- string recurType
       r.Values.["Count"] <- recurCount
-      PatchCommandData (string reqId, null, r, null) |> this.Advanced.Defer
+      PatchCommandData (RequestId.toString reqId, null, r, null) |> this.Advanced.Defer
 
     /// Update the "show after" timestamp for a request
     member this.UpdateShowAfter (reqId : RequestId) (showAfter : Ticks) =
-      fieldUpdate "showAfter" (string reqId) (showAfter.toLong ())
+      fieldUpdate "showAfter" (RequestId.toString reqId) (Ticks.toLong showAfter)
       |> this.Advanced.Defer
 
     /// Update a snoozed request
     member this.UpdateSnoozed (reqId : RequestId) (until : Ticks) =
       let r = PatchRequest()
       r.Script          <- "this.snoozedUntil = args.Item; this.showAfter = args.Item"
-      r.Values.["Item"] <- until.toLong ()
-      PatchCommandData (string reqId, null, r, null) |> this.Advanced.Defer
+      r.Values.["Item"] <- Ticks.toLong until
+      PatchCommandData (RequestId.toString reqId, null, r, null) |> this.Advanced.Defer
 
 
 
