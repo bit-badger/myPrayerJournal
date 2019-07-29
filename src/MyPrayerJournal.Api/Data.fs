@@ -9,65 +9,79 @@ open Raven.Client.Documents.Linq
 open System
 open System.Collections.Generic
 
-/// JSON converter for request IDs
-type RequestIdJsonConverter () =
-  inherit JsonConverter<RequestId> ()
-  override __.WriteJson(writer : JsonWriter, value : RequestId, _ : JsonSerializer) =
-    (RequestId.toString >> writer.WriteValue) value
-  override __.ReadJson(reader: JsonReader, _ : Type, _ : RequestId, _ : bool, _ : JsonSerializer) =
-    (string >> RequestId.fromIdString) reader.Value
+/// JSON converters for various DUs
+module Converters =
+  
+  /// JSON converter for request IDs
+  type RequestIdJsonConverter () =
+    inherit JsonConverter<RequestId> ()
+    override __.WriteJson(writer : JsonWriter, value : RequestId, _ : JsonSerializer) =
+      (RequestId.toString >> writer.WriteValue) value
+    override __.ReadJson(reader: JsonReader, _ : Type, _ : RequestId, _ : bool, _ : JsonSerializer) =
+      (string >> RequestId.fromIdString) reader.Value
 
+  /// JSON converter for user IDs
+  type UserIdJsonConverter () =
+    inherit JsonConverter<UserId> ()
+    override __.WriteJson(writer : JsonWriter, value : UserId, _ : JsonSerializer) =
+      (UserId.toString >> writer.WriteValue) value
+    override __.ReadJson(reader: JsonReader, _ : Type, _ : UserId, _ : bool, _ : JsonSerializer) =
+      (string >> UserId) reader.Value
 
-/// JSON converter for user IDs
-type UserIdJsonConverter () =
-  inherit JsonConverter<UserId> ()
-  override __.WriteJson(writer : JsonWriter, value : UserId, _ : JsonSerializer) =
-    (UserId.toString >> writer.WriteValue) value
-  override __.ReadJson(reader: JsonReader, _ : Type, _ : UserId, _ : bool, _ : JsonSerializer) =
-    (string >> UserId) reader.Value
+  /// JSON converter for Ticks
+  type TicksJsonConverter () =
+    inherit JsonConverter<Ticks> ()
+    override __.WriteJson(writer : JsonWriter, value : Ticks, _ : JsonSerializer) =
+      (Ticks.toLong >> writer.WriteValue) value
+    override __.ReadJson(reader: JsonReader, _ : Type, _ : Ticks, _ : bool, _ : JsonSerializer) =
+      (string >> int64 >> Ticks) reader.Value
 
+  /// A sequence of all custom converters for myPrayerJournal
+  let all : JsonConverter seq =
+    seq {
+      yield RequestIdJsonConverter ()
+      yield UserIdJsonConverter ()
+      yield TicksJsonConverter ()
+      }
 
-/// JSON converter for Ticks
-type TicksJsonConverter () =
-  inherit JsonConverter<Ticks> ()
-  override __.WriteJson(writer : JsonWriter, value : Ticks, _ : JsonSerializer) =
-    (Ticks.toLong >> writer.WriteValue) value
-  override __.ReadJson(reader: JsonReader, _ : Type, _ : Ticks, _ : bool, _ : JsonSerializer) =
-    (string >> int64 >> Ticks) reader.Value
+/// RavenDB index declarations
+module Indexes =
+  
+  /// Index requests by user ID
+  type Requests_ByUserId () as this =
+    inherit AbstractJavaScriptIndexCreationTask ()
+    do
+      this.Maps <- HashSet<string> [ "docs.Requests.Select(req => new { userId = req.userId })" ]
 
-/// Index requests by user ID
-type Requests_ByUserId () as this =
-  inherit AbstractJavaScriptIndexCreationTask ()
-  do
-    this.Maps <- HashSet<string> [ "map('Requests', function (req) { return { userId : req.userId } })" ]
+  /// Index requests for a journal view
+  type Requests_AsJournal () as this =
+    inherit AbstractJavaScriptIndexCreationTask ()
+    do
+      this.Maps <- HashSet<string> [
+        "docs.Requests.Select(req => new {
+            requestId = req.Id,
+            userId = req.userId,
+            text = req.history.Where(hist => hist.text != null).OrderByDescending(hist => hist.asOf).First().text,
+            asOf = req.history.OrderByDescending(hist => hist.asOf).First().asOf,
+            snoozedUntil = req.snoozedUntil,
+            showAfter = req.showAfter,
+            recurType = req.recurType,
+            recurCount = req.recurCount
+        })"
+        ]
+      this.Fields <-
+        [ "text", IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
+          "asOf", IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
+          ]
+        |> dict
+        |> Dictionary<string, IndexFieldOptions>
 
-/// Index requests for a journal view
-type Requests_AsJournal () as this =
-  inherit AbstractJavaScriptIndexCreationTask ()
-  do
-    this.Maps <- HashSet<string> [
-      "map('Requests', function (req) {
-        var hist = req.history
-          .filter(function (hist) { return hist.text !== null })
-          .sort(function (a, b) { return b - a })
-        return {
-          requestId    : req.Id,
-          userId       : req.userId,
-          text         : hist[0].text,
-          asOf         : req.history[req.history.length - 1].asOf,
-          snoozedUntil : req.snoozedUntil,
-          showAfter    : req.showAfter,
-          recurType    : req.recurType,
-          recurCount   : req.recurCount
-        }
-      })"
-      
-      ]
 
 /// Extensions on the IAsyncDocumentSession interface to support our data manipulation needs
 [<AutoOpen>]
 module Extensions =
   
+  open Indexes
   open Raven.Client.Documents.Commands.Batches
   open Raven.Client.Documents.Operations
   open Raven.Client.Documents.Session
