@@ -175,7 +175,7 @@ module Request =
                   history    = [
                     { History.empty with
                         asOf   = now
-                        status = "Created"
+                        status = Created
                         text   = Some r.requestText
                       }      
                     ]
@@ -197,14 +197,15 @@ module Request =
         | Some req ->
             let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
             let  now  = jsNow ()
+            let  act  = RequestAction.fromString hist.status
             { History.empty with
                 asOf   = now
-                status = hist.status
+                status = act
                 text   = match hist.updateText with null | "" -> None | x -> Some x
               }
             |> sess.AddHistory reqId
-            match hist.status with
-            | "Prayed" ->
+            match act with
+            | Prayed ->
                 (Ticks.toLong now) + (Recurrence.duration req.recurType * int64 req.recurCount)
                 |> (Ticks >> sess.UpdateShowAfter reqId)
             | _ -> ()

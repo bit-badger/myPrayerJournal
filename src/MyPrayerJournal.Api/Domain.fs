@@ -44,6 +44,7 @@ type Recurrence =
   | Weeks
 module Recurrence =
   /// The string reprsentation used in the database and the web app
+  // TODO/FIXME: will this be true in v2? it's not in the database...
   let toString x =
     match x with
     | Immediate -> "immediate"
@@ -67,13 +68,30 @@ module Recurrence =
     | Weeks -> 604800000L
 
 
+/// The action taken on a request as part of a history entry
+type RequestAction =
+  | Created
+  | Prayed
+  | Updated
+  | Answered
+module RequestAction =
+  /// Create a RequestAction from a string
+  let fromString x =
+    match x with
+    | "Created" -> Created
+    | "Prayed" -> Prayed
+    | "Updated" -> Updated
+    | "Answered" -> Answered
+    | _ -> (sprintf "Bad request action %s" >> invalidOp) x
+
+
 /// History is a record of action taken on a prayer request, including updates to its text
 [<CLIMutable; NoComparison; NoEquality>]
 type History =
   { /// The time when this history entry was made
     asOf   : Ticks
     /// The status for this history entry
-    status : string
+    status : RequestAction
     /// The text of the update, if applicable
     text   : string option
     }
@@ -81,7 +99,7 @@ with
   /// An empty history entry
   static member empty =
     { asOf   = Ticks 0L
-      status = ""
+      status = Created
       text   = None
       }
 
