@@ -85,7 +85,7 @@ export default {
       }
     },
     openDialog (request) {
-      this.form.requestId = request.requestId
+      this.form.requestId = request.Id
       this.notesVisible = true
     },
     async saveNotes () {

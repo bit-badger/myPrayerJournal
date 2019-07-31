@@ -56,7 +56,7 @@ export default new Vuex.Store({
       state.journal.push(newRequest)
     },
     [mutations.REQUEST_UPDATED] (state, request) {
-      let jrnl = state.journal.filter(it => it.requestId !== request.requestId)
+      let jrnl = state.journal.filter(it => it.Id !== request.Id)
       if (request.lastStatus !== 'Answered') jrnl.push(request)
       state.journal = jrnl
     },
@@ -103,7 +103,7 @@ export default new Vuex.Store({
     async [actions.UPDATE_REQUEST] ({ commit, state }, { progress, requestId, status, updateText, recurType, recurCount }) {
       progress.start()
       try {
-        let oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
+        let oldReq = (state.journal.filter(req => req.Id === requestId) || [])[0] || {}
         if (!(status === 'Prayed' && updateText === '')) {
           if (status !== 'Answered' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
             await api.updateRecurrence(requestId, recurType, recurCount)

@@ -134,7 +134,7 @@ export default {
       if (this.journal.length === 0) {
         await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
       }
-      const req = this.journal.filter(r => r.requestId === this.id)[0]
+      const req = this.journal.filter(r => r.Id === this.id)[0]
       this.form.requestId = this.id
       this.form.requestText = req.text
       this.form.status = 'Updated'

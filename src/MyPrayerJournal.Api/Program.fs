@@ -27,9 +27,9 @@ module Configure =
 
   /// Configure Kestrel from appsettings.json
   let kestrel (bldr : IWebHostBuilder) =
-    let kestrel (ctx : WebHostBuilderContext) (opts : KestrelServerOptions) =
+    let kestrelOpts (ctx : WebHostBuilderContext) (opts : KestrelServerOptions) =
       (ctx.Configuration.GetSection >> opts.Configure >> ignore) "Kestrel"
-    bldr.ConfigureKestrel kestrel
+    bldr.UseKestrel().ConfigureKestrel kestrelOpts
 
   /// Configure the web root directory
   let webRoot pathSegments (bldr : IWebHostBuilder) =
@@ -176,6 +176,6 @@ module Program =
   [<EntryPoint>]
   let main _ =
     let appRoot = Directory.GetCurrentDirectory ()
-    use host = WebHostBuilder () |> (Configure.webHost appRoot [| "wwwroot" |] >> Configure.buildHost)
+    use host = WebHostBuilder() |> (Configure.webHost appRoot [| "wwwroot" |] >> Configure.buildHost)
     host.Run ()
     exitCode

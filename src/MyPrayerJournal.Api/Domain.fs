@@ -155,29 +155,29 @@ with
       }
 
 /// JournalRequest is the form of a prayer request returned for the request journal display. It also contains
-/// properties that may be filled for history and notes
-[<CLIMutable; NoComparison; NoEquality>]
-type JournalRequest =
-  { /// The ID of the request
-    requestId    : RequestId
-    /// The ID of the user to whom the request belongs
-    userId       : UserId
-    /// The current text of the request
-    text         : string
-    /// The last time action was taken on the request
-    asOf         : Ticks
-    /// The last status for the request
-    lastStatus   : string
-    /// The time that this request should reappear in the user's journal
-    snoozedUntil : Ticks
-    /// The time after which this request should reappear in the user's journal by configured recurrence
-    showAfter    : Ticks
-    /// The type of recurrence for this request
-    recurType    : Recurrence
-    /// How many of the recurrence intervals should occur between appearances in the journal
-    recurCount   : int16
-    /// History entries for the request
-    history      : History list
-    /// Note entries for the request
-    notes        : Note list
-    }
+/// properties that may be filled for history and notes.
+// RavenDB doesn't like the "@"-suffixed properties from record types in a ProjectInto clause
+[<NoComparison; NoEquality>]
+type JournalRequest () =
+  /// The ID of the request
+  [<DefaultValue>] val mutable requestId : RequestId
+  /// The ID of the user to whom the request belongs
+  [<DefaultValue>] val mutable userId : UserId
+  /// The current text of the request
+  [<DefaultValue>] val mutable text : string
+  /// The last time action was taken on the request
+  [<DefaultValue>] val mutable asOf : Ticks
+  /// The last status for the request
+  [<DefaultValue>] val mutable lastStatus : string
+  /// The time that this request should reappear in the user's journal
+  [<DefaultValue>] val mutable snoozedUntil : Ticks
+  /// The time after which this request should reappear in the user's journal by configured recurrence
+  [<DefaultValue>] val mutable showAfter : Ticks
+  /// The type of recurrence for this request
+  [<DefaultValue>] val mutable recurType : Recurrence
+  /// How many of the recurrence intervals should occur between appearances in the journal
+  [<DefaultValue>] val mutable recurCount : int16
+  /// History entries for the request
+  [<DefaultValue>] val mutable history : History list
+  /// Note entries for the request
+  [<DefaultValue>] val mutable notes : Note list

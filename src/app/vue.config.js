@@ -1,6 +1,6 @@
 const webpack = require('webpack')
 module.exports = {
-  outputDir: '../api/MyPrayerJournal.Api/wwwroot',
+  outputDir: '../MyPrayerJournal.Api/wwwroot',
   configureWebpack: {
     plugins: [
       new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/)

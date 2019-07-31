@@ -143,8 +143,9 @@ module Journal =
     authorize
     >=> fun next ctx ->
       task {
-        use  sess = session ctx
-        let! jrnl = ((userId >> sess.JournalByUserId) ctx).ToListAsync ()
+        use  sess  = session ctx
+        let  usrId = userId  ctx
+        let! jrnl  = Data.journalByUserId usrId sess
         return! json jrnl next ctx
         }
 
@@ -164,7 +165,7 @@ module Request =
         let  reqId = (Cuid.Generate >> toReqId) ()
         let  usrId = userId ctx
         let  now   = jsNow ()
-        do! sess.AddRequest
+        do! Data.addRequest
               { Request.empty with
                   Id         = RequestId.toString reqId
                   userId     = usrId
@@ -173,15 +174,14 @@ module Request =
                   recurType  = Recurrence.fromString r.recurType
                   recurCount = r.recurCount
                   history    = [
-                    { History.empty with
-                        asOf   = now
-                        status = Created
-                        text   = Some r.requestText
+                    { asOf   = now
+                      status = Created
+                      text   = Some r.requestText
                       }      
                     ]
-                }
-        do! sess.SaveChangesAsync ()
-        match! sess.TryJournalById reqId usrId with
+                } sess
+        do! Data.saveChanges sess
+        match! Data.tryJournalById reqId usrId sess with
         | Some req -> return! (setStatusCode 201 >=> json req) next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -192,24 +192,24 @@ module Request =
     >=> fun next ctx ->
       task {
         use sess  = session ctx
+        let usrId = userId ctx
         let reqId = toReqId requestId
-        match! sess.TryRequestById reqId (userId ctx) with
+        match! Data.tryRequestById reqId usrId sess with
         | Some req ->
             let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
             let  now  = jsNow ()
             let  act  = RequestAction.fromString hist.status
-            { History.empty with
-                asOf   = now
+            Data.addHistory reqId
+              { asOf   = now
                 status = act
                 text   = match hist.updateText with null | "" -> None | x -> Some x
-              }
-            |> sess.AddHistory reqId
+                } sess
             match act with
             | Prayed ->
-                (Ticks.toLong now) + (Recurrence.duration req.recurType * int64 req.recurCount)
-                |> (Ticks >> sess.UpdateShowAfter reqId)
+                let nextShow = (Ticks.toLong now) + (Recurrence.duration req.recurType * int64 req.recurCount)
+                Data.updateShowAfter reqId (Ticks nextShow) sess
             | _ -> ()
-            do! sess.SaveChangesAsync ()
+            do! Data.saveChanges sess
             return! created next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -220,12 +220,13 @@ module Request =
     >=> fun next ctx ->
       task {
         use sess  = session ctx
+        let usrId = userId ctx
         let reqId = toReqId requestId
-        match! sess.TryRequestById reqId (userId ctx) with
+        match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
             let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
-            sess.AddNote reqId { asOf = jsNow (); notes = notes.notes }
-            do! sess.SaveChangesAsync ()
+            Data.addNote reqId { asOf = jsNow (); notes = notes.notes } sess
+            do! Data.saveChanges sess
             return! created next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -235,8 +236,9 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        use sess = session ctx
-        let! reqs = ((userId >> sess.AnsweredRequests) ctx).ToListAsync ()
+        use  sess  = session ctx
+        let  usrId = userId ctx
+        let! reqs  = Data.answeredRequests usrId sess
         return! json reqs next ctx
         }
   
@@ -245,8 +247,9 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        use sess = session ctx
-        match! sess.TryJournalById (toReqId requestId) (userId ctx) with
+        use sess  = session ctx
+        let usrId = userId ctx
+        match! Data.tryJournalById (toReqId requestId) usrId sess with
         | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -256,8 +259,9 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        use sess = session ctx
-        match! sess.TryFullRequestById (toReqId requestId) (userId ctx) with
+        use sess  = session ctx
+        let usrId = userId ctx
+        match! Data.tryFullRequestById (toReqId requestId) usrId sess with
         | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -267,8 +271,9 @@ module Request =
     authorize
     >=> fun next ctx ->
       task {
-        use sess = session ctx
-        let! notes = sess.NotesById (toReqId requestId) (userId ctx)
+        use  sess  = session ctx
+        let  usrId = userId ctx
+        let! notes = Data.notesById (toReqId requestId) usrId sess
         return! json notes next ctx
         }
   
@@ -278,12 +283,13 @@ module Request =
     >=> fun next ctx ->
       task {
         use sess  = session ctx
+        let usrId = userId ctx
         let reqId = toReqId requestId
-        match! sess.TryRequestById reqId (userId ctx) with
+        match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
             let! show = ctx.BindJsonAsync<Models.Show> ()
-            sess.UpdateShowAfter reqId (Ticks show.showAfter)
-            do! sess.SaveChangesAsync ()
+            Data.updateShowAfter reqId (Ticks show.showAfter) sess
+            do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -294,12 +300,13 @@ module Request =
     >=> fun next ctx ->
       task {
         use sess  = session ctx
+        let usrId = userId ctx
         let reqId = toReqId requestId
-        match! sess.TryRequestById reqId (userId ctx) with
+        match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
             let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
-            sess.UpdateSnoozed reqId (Ticks until.until)
-            do! sess.SaveChangesAsync ()
+            Data.updateSnoozed reqId (Ticks until.until) sess
+            do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -310,12 +317,13 @@ module Request =
     >=> fun next ctx ->
       task {
         use sess  = session ctx
+        let usrId = userId ctx
         let reqId = toReqId requestId
-        match! sess.TryRequestById reqId (userId ctx) with
+        match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
             let! recur = ctx.BindJsonAsync<Models.Recurrence> ()
-            sess.UpdateRecurrence reqId (Recurrence.fromString recur.recurType) recur.recurCount
-            do! sess.SaveChangesAsync ()
+            Data.updateRecurrence reqId (Recurrence.fromString recur.recurType) recur.recurCount sess
+            do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
