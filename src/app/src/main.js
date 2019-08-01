@@ -1,4 +1,5 @@
 import Vue from 'vue'
+import { MdApp, MdTabs, MdProgress } from 'vue-material/dist/components'
 import VueProgressBar from 'vue-progressbar'
 import VueToast from 'vue-toast'
 
@@ -24,6 +25,9 @@ Vue.use(VueProgressBar, {
   }
 })
 
+Vue.use(MdApp)
+Vue.use(MdProgress)
+Vue.use(MdTabs)
 Vue.component('date-from-now', DateFromNow)
 Vue.component('md-icon', MaterialDesignIcon)
 Vue.component('page-title', PageTitle)
