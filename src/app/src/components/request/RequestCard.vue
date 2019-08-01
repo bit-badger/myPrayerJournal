@@ -36,20 +36,20 @@ export default {
     async markPrayed () {
       await this.$store.dispatch(actions.UPDATE_REQUEST, {
         progress: this.$Progress,
-        requestId: this.request.Id,
+        requestId: this.request.requestId,
         status: 'Prayed',
         updateText: ''
       })
       this.toast.showToast('Request marked as prayed', { theme: 'success' })
     },
     showEdit () {
-      this.$router.push({ name: 'EditRequest', params: { id: this.request.Id } })
+      this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
     },
     showNotes () {
       this.events.$emit('notes', this.request)
     },
     snooze () {
-      this.events.$emit('snooze', this.request.Id)
+      this.events.$emit('snooze', this.request.requestId)
     }
   }
 }

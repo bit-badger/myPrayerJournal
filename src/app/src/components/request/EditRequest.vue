@@ -42,7 +42,7 @@ article.mpj-main-content(role='main')
       input(v-model='form.recur.typ'
             type='radio'
             name='recur'
-            value='immediate')
+            value='Immediate')
       | Immediately
     | &nbsp; &nbsp;
     label.normal
@@ -56,9 +56,9 @@ article.mpj-main-content(role='main')
           :disabled='!showRecurrence').mpj-recur-count
     select(v-model='form.recur.other'
            :disabled='!showRecurrence').mpj-recur-type
-      option(value='hours') hours
-      option(value='days') days
-      option(value='weeks') weeks
+      option(value='Hours') hours
+      option(value='Days') days
+      option(value='Weeks') weeks
     .mpj-text-right
       button(:disabled='!isValidRecurrence'
              @click.stop='saveRequest()').primary.
@@ -92,7 +92,7 @@ export default {
         requestText: '',
         status: 'Updated',
         recur: {
-          typ: 'immediate',
+          typ: 'Immediate',
           other: '',
           count: ''
         }
@@ -101,16 +101,16 @@ export default {
   },
   computed: {
     isValidRecurrence () {
-      if (this.form.recur.typ === 'immediate') return true
+      if (this.form.recur.typ === 'Immediate') return true
       const count = Number.parseInt(this.form.recur.count)
       if (isNaN(count) || this.form.recur.other === '') return false
-      if (this.form.recur.other === 'hours' && count > (365 * 24)) return false
-      if (this.form.recur.other === 'days' && count > 365) return false
-      if (this.form.recur.other === 'weeks' && count > 52) return false
+      if (this.form.recur.other === 'Hours' && count > (365 * 24)) return false
+      if (this.form.recur.other === 'Days' && count > 365) return false
+      if (this.form.recur.other === 'Weeks' && count > 52) return false
       return true
     },
     showRecurrence () {
-      return this.form.recur.typ !== 'immediate'
+      return this.form.recur.typ !== 'Immediate'
     },
     toast () {
       return this.$parent.$refs.toast
@@ -125,7 +125,7 @@ export default {
       this.form.requestId = ''
       this.form.requestText = ''
       this.form.status = 'Created'
-      this.form.recur.typ = 'immediate'
+      this.form.recur.typ = 'Immediate'
       this.form.recur.other = ''
       this.form.recur.count = ''
     } else {
@@ -134,12 +134,12 @@ export default {
       if (this.journal.length === 0) {
         await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
       }
-      const req = this.journal.filter(r => r.Id === this.id)[0]
+      const req = this.journal.filter(r => r.requestId === this.id)[0]
       this.form.requestId = this.id
       this.form.requestText = req.text
       this.form.status = 'Updated'
-      if (req.recurType === 'immediate') {
-        this.form.recur.typ = 'immediate'
+      if (req.recurType === 'Immediate') {
+        this.form.recur.typ = 'Immediate'
         this.form.recur.other = ''
         this.form.recur.count = ''
       } else {
@@ -166,8 +166,8 @@ export default {
         await this.$store.dispatch(actions.ADD_REQUEST, {
           progress: this.$Progress,
           requestText: this.form.requestText,
-          recurType: this.form.recur.typ === 'immediate' ? 'immediate' : this.form.recur.other,
-          recurCount: this.form.recur.typ === 'immediate' ? 0 : Number.parseInt(this.form.recur.count)
+          recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
+          recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
         })
         this.toast.showToast('New prayer request added', { theme: 'success' })
       } else {
@@ -176,8 +176,8 @@ export default {
           requestId: this.form.requestId,
           updateText: this.form.requestText,
           status: this.form.status,
-          recurType: this.form.recur.typ === 'immediate' ? 'immediate' : this.form.recur.other,
-          recurCount: this.form.recur.typ === 'immediate' ? 0 : Number.parseInt(this.form.recur.count)
+          recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
+          recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
         })
         if (this.form.status === 'Answered') {
           this.toast.showToast('Request updated and removed from active journal', { theme: 'success' })

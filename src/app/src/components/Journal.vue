@@ -10,7 +10,7 @@ article.mpj-main-content-wide(role='main')
     br
     .mpj-journal(v-if='journal.length > 0')
       request-card(v-for='request in journal'
-                   :key='request.Id'
+                   :key='request.requestId'
                    :request='request'
                    :events='eventBus'
                    :toast='toast')

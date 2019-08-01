@@ -43,21 +43,13 @@ type Recurrence =
   | Days
   | Weeks
 module Recurrence =
-  /// The string reprsentation used in the database and the web app
-  // TODO/FIXME: will this be true in v2? it's not in the database...
-  let toString x =
-    match x with
-    | Immediate -> "immediate"
-    | Hours -> "hours"
-    | Days -> "days"
-    | Weeks -> "weeks"
   /// Create a recurrence value from a string
   let fromString x =
     match x with
-    | "immediate" -> Immediate
-    | "hours" -> Hours
-    | "days" -> Days
-    | "weeks" -> Weeks
+    | "Immediate" -> Immediate
+    | "Hours" -> Hours
+    | "Days" -> Days
+    | "Weeks" -> Weeks
     | _ -> invalidOp (sprintf "%s is not a valid recurrence" x)
   /// The duration of the recurrence
   let duration x =
@@ -159,8 +151,8 @@ with
 // RavenDB doesn't like the "@"-suffixed properties from record types in a ProjectInto clause
 [<NoComparison; NoEquality>]
 type JournalRequest () =
-  /// The ID of the request
-  [<DefaultValue>] val mutable requestId : RequestId
+  /// The ID of the request (just the CUID part)
+  [<DefaultValue>] val mutable requestId : string
   /// The ID of the user to whom the request belongs
   [<DefaultValue>] val mutable userId : UserId
   /// The current text of the request

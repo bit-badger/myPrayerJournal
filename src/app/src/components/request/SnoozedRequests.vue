@@ -5,7 +5,7 @@ article.mpj-main-content(role='main')
     p.mpj-text-center(v-if='requests.length === 0'): em.
       No snoozed requests found; return to #[router-link(:to='{ name: "Journal" } ') your journal]
     request-list-item(v-for='req in requests'
-                      :key='req.Id'
+                      :key='req.requestId'
                       :request='req'
                       :toast='toast')
   p(v-else) Loading journal...

@@ -60,26 +60,26 @@ export default {
     async cancelSnooze () {
       await this.$store.dispatch(actions.SNOOZE_REQUEST, {
         progress: this.$Progress,
-        requestId: this.request.Id,
+        requestId: this.request.requestId,
         until: 0
       })
       this.toast.showToast('Request un-snoozed', { theme: 'success' })
       this.$parent.$emit('requestUnsnoozed')
     },
     editRequest () {
-      this.$router.push({ name: 'EditRequest', params: { id: this.request.Id } })
+      this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
     },
     async showNow () {
       await this.$store.dispatch(actions.SHOW_REQUEST_NOW, {
         progress: this.$Progress,
-        requestId: this.request.Id,
+        requestId: this.request.requestId,
         showAfter: Date.now()
       })
       this.toast.showToast('Recurrence skipped; request now shows in journal', { theme: 'success' })
       this.$parent.$emit('requestNowShown')
     },
     viewFull () {
-      this.$router.push({ name: 'FullRequest', params: { id: this.request.Id } })
+      this.$router.push({ name: 'FullRequest', params: { id: this.request.requestId } })
     }
   }
 }

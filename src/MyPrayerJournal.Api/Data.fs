@@ -1,17 +1,14 @@
 ﻿namespace MyPrayerJournal
 
-open FSharp.Control.Tasks.V2.ContextInsensitive
-open Microsoft.FSharpLu
-open Newtonsoft.Json
-open Raven.Client.Documents
-open Raven.Client.Documents.Indexes
-open Raven.Client.Documents.Linq
 open System
 open System.Collections.Generic
 
 /// JSON converters for various DUs
 module Converters =
   
+  open Microsoft.FSharpLu.Json
+  open Newtonsoft.Json
+
   /// JSON converter for request IDs
   type RequestIdJsonConverter () =
     inherit JsonConverter<RequestId> ()
@@ -36,30 +33,28 @@ module Converters =
     override __.ReadJson(reader: JsonReader, _ : Type, _ : Ticks, _ : bool, _ : JsonSerializer) =
       (string >> int64 >> Ticks) reader.Value
 
-  /// A sequence of all custom converters for myPrayerJournal
+  /// A sequence of all custom converters needed for myPrayerJournal
   let all : JsonConverter seq =
     seq {
       yield RequestIdJsonConverter ()
       yield UserIdJsonConverter ()
       yield TicksJsonConverter ()
+      yield CompactUnionJsonConverter true
       }
+
 
 /// RavenDB index declarations
 module Indexes =
   
-  /// Index requests by user ID
-  type Requests_ByUserId () as this =
-    inherit AbstractJavaScriptIndexCreationTask ()
-    do
-      this.Maps <- HashSet<string> [ "docs.Requests.Select(req => new { userId = req.userId })" ]
+  open Raven.Client.Documents.Indexes
 
   /// Index requests for a journal view
   type Requests_AsJournal () as this =
     inherit AbstractJavaScriptIndexCreationTask ()
     do
       this.Maps <- HashSet<string> [
-        "docs.Requests.Select(req => new {
-            requestId = req.Id,
+        """docs.Requests.Select(req => new {
+            requestId = req.Id.Replace("Requests/", ""),
             userId = req.userId,
             text = req.history.Where(hist => hist.text != null).OrderByDescending(hist => hist.asOf).First().text,
             asOf = req.history.OrderByDescending(hist => hist.asOf).First().asOf,
@@ -68,10 +63,11 @@ module Indexes =
             showAfter = req.showAfter,
             recurType = req.recurType,
             recurCount = req.recurCount
-        })"
+        })"""
         ]
       this.Fields <-
-        [ "text",       IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
+        [ "requestId",  IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
+          "text",       IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
           "asOf",       IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
           "lastStatus", IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
           ]
@@ -79,39 +75,14 @@ module Indexes =
         |> Dictionary<string, IndexFieldOptions>
 
 
-/// Extensions on the IAsyncDocumentSession interface to support our data manipulation needs
-[<AutoOpen>]
-module Extensions =
-  
-  open Indexes
-  open Raven.Client.Documents.Commands.Batches
-  open Raven.Client.Documents.Operations
-  open Raven.Client.Documents.Session
-
-  /// Format an RQL query by a strongly-typed index
-  let fromIndex (typ : Type) =
-    typ.Name.Replace ("_", "/") |> sprintf "from index '%s'"
-
-  /// Utility method to create a patch request to push an item on the end of a list
-  let listPush<'T> listName docId (item : 'T) =
-    let r = PatchRequest()
-    r.Script          <- sprintf "this.%s.push(args.Item)" listName
-    r.Values.["Item"] <- item
-    PatchCommandData (docId, null, r, null)
-
-  /// Utility method to create a patch to update a single field
-  // TODO: think we need to include quotes if it's a string
-  let fieldUpdate<'T> fieldName docId (item : 'T) =
-    let r = PatchRequest()
-    r.Script          <- sprintf "this.%s = args.Item" fieldName
-    r.Values.["Item"] <- item
-    PatchCommandData (docId, null, r, null)
-    
-
 /// All data manipulations within myPrayerJournal
 module Data =
   
+  open FSharp.Control.Tasks.V2.ContextInsensitive
   open Indexes
+  open Microsoft.FSharpLu
+  open Raven.Client.Documents
+  open Raven.Client.Documents.Linq
   open Raven.Client.Documents.Session
 
   /// Add a history entry
@@ -134,11 +105,15 @@ module Data =
 
   /// Retrieve all answered requests for the given user
   let answeredRequests userId (sess : IAsyncDocumentSession) =
-    sess.Query<JournalRequest, Requests_AsJournal>()
-      .Where(fun r -> r.userId = userId && r.lastStatus = "Answered")
-      .OrderByDescending(fun r -> r.asOf)
-      .ProjectInto<JournalRequest>()
-      .ToListAsync()
+    task {
+      let! reqs =
+        sess.Query<JournalRequest, Requests_AsJournal>()
+          .Where(fun r -> r.userId = userId && r.lastStatus = "Answered")
+          .OrderByDescending(fun r -> r.asOf)
+          .ProjectInto<JournalRequest>()
+          .ToListAsync ()
+      return List.ofSeq reqs
+      }
     
   /// Retrieve the user's current journal
   let journalByUserId userId (sess : IAsyncDocumentSession) =

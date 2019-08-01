@@ -5,7 +5,7 @@ article.mpj-main-content(role='main')
     p.text-center(v-if='requests.length === 0'): em.
       No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
     request-list-item(v-for='req in requests'
-                      :key='req.Id'
+                      :key='req.requestId'
                       :request='req'
                       :toast='toast')
   p(v-else) Loading answered requests...

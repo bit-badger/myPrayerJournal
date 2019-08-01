@@ -1,6 +1,6 @@
 ﻿/// HTTP handlers for the myPrayerJournal API
 [<RequireQualifiedAccess>]
-module MyPrayerJournal.Api.Handlers
+module MyPrayerJournal.Handlers
 
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open Giraffe
@@ -46,7 +46,9 @@ module private Helpers =
 
   /// Create a RavenDB session
   let session (ctx : HttpContext) =
-    ctx.GetService<IDocumentStore>().OpenAsyncSession ()
+    let sess = ctx.GetService<IDocumentStore>().OpenAsyncSession ()
+    sess.Advanced.WaitForIndexesAfterSaveChanges ()
+    sess
 
   /// Get the user's "sub" claim
   let user (ctx : HttpContext) =

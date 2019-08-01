@@ -39,7 +39,11 @@ export default {
       return this.$refs.toast
     },
     version () {
-      return version.endsWith('.0') ? version.substr(0, version.length - 2) : version
+      return version.endsWith('.0')
+        ? version.endsWith('.0.0')
+          ? version.substr(0, version.length - 4)
+          : version.substr(0, version.length - 2)
+        : version
     }
   }
 }

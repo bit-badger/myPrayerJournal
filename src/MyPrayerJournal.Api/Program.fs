@@ -1,4 +1,4 @@
-namespace MyPrayerJournal.Api
+module MyPrayerJournal.Api
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
@@ -40,10 +40,10 @@ module Configure =
   open Giraffe.TokenRouter
   open Microsoft.AspNetCore.Authentication.JwtBearer
   open Microsoft.Extensions.DependencyInjection
-  open Microsoft.FSharpLu.Json
   open MyPrayerJournal
   open MyPrayerJournal.Indexes
   open Newtonsoft.Json
+  open Newtonsoft.Json.Serialization
   open Raven.Client.Documents
   open Raven.Client.Documents.Indexes
   open System.Security.Cryptography.X509Certificates
@@ -51,19 +51,14 @@ module Configure =
   /// Configure dependency injection
   let services (bldr : IWebHostBuilder) =
     let svcs (sc : IServiceCollection) =
-      /// A set of JSON converters used for both Giraffe's request serialization and RavenDB's storage
-      let jsonConverters : JsonConverter seq =
-        seq {
-          yield! Converters.all
-          yield CompactUnionJsonConverter true
-        }
       /// Custom settings for the JSON serializer (uses compact representation for options and DUs)
       let jsonSettings =
         let x = NewtonsoftJsonSerializer.DefaultSettings
-        jsonConverters |> List.ofSeq |> List.iter x.Converters.Add
+        Converters.all |> List.ofSeq |> List.iter x.Converters.Add
         x.NullValueHandling     <- NullValueHandling.Ignore
         x.MissingMemberHandling <- MissingMemberHandling.Error
         x.Formatting            <- Formatting.Indented
+        x.ContractResolver      <- DefaultContractResolver ()
         x
 
       use sp  = sc.BuildServiceProvider ()
@@ -87,10 +82,12 @@ module Configure =
       let store = new DocumentStore ()
       store.Urls        <- [| config.["URL"] |]
       store.Database    <- config.["Database"]
-      // store.Certificate <- new X509Certificate2 (config.["Certificate"], config.["Password"])
-      store.Conventions.CustomizeJsonSerializer <- fun x -> jsonConverters |> List.ofSeq |> List.iter x.Converters.Add
+      match isNull config.["Certificate"] with
+      | true -> ()
+      | false -> store.Certificate <- new X509Certificate2 (config.["Certificate"], config.["Password"])
+      store.Conventions.CustomizeJsonSerializer <- fun x -> Converters.all |> List.ofSeq |> List.iter x.Converters.Add
       store.Initialize () |> (sc.AddSingleton >> ignore)
-      IndexCreation.CreateIndexes (typeof<Requests_ByUserId>.Assembly, store)
+      IndexCreation.CreateIndexes (typeof<Requests_AsJournal>.Assembly, store)
     bldr.ConfigureServices svcs
   
   open Microsoft.Extensions.Logging
@@ -169,13 +166,11 @@ module Configure =
   /// Build the web host from the given configuration
   let buildHost (bldr : IWebHostBuilder) = bldr.Build ()
 
-module Program =
-  
-  let exitCode = 0
+let exitCode = 0
 
-  [<EntryPoint>]
-  let main _ =
-    let appRoot = Directory.GetCurrentDirectory ()
-    use host = WebHostBuilder() |> (Configure.webHost appRoot [| "wwwroot" |] >> Configure.buildHost)
-    host.Run ()
-    exitCode
+[<EntryPoint>]
+let main _ =
+  let appRoot = Directory.GetCurrentDirectory ()
+  use host = WebHostBuilder() |> (Configure.webHost appRoot [| "wwwroot" |] >> Configure.buildHost)
+  host.Run ()
+  exitCode
