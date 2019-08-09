@@ -13,18 +13,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FunctionalCuid" Version="1.0.0" />
     <PackageReference Include="Giraffe" Version="3.6.0" />
     <PackageReference Include="Giraffe.TokenRouter" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.FSharpLu" Version="0.10.29" />
     <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.10.29" />
-    <PackageReference Include="NCuid.NetCore" Version="1.0.1" />
     <PackageReference Include="RavenDb.Client" Version="4.2.1" />
     <PackageReference Include="TaskBuilder.fs" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.6.2" />
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -40,7 +40,6 @@ module Configure =
   open Giraffe.TokenRouter
   open Microsoft.AspNetCore.Authentication.JwtBearer
   open Microsoft.Extensions.DependencyInjection
-  open MyPrayerJournal
   open MyPrayerJournal.Indexes
   open Newtonsoft.Json
   open Newtonsoft.Json.Serialization

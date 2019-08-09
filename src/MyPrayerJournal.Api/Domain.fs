@@ -2,13 +2,7 @@
 /// The data model for myPrayerJournal
 module MyPrayerJournal.Domain
 
-/// A Collision-resistant Unique IDentifier
-type Cuid =
-  | Cuid of string
-module Cuid =
-  /// The string value of the CUID
-  let toString x = match x with Cuid y -> y
-
+open Cuid
 
 /// Request ID is a CUID
 type RequestId =

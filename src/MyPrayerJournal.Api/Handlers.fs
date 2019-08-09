@@ -2,10 +2,7 @@
 [<RequireQualifiedAccess>]
 module MyPrayerJournal.Handlers
 
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open Giraffe
-open MyPrayerJournal
-open System
 
 /// Handler to return Vue files
 module Vue =
@@ -13,6 +10,7 @@ module Vue =
   /// The application index page
   let app : HttpHandler = htmlFile "wwwroot/index.html"
 
+open System
 
 /// Handlers for error conditions
 module Error =
@@ -34,6 +32,7 @@ module Error =
       | 0 -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
       | _ -> Vue.app next ctx
 
+open Cuid
 
 /// Handler helpers
 [<AutoOpen>]
@@ -60,7 +59,12 @@ module private Helpers =
     ((user >> Option.get) ctx).Value |> UserId
 
   /// Create a request ID from a string
-  let toReqId = Cuid >> RequestId
+  let toReqId x =
+    let reqId =
+      match Cuid.ofString x with
+      | Ok cuid -> cuid
+      | Error msg -> invalidOp msg
+    RequestId reqId
 
   /// Return a 201 CREATED response
   let created next ctx =
@@ -136,6 +140,8 @@ module Models =
       until : int64
       }
 
+open FSharp.Control.Tasks.V2.ContextInsensitive
+
 
 /// /api/journal URLs
 module Journal =
@@ -155,8 +161,6 @@ module Journal =
 /// /api/request URLs
 module Request =
   
-  open NCuid
-  
   /// POST /api/request
   let add : HttpHandler =
     authorize
@@ -164,7 +168,7 @@ module Request =
       task {
         let! r     = ctx.BindJsonAsync<Models.Request> ()
         use  sess  = session ctx
-        let  reqId = (Cuid.Generate >> toReqId) ()
+        let  reqId = (Cuid.generate >> RequestId) ()
         let  usrId = userId ctx
         let  now   = jsNow ()
         do! Data.addRequest
