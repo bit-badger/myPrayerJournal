@@ -3,6 +3,8 @@ md-app(md-waterfall md-mode='fixed-last' role='application')
   p navigation here
   navigation
   p navigation there
+  md-app-drawer(:md-active.sync='menuVisible')
+    | test
   md-app-content
     router-view
     vue-progress-bar

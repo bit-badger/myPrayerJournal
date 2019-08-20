@@ -62,10 +62,10 @@ article.mpj-main-content(role='main')
     .mpj-text-right
       button(:disabled='!isValidRecurrence'
              @click.stop='saveRequest()').primary.
-        #[md-icon(icon='save')] Save
+        #[md-icon save] Save
       | &nbsp; &nbsp;
       button(@click.stop='goBack()').
-        #[md-icon(icon='arrow_back')] Cancel
+        #[md-icon arrow_back] Cancel
 </template>
 
 <script>

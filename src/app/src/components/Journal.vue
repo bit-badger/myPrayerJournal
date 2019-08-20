@@ -6,7 +6,7 @@ article.mpj-main-content-wide(role='main')
     .mpj-text-center
       router-link(:to="{ name: 'EditRequest', params: { id: 'new' } }"
                   role='button').
-        #[md-icon(icon='add_box')] Add a New Request
+        #[md-icon add_box] Add a New Request
     br
     .mpj-journal(v-if='journal.length > 0')
       request-card(v-for='request in journal'

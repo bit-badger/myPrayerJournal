@@ -13,10 +13,10 @@
     .mpj-text-right
       button.primary(:disabled='!isValid'
                      @click='snoozeRequest()').
-        #[md-icon(icon='snooze')] Snooze
+        #[md-icon snooze] Snooze
       | &nbsp; &nbsp;
       button(@click='closeDialog()').
-        #[md-icon(icon='undo')] Cancel
+        #[md-icon undo] Cancel
 </template>
 
 <script>

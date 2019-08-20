@@ -11,10 +11,10 @@
                @blur='trimText()').mpj-full-width
     .mpj-text-right
       button(@click='saveNotes()').primary.
-        #[md-icon(icon='save')] Save
+        #[md-icon save] Save
       | &nbsp; &nbsp;
       button(@click='closeDialog()').
-        #[md-icon(icon='undo')] Cancel
+        #[md-icon undo] Cancel
     hr
     div(v-if='hasPriorNotes')
       p.mpj-text-center: strong Prior Notes for This Request
@@ -27,7 +27,7 @@
     div(v-else-if='noPriorNotes').mpj-text-center.mpj-muted-text There are no prior notes for this request
     div(v-else).mpj-text-center
       button(@click='loadNotes()').
-        #[md-icon(icon='cloud_download')] Load Prior Notes
+        #[md-icon cloud_download] Load Prior Notes
 </template>
 
 <script>

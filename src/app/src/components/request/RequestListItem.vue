@@ -5,20 +5,20 @@ p.mpj-request-text
   br
   button(@click='viewFull'
          title='View Full Request').
-    #[md-icon(icon='description')] View Full Request
+    #[md-icon description] View Full Request
   | &nbsp; &nbsp;
   template(v-if='!isAnswered')
     button(@click='editRequest'
            title='Edit Request').
-      #[md-icon(icon='edit')] Edit Request
+      #[md-icon edit] Edit Request
     | &nbsp; &nbsp;
   template(v-if='isSnoozed')
     button(@click='cancelSnooze()').
-      #[md-icon(icon='restore')] Cancel Snooze
+      #[md-icon restore] Cancel Snooze
     | &nbsp; &nbsp;
   template(v-if='isPending')
     button(@click='showNow()').
-      #[md-icon(icon='restore')] Show Now
+      #[md-icon restore] Show Now
   br(v-if='isSnoozed || isPending || isAnswered')
   small(v-if='isSnoozed').mpj-muted-text: em.
     &nbsp; Snooze expires #[date-from-now(:value='request.snoozedUntil')]

@@ -1,10 +1,10 @@
 <template lang="pug">
 .mpj-request-card(v-if='shouldDisplay')
   header.mpj-card-header(role='toolbar').
-    #[button(@click='markPrayed()' title='Pray').primary: md-icon(icon='done')]
-    #[button(@click.stop='showEdit()' title='Edit'): md-icon(icon='edit')]
-    #[button(@click.stop='showNotes()' title='Add Notes'): md-icon(icon='comment')]
-    #[button(@click.stop='snooze()' title='Snooze Request'): md-icon(icon='schedule')]
+    #[button(@click='markPrayed()' title='Pray').primary: md-icon done]
+    #[button(@click.stop='showEdit()' title='Edit'): md-icon edit]
+    #[button(@click.stop='showNotes()' title='Add Notes'): md-icon comment]
+    #[button(@click.stop='snooze()' title='Snooze Request'): md-icon schedule]
   div
     p.card-text.mpj-request-text
       | {{ request.text }}

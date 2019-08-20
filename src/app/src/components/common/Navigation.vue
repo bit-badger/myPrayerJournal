@@ -1,5 +1,5 @@
 <template lang="pug">
-md-app-toolbar.md-large.md-dense.md-primary
+md-toolbar.md-large.md-dense.md-primary
   .md-toolbar-row
     .md-toolbar-section-start
       | howdy
