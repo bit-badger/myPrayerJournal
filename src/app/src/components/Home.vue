@@ -1,7 +1,7 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
   page-title(title='Welcome!'
-             hideOnPage='true')
+             hideOnPage=true)
   p &nbsp;
   p.
     myPrayerJournal is a place where individuals can record their prayer requests, record that they prayed for them,

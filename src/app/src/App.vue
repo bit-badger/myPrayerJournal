@@ -1,12 +1,13 @@
 <template lang="pug">
-#app(role='application')
+md-app(md-waterfall md-mode='fixed-last' role='application')
+  p navigation here
   navigation
-  #content
+  p navigation there
+  md-app-content
     router-view
     vue-progress-bar
     toast(ref='toast')
-  footer.mpj-text-right.mpj-muted-text
-    p
+    p.mpj-muted-text
       | myPrayerJournal v{{ version }}
       br
       em: small.
