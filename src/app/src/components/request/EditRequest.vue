@@ -77,6 +77,7 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'edit-request',
+  inject: ['messages'],
   props: {
     id: {
       type: String,
@@ -111,9 +112,6 @@ export default {
     },
     showRecurrence () {
       return this.form.recur.typ !== 'Immediate'
-    },
-    toast () {
-      return this.$parent.$refs.toast
     },
     ...mapState(['journal'])
   },
@@ -169,7 +167,7 @@ export default {
           recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
           recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
         })
-        this.toast.showToast('New prayer request added', { theme: 'success' })
+        this.messages.$emit('info', 'New prayer request added')
       } else {
         await this.$store.dispatch(actions.UPDATE_REQUEST, {
           progress: this.$Progress,
@@ -180,9 +178,9 @@ export default {
           recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
         })
         if (this.form.status === 'Answered') {
-          this.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
+          this.messages.$emit('info', 'Request updated and removed from active journal')
         } else {
-          this.toast.showToast('Request updated', { theme: 'success' })
+          this.messages.$emit('info', 'Request updated')
         }
       }
       this.goBack()

@@ -35,9 +35,9 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
+  inject: ['messages'],
   props: {
-    request: { required: true },
-    toast: { required: true }
+    request: { required: true }
   },
   data () {
     return {}
@@ -63,7 +63,7 @@ export default {
         requestId: this.request.requestId,
         until: 0
       })
-      this.toast.showToast('Request un-snoozed', { theme: 'success' })
+      this.messages.$emit('info', 'Request un-snoozed')
       this.$parent.$emit('requestUnsnoozed')
     },
     editRequest () {
@@ -75,7 +75,7 @@ export default {
         requestId: this.request.requestId,
         showAfter: Date.now()
       })
-      this.toast.showToast('Recurrence skipped; request now shows in journal', { theme: 'success' })
+      this.messages.$emit('info', 'Recurrence skipped; request now shows in journal')
       this.$parent.$emit('requestNowShown')
     },
     viewFull () {

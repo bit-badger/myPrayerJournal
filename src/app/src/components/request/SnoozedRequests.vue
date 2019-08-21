@@ -6,8 +6,7 @@ article.mpj-main-content(role='main')
       No snoozed requests found; return to #[router-link(:to='{ name: "Journal" } ') your journal]
     request-list-item(v-for='req in requests'
                       :key='req.requestId'
-                      :request='req'
-                      :toast='toast')
+                      :request='req')
   p(v-else) Loading journal...
 </template>
 
@@ -32,9 +31,6 @@ export default {
     }
   },
   computed: {
-    toast () {
-      return this.$parent.$refs.toast
-    },
     ...mapState(['journal', 'isLoadingJournal'])
   },
   created () {

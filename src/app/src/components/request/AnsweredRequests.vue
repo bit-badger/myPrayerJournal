@@ -6,8 +6,7 @@ article.mpj-main-content(role='main')
       No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
     request-list-item(v-for='req in requests'
                       :key='req.requestId'
-                      :request='req'
-                      :toast='toast')
+                      :request='req')
   p(v-else) Loading answered requests...
 </template>
 
@@ -20,6 +19,7 @@ import RequestListItem from '@/components/request/RequestListItem'
 
 export default {
   name: 'answered-requests',
+  inject: ['messages'],
   components: {
     RequestListItem
   },
@@ -27,11 +27,6 @@ export default {
     return {
       requests: [],
       loaded: false
-    }
-  },
-  computed: {
-    toast () {
-      return this.$parent.$refs.toast
     }
   },
   async mounted () {
@@ -42,7 +37,7 @@ export default {
       this.$Progress.finish()
     } catch (err) {
       console.error(err)
-      this.toast.showToast('Error loading requests; check console for details', { theme: 'danger' })
+      this.messages.$emit('error', 'Error loading requests; check console for details')
       this.$Progress.fail()
     } finally {
       this.loaded = true

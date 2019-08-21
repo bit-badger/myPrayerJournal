@@ -26,8 +26,8 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'snooze-request',
+  inject: ['messages'],
   props: {
-    toast: { required: true },
     events: { required: true }
   },
   data () {
@@ -63,7 +63,7 @@ export default {
         requestId: this.form.requestId,
         until: Date.parse(this.form.snoozedUntil)
       })
-      this.toast.showToast(`Request snoozed until ${this.form.snoozedUntil}`, { theme: 'success' })
+      this.messages.$emit('info', `Request snoozed until ${this.form.snoozedUntil}`)
       this.closeDialog()
     }
   }

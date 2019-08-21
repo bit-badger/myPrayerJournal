@@ -1,18 +1,20 @@
 'use strict'
 
-import Vue from 'vue'
+/* eslint-disable */
+import Vue    from 'vue'
 import Router from 'vue-router'
 
-import ActiveRequests from '@/components/request/ActiveRequests'
+import ActiveRequests   from '@/components/request/ActiveRequests'
 import AnsweredRequests from '@/components/request/AnsweredRequests'
-import EditRequest from '@/components/request/EditRequest'
-import FullRequest from '@/components/request/FullRequest'
-import Home from '@/components/Home'
-import Journal from '@/components/Journal'
-import LogOn from '@/components/user/LogOn'
-import PrivacyPolicy from '@/components/legal/PrivacyPolicy'
-import SnoozedRequests from '@/components/request/SnoozedRequests'
-import TermsOfService from '@/components/legal/TermsOfService'
+import EditRequest      from '@/components/request/EditRequest'
+import FullRequest      from '@/components/request/FullRequest'
+import Home             from '@/components/Home'
+import Journal          from '@/components/Journal'
+import LogOn            from '@/components/user/LogOn'
+import PrivacyPolicy    from '@/components/legal/PrivacyPolicy'
+import SnoozedRequests  from '@/components/request/SnoozedRequests'
+import TermsOfService   from '@/components/legal/TermsOfService'
+/* eslint-enable */
 
 Vue.use(Router)
 

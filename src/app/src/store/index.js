@@ -1,13 +1,15 @@
 'use strict'
 
-import Vue from 'vue'
+/* eslint-disable */
+import Vue  from 'vue'
 import Vuex from 'vuex'
 
-import api from '@/api'
+import api         from '@/api'
 import AuthService from '@/auth/AuthService'
 
 import mutations from './mutation-types'
-import actions from './action-types'
+import actions   from './action-types'
+/* eslint-enable */
 
 Vue.use(Vuex)
 

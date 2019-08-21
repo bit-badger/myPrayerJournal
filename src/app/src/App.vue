@@ -1,28 +1,38 @@
 <template lang="pug">
-md-app(md-waterfall md-mode='fixed-last' role='application')
-  p navigation here
-  navigation
-  p navigation there
-  md-app-drawer(:md-active.sync='menuVisible')
-    | test
-  md-app-content
-    router-view
-    vue-progress-bar
-    toast(ref='toast')
-    p.mpj-muted-text
-      | myPrayerJournal v{{ version }}
-      br
-      em: small.
-        #[router-link(:to="{ name: 'PrivacyPolicy' }") Privacy Policy] &bull;
-        #[router-link(:to="{ name: 'TermsOfService' }") Terms of Service] &bull;
-        #[a(href='https://github.com/bit-badger/myprayerjournal' target='_blank') Developed] and hosted by
-        #[a(href='https://bitbadger.solutions' target='_blank') Bit Badger Solutions]
+#app
+  md-app(md-waterfall md-mode='fixed-last' role='application')
+    md-app-toolbar.md-large.md-dense.md-primary
+      .md-toolbar-row
+        .md-toolbar-section-start
+          span.md-title
+            span(style='font-weight:100;') my
+            span(style='font-weight:400;') Prayer
+            span(style='font-weight:700;') Journal
+      navigation
+    md-app-content
+      router-view
+      vue-progress-bar
+      md-snackbar(:md-active.sync='snackbar.visible'
+                  md-position='center'
+                  :md-duration='snackbar.interval'
+                  ref='snackbar')
+        | {{ snackbar.message }}
+      p.mpj-muted-text.mpj-text-right
+        | myPrayerJournal v{{ version }}
+        br
+        em: small.
+          #[router-link(:to="{ name: 'PrivacyPolicy' }") Privacy Policy] &bull;
+          #[router-link(:to="{ name: 'TermsOfService' }") Terms of Service] &bull;
+          #[a(href='https://github.com/bit-badger/myprayerjournal' target='_blank') Developed] and hosted by
+          #[a(href='https://bitbadger.solutions' target='_blank') Bit Badger Solutions]
 </template>
 
 <script>
 'use strict'
 
-import Navigation from './components/common/Navigation.vue'
+import Vue from 'vue'
+
+import Navigation from '@/components/common/Navigation'
 
 import { version } from '../package.json'
 
@@ -32,14 +42,22 @@ export default {
     Navigation
   },
   data () {
-    return {}
+    return {
+      messageEvents: new Vue(),
+      snackbar: {
+        visible: false,
+        message: '',
+        interval: 4000
+      }
+    }
   },
   mounted () {
-    this.$refs.toast.setOptions({ position: 'bottom right' })
+    this.messageEvents.$on('info', this.showInfo)
+    this.messageEvents.$on('error', this.showError)
   },
   computed: {
-    toast () {
-      return this.$refs.toast
+    messages () {
+      return this.messageEvents
     },
     version () {
       return version.endsWith('.0')
@@ -47,6 +65,25 @@ export default {
           ? version.substr(0, version.length - 4)
           : version.substr(0, version.length - 2)
         : version
+    }
+  },
+  methods: {
+    showSnackbar (message) {
+      this.snackbar.message = message
+      this.snackbar.visible = true
+    },
+    showInfo (message) {
+      this.snackbar.interval = 4000
+      this.showSnackbar(message)
+    },
+    showError (message) {
+      this.snackbar.interval = Infinity
+      this.showSnackbar(message)
+    }
+  },
+  provide () {
+    return {
+      messages: this.messageEvents
     }
   }
 }
@@ -57,10 +94,6 @@ html, body {
   background-color: whitesmoke;
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
   font-size: 1rem;
-}
-body {
-  padding-top: 50px;
-  margin: 0;
 }
 h1, h2, h3, h4, h5 {
   font-weight: 500;

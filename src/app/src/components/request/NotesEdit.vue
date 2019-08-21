@@ -37,10 +37,10 @@ import api from '@/api'
 
 export default {
   name: 'notes-edit',
-  props: {
-    toast: { required: true },
-    events: { required: true }
-  },
+  inject: [
+    'messages',
+    'journalEvents'
+  ],
   data () {
     return {
       notesVisible: false,
@@ -61,7 +61,7 @@ export default {
     }
   },
   created () {
-    this.events.$on('notes', this.openDialog)
+    this.journalEvents.$on('notes', this.openDialog)
   },
   methods: {
     closeDialog () {
@@ -93,7 +93,7 @@ export default {
       try {
         await api.addNote(this.form.requestId, this.form.notes)
         this.$Progress.finish()
-        this.toast.showToast('Added notes', { theme: 'success' })
+        this.messages.$emit('info', 'Added notes')
         this.closeDialog()
       } catch (e) {
         console.error(e)

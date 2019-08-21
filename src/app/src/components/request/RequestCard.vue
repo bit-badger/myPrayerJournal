@@ -21,10 +21,12 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'request-card',
+  inject: [
+    'messages',
+    'journalEvents'
+  ],
   props: {
-    request: { required: true },
-    toast: { required: true },
-    events: { required: true }
+    request: { required: true }
   },
   computed: {
     shouldDisplay () {
@@ -40,16 +42,16 @@ export default {
         status: 'Prayed',
         updateText: ''
       })
-      this.toast.showToast('Request marked as prayed', { theme: 'success' })
+      this.messages.$emit('info', 'Request marked as prayed')
     },
     showEdit () {
       this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
     },
     showNotes () {
-      this.events.$emit('notes', this.request)
+      this.journalEvents.$emit('notes', this.request)
     },
     snooze () {
-      this.events.$emit('snooze', this.request.requestId)
+      this.journalEvents.$emit('snooze', this.request.requestId)
     }
   }
 }

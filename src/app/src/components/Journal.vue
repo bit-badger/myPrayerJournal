@@ -11,15 +11,11 @@ article.mpj-main-content-wide(role='main')
     .mpj-journal(v-if='journal.length > 0')
       request-card(v-for='request in journal'
                    :key='request.requestId'
-                   :request='request'
-                   :events='eventBus'
-                   :toast='toast')
+                   :request='request')
     p.text-center(v-else): em.
       No requests found; click the &ldquo;Add a New Request&rdquo; button to add one
-    notes-edit(:events='eventBus'
-               :toast='toast')
-    snooze-request(:events='eventBus'
-                   :toast='toast')
+    notes-edit
+    snooze-request
 </template>
 
 <script>
@@ -36,6 +32,7 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'journal',
+  inject: ['messages'],
   components: {
     NotesEdit,
     RequestCard,
@@ -50,14 +47,19 @@ export default {
     title () {
       return `${this.user.given_name}&rsquo;s Prayer Journal`
     },
-    toast () {
-      return this.$parent.$refs.toast
+    snackbar () {
+      return this.$parent.$refs.snackbar
     },
     ...mapState(['user', 'journal', 'isLoadingJournal'])
   },
   async created () {
     await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
-    this.toast.showToast(`Loaded ${this.journal.length} prayer requests`, { theme: 'success' })
+    this.messages.$emit('info', `Loaded ${this.journal.length} prayer requests`)
+  },
+  provide () {
+    return {
+      journalEvents: this.eventBus
+    }
   }
 }
 </script>
