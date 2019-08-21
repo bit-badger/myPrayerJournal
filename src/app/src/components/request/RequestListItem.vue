@@ -35,7 +35,10 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
-  inject: ['messages'],
+  inject: [
+    'messages',
+    'progress'
+  ],
   props: {
     request: { required: true }
   },
@@ -59,7 +62,7 @@ export default {
   methods: {
     async cancelSnooze () {
       await this.$store.dispatch(actions.SNOOZE_REQUEST, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.request.requestId,
         until: 0
       })
@@ -71,7 +74,7 @@ export default {
     },
     async showNow () {
       await this.$store.dispatch(actions.SHOW_REQUEST_NOW, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.request.requestId,
         showAfter: Date.now()
       })

@@ -77,7 +77,10 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'edit-request',
-  inject: ['messages'],
+  inject: [
+    'messages',
+    'progress'
+  ],
   props: {
     id: {
       type: String,
@@ -162,7 +165,7 @@ export default {
     async saveRequest () {
       if (this.isNew) {
         await this.$store.dispatch(actions.ADD_REQUEST, {
-          progress: this.$Progress,
+          progress: this.progress,
           requestText: this.form.requestText,
           recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
           recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
@@ -170,7 +173,7 @@ export default {
         this.messages.$emit('info', 'New prayer request added')
       } else {
         await this.$store.dispatch(actions.UPDATE_REQUEST, {
-          progress: this.$Progress,
+          progress: this.progress,
           requestId: this.form.requestId,
           updateText: this.form.requestText,
           status: this.form.status,

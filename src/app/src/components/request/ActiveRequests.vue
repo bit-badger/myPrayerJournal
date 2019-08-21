@@ -21,6 +21,7 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'active-requests',
+  inject: ['progress'],
   components: {
     RequestListItem
   },
@@ -41,7 +42,7 @@ export default {
     async ensureJournal () {
       if (!Array.isArray(this.journal)) {
         this.loaded = false
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
       this.requests = this.journal
         .sort((a, b) => a.showAfter - b.showAfter)

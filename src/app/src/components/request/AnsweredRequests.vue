@@ -19,7 +19,10 @@ import RequestListItem from '@/components/request/RequestListItem'
 
 export default {
   name: 'answered-requests',
-  inject: ['messages'],
+  inject: [
+    'messages',
+    'progress'
+  ],
   components: {
     RequestListItem
   },
@@ -30,15 +33,15 @@ export default {
     }
   },
   async mounted () {
-    this.$Progress.start()
+    this.progress.$emit('show', 'query')
     try {
       const reqs = await api.getAnsweredRequests()
       this.requests = reqs.data
-      this.$Progress.finish()
+      this.progress.$emit('done')
     } catch (err) {
       console.error(err)
       this.messages.$emit('error', 'Error loading requests; check console for details')
-      this.$Progress.fail()
+      this.progress.$emit('done')
     } finally {
       this.loaded = true
     }

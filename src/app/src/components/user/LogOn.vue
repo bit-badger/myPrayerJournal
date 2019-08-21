@@ -11,8 +11,9 @@ import AuthService from '@/auth/AuthService'
 
 export default {
   name: 'log-on',
+  inject: ['progress'],
   created () {
-    this.$Progress.start()
+    this.progress.$emit('show', 'indeterminate')
     new AuthService().handleAuthentication(this.$store, this.$router)
     // Auth service redirects to dashboard, which restarts the progress bar
   }

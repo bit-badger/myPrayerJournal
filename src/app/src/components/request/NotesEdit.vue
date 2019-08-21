@@ -38,8 +38,9 @@ import api from '@/api'
 export default {
   name: 'notes-edit',
   inject: [
+    'journalEvents',
     'messages',
-    'journalEvents'
+    'progress'
   ],
   data () {
     return {
@@ -72,14 +73,14 @@ export default {
       this.notesVisible = false
     },
     async loadNotes () {
-      this.$Progress.start()
+      this.progress.$emit('show', 'indeterminate')
       try {
         const notes = await api.getNotes(this.form.requestId)
         this.priorNotes = notes.data
-        this.$Progress.finish()
+        this.progress.$emit('done')
       } catch (e) {
         console.error(e)
-        this.$Progress.fail()
+        this.progress.$emit('done')
       } finally {
         this.priorNotesLoaded = true
       }
@@ -89,15 +90,15 @@ export default {
       this.notesVisible = true
     },
     async saveNotes () {
-      this.$Progress.start()
+      this.progress.$emit('show', 'indeterminate')
       try {
         await api.addNote(this.form.requestId, this.form.notes)
-        this.$Progress.finish()
+        this.progress.$emit('done')
         this.messages.$emit('info', 'Added notes')
         this.closeDialog()
       } catch (e) {
         console.error(e)
-        this.$Progress.fail()
+        this.progress.$emit('done')
       }
     },
     trimText () {

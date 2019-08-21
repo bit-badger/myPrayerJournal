@@ -76,34 +76,34 @@ export default new Vuex.Store({
   },
   actions: {
     async [actions.ADD_REQUEST] ({ commit }, { progress, requestText, recurType, recurCount }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
         const newRequest = await api.addRequest(requestText, recurType, recurCount)
         commit(mutations.REQUEST_ADDED, newRequest.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     },
     async [actions.LOAD_JOURNAL] ({ commit }, progress) {
       commit(mutations.LOADED_JOURNAL, {})
-      progress.start()
+      progress.$emit('show', 'query')
       commit(mutations.LOADING_JOURNAL, true)
       api.setBearer(localStorage.getItem('id_token'))
       try {
         const jrnl = await api.journal()
         commit(mutations.LOADED_JOURNAL, jrnl.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       } finally {
         commit(mutations.LOADING_JOURNAL, false)
       }
     },
     async [actions.UPDATE_REQUEST] ({ commit, state }, { progress, requestId, status, updateText, recurType, recurCount }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
         let oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
         if (!(status === 'Prayed' && updateText === '')) {
@@ -116,34 +116,34 @@ export default new Vuex.Store({
         }
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     },
     async [actions.SHOW_REQUEST_NOW] ({ commit }, { progress, requestId, showAfter }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
         await api.showRequest(requestId, showAfter)
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     },
     async [actions.SNOOZE_REQUEST] ({ commit }, { progress, requestId, until }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
         await api.snoozeRequest(requestId, until)
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     }
   },

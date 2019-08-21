@@ -10,8 +10,9 @@
             span(style='font-weight:700;') Journal
       navigation
     md-app-content
+      md-progress-bar(v-if='progress.visible'
+                      :md-mode='progress.mode')
       router-view
-      vue-progress-bar
       md-snackbar(:md-active.sync='snackbar.visible'
                   md-position='center'
                   :md-duration='snackbar.interval'
@@ -43,8 +44,13 @@ export default {
   },
   data () {
     return {
-      messageEvents: new Vue(),
+      progress: {
+        events: new Vue(),
+        visible: false,
+        mode: 'query'
+      },
       snackbar: {
+        events: new Vue(),
         visible: false,
         message: '',
         interval: 4000
@@ -52,13 +58,12 @@ export default {
     }
   },
   mounted () {
-    this.messageEvents.$on('info', this.showInfo)
-    this.messageEvents.$on('error', this.showError)
+    this.progress.events.$on('show', this.showProgress)
+    this.progress.events.$on('done', this.hideProgress)
+    this.snackbar.events.$on('info', this.showInfo)
+    this.snackbar.events.$on('error', this.showError)
   },
   computed: {
-    messages () {
-      return this.messageEvents
-    },
     version () {
       return version.endsWith('.0')
         ? version.endsWith('.0.0')
@@ -79,11 +84,19 @@ export default {
     showError (message) {
       this.snackbar.interval = Infinity
       this.showSnackbar(message)
+    },
+    showProgress (mode) {
+      this.progress.mode = mode
+      this.progress.visible = true
+    },
+    hideProgress () {
+      this.progress.visible = false
     }
   },
   provide () {
     return {
-      messages: this.messageEvents
+      messages: this.snackbar.events,
+      progress: this.progress.events
     }
   }
 }
@@ -280,5 +293,8 @@ a:hover {
 }
 .material-icons {
   vertical-align: middle;
+}
+.md-progress-bar {
+  margin: 24px;
 }
 </style>

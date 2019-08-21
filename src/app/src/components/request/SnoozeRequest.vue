@@ -26,7 +26,11 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'snooze-request',
-  inject: ['messages'],
+  inject: [
+    'journalEvents',
+    'messages',
+    'progress'
+  ],
   props: {
     events: { required: true }
   },
@@ -40,7 +44,7 @@ export default {
     }
   },
   created () {
-    this.events.$on('snooze', this.openDialog)
+    this.journalEvents.$on('snooze', this.openDialog)
   },
   computed: {
     isValid () {
@@ -59,7 +63,7 @@ export default {
     },
     async snoozeRequest () {
       await this.$store.dispatch(actions.SNOOZE_REQUEST, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.form.requestId,
         until: Date.parse(this.form.snoozedUntil)
       })

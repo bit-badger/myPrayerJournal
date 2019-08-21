@@ -32,7 +32,10 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'journal',
-  inject: ['messages'],
+  inject: [
+    'messages',
+    'progress'
+  ],
   components: {
     NotesEdit,
     RequestCard,
@@ -53,7 +56,7 @@ export default {
     ...mapState(['user', 'journal', 'isLoadingJournal'])
   },
   async created () {
-    await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+    await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
     this.messages.$emit('info', `Loaded ${this.journal.length} prayer requests`)
   },
   provide () {

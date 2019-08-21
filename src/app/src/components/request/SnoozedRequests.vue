@@ -21,6 +21,7 @@ import RequestListItem from '@/components/request/RequestListItem'
 
 export default {
   name: 'snoozed-requests',
+  inject: ['progress'],
   components: {
     RequestListItem
   },
@@ -40,7 +41,7 @@ export default {
     async ensureJournal () {
       if (!Array.isArray(this.journal)) {
         this.loaded = false
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
       this.requests = this.journal
         .filter(req => req.snoozedUntil > Date.now())

@@ -31,6 +31,7 @@ const asOfDesc = (a, b) => b.asOf - a.asOf
 
 export default {
   name: 'full-request',
+  inject: ['progress'],
   props: {
     id: {
       type: String,
@@ -72,14 +73,14 @@ export default {
     }
   },
   async mounted () {
-    this.$Progress.start()
+    this.progress.$emit('show', 'indeterminate')
     try {
       const req = await api.getFullRequest(this.id)
       this.request = req.data
-      this.$Progress.finish()
+      this.progress.$emit('done')
     } catch (e) {
       console.log(e)
-      this.$Progress.fail()
+      this.progress.$emit('done')
     }
   },
   methods: {

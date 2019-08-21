@@ -142,7 +142,6 @@ module Models =
 
 open FSharp.Control.Tasks.V2.ContextInsensitive
 
-
 /// /api/journal URLs
 module Journal =
   
@@ -333,3 +332,36 @@ module Request =
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
+
+open Giraffe.TokenRouter
+
+/// The routes for myPrayerJournal
+let webApp : HttpHandler =
+  router Error.notFound [
+    route "/" Vue.app
+    subRoute "/api/" [
+      GET [
+        route    "journal" Journal.journal
+        subRoute "request" [
+          route  "s/answered" Request.answered
+          routef "/%s/full"   Request.getFull
+          routef "/%s/notes"  Request.getNotes
+          routef "/%s"        Request.get
+          ]
+        ]
+      PATCH [
+        subRoute "request" [
+          routef "/%s/recurrence" Request.updateRecurrence
+          routef "/%s/show"       Request.show
+          routef "/%s/snooze"     Request.snooze
+          ]
+        ]
+      POST [
+        subRoute "request" [
+          route  ""            Request.add
+          routef "/%s/history" Request.addHistory
+          routef "/%s/note"    Request.addNote
+          ]
+        ]
+      ]
+    ]
