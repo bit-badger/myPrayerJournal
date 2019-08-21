@@ -1,5 +1,5 @@
 <template lang="pug">
-.mpj-modal(v-show='notesVisible')
+md-dialog(:md-active.sync='notesVisible')
   .mpj-modal-content.mpj-narrow
     header.mpj-bg
       h5 Add Notes to Prayer Request

@@ -104,10 +104,10 @@ export default {
 
 <style>
 html, body {
-  background-color: whitesmoke;
+/*  background-color: whitesmoke; */
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
   font-size: 1rem;
-}
+} /*
 h1, h2, h3, h4, h5 {
   font-weight: 500;
   margin-top: 0;
@@ -126,10 +126,10 @@ h4 {
 }
 h5 {
   font-size: 1.25rem;
-}
+} */
 p {
   margin-bottom: 0;
-}
+} /*
 input, textarea, select {
   border-radius: .25rem;
   font-size: 1rem;
@@ -225,7 +225,7 @@ a:hover {
   background-image: -webkit-linear-gradient(top, #050, whitesmoke);
   background-image: -moz-linear-gradient(top, #050, whitesmoke);
   background-image: linear-gradient(to bottom, #050, whitesmoke);
-}
+} */
 .mpj-text-center {
   text-align: center;
 }
@@ -248,7 +248,7 @@ a:hover {
 }
 .mpj-full-width {
   width: 100%;
-}
+} /*
 .mpj-modal {
   position: fixed;
   z-index: 8;
@@ -293,7 +293,7 @@ a:hover {
 }
 .material-icons {
   vertical-align: middle;
-}
+} */
 .md-progress-bar {
   margin: 24px;
 }

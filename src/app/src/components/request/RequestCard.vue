@@ -1,11 +1,25 @@
 <template lang="pug">
-.mpj-request-card(v-if='shouldDisplay')
-  header.mpj-card-header(role='toolbar').
-    #[button(@click='markPrayed()' title='Pray').primary: md-icon done]
-    #[button(@click.stop='showEdit()' title='Edit'): md-icon edit]
-    #[button(@click.stop='showNotes()' title='Add Notes'): md-icon comment]
-    #[button(@click.stop='snooze()' title='Snooze Request'): md-icon schedule]
-  div
+md-card.mpj-request-card(v-if='shouldDisplay'
+                         md-with-hover)
+  md-card-actions(md-alignment='space-between')
+    md-button.md-icon-button.md-raised.md-primary(@click='markPrayed()')
+      md-icon done
+      md-tooltip(md-direction='top'
+                 md-delay=1000) Mark as Prayed
+    span
+      md-button.md-icon-button.md-raised(@click.stop='showEdit()')
+        md-icon edit
+        md-tooltip(md-direction='top'
+                   md-delay=1000) Edit Request
+      md-button.md-icon-button.md-raised(@click.stop='showNotes()')
+        md-icon comment
+        md-tooltip(md-direction='top'
+                   md-delay=1000) Add Notes
+      md-button.md-icon-button.md-raised(@click.stop='snooze()')
+        md-icon schedule
+        md-tooltip(md-direction='top'
+                   md-delay=1000) Snooze Request
+  md-card-content
     p.card-text.mpj-request-text
       | {{ request.text }}
     p.as-of.mpj-text-right: small.mpj-muted-text: em
@@ -22,8 +36,9 @@ import actions from '@/store/action-types'
 export default {
   name: 'request-card',
   inject: [
+    'journalEvents',
     'messages',
-    'journalEvents'
+    'progress'
   ],
   props: {
     request: { required: true }
@@ -37,7 +52,7 @@ export default {
   methods: {
     async markPrayed () {
       await this.$store.dispatch(actions.UPDATE_REQUEST, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.request.requestId,
         status: 'Prayed',
         updateText: ''
@@ -59,16 +74,18 @@ export default {
 
 <style>
 .mpj-request-card {
-  border: solid 1px darkgray;
-  border-radius: 5px;
+/*  border: solid 1px darkgray;
+  border-radius: 5px; */
   width: 20rem;
-  margin: .5rem;
+  margin-bottom: 1rem;
+/*  margin: .5rem; */
 }
 @media screen and (max-width: 20rem) {
   .mpj-request-card {
     width: 100%;
   }
 }
+/*
 .mpj-card-header {
   display: flex;
   flex-flow: row;
@@ -91,5 +108,5 @@ export default {
 }
 .mpj-request-card .as-of {
   margin-right: .25rem;
-}
+} */
 </style>

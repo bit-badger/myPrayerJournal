@@ -4,8 +4,8 @@ article.mpj-main-content-wide(role='main')
   p(v-if='isLoadingJournal') Loading your prayer journal...
   template(v-else)
     .mpj-text-center
-      router-link(:to="{ name: 'EditRequest', params: { id: 'new' } }"
-                  role='button').
+      md-button(:to="{ name: 'EditRequest', params: { id: 'new' } }"
+                role='button').
         #[md-icon add_box] Add a New Request
     br
     .mpj-journal(v-if='journal.length > 0')

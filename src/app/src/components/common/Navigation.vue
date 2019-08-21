@@ -1,6 +1,6 @@
 <template lang="pug">
 .md-toolbar-row
-  md-tabs.md-primary
+  md-tabs.md-primary(md-sync-route)
     md-tab#mpj-home(md-label='Home'
                     :to="{ name: 'Home' }")
     md-tab#mpj-journal(v-if='isAuthenticated'

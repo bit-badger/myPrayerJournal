@@ -1,6 +1,6 @@
 <template lang="pug">
-h2.mpj-page-title(v-if='!hideOnPage'
-                  v-html='title')
+h1.md-title(v-if='!hideOnPage'
+            v-html='title')
 </template>
 
 <script>
@@ -26,10 +26,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.mpj-page-title {
-  border-bottom: solid 1px lightgray;
-  margin-bottom: 20px;
-}
-</style>
