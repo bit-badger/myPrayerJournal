@@ -74,4 +74,7 @@ export default {
   justify-content: center;
   align-items: flex-start;
 }
+.mpj-dialog-content {
+  padding: 0 1rem;
+}
 </style>

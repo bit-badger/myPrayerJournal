@@ -1,22 +1,18 @@
 <template lang="pug">
-.mpj-modal(v-show='snoozeVisible')
-  .mpj-modal-content.mpj-skinny
-    header.mpj-bg
-      h5 Snooze Prayer Request
-    p.mpj-text-center
-      label
-        = 'Until '
-        input(v-model='form.snoozedUntil'
-              type='date'
-              autofocus)
-    br
-    .mpj-text-right
-      button.primary(:disabled='!isValid'
-                     @click='snoozeRequest()').
-        #[md-icon snooze] Snooze
-      | &nbsp; &nbsp;
-      button(@click='closeDialog()').
-        #[md-icon undo] Cancel
+md-dialog(:md-active.sync='snoozeVisible').mpj-skinny
+  md-dialog-title Snooze Prayer Request
+  md-content.mpj-dialog-content
+    span.mpj-text-muted Until
+    md-datepicker(v-model='form.snoozedUntil'
+                  md-immediately)
+  md-dialog-actions
+    md-button(:disabled='!isValid'
+              @click='snoozeRequest()').md-primary
+      md-icon snooze
+      = ' Snooze'
+    md-button(@click='closeDialog()')
+      md-icon undo
+      = ' Cancel'
 </template>
 
 <script>

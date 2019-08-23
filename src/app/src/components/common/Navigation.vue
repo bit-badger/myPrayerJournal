@@ -1,32 +1,32 @@
 <template lang="pug">
 .md-toolbar-row
   md-tabs.md-primary(md-sync-route)
-    md-tab#mpj-home(md-label='Home'
-                    :to="{ name: 'Home' }")
-    md-tab#mpj-journal(v-if='isAuthenticated'
-                       md-label='Journal'
-                       :to="{ name: 'Journal' }")
-    md-tab#mpj-active(v-if='isAuthenticated'
-                      md-label='Active'
-                      :to="{ name: 'ActiveRequests' }")
-    md-tab#mpj-snoozed(v-if='hasSnoozed'
-                       md-label='Snoozed'
-                       :to="{ name: 'SnoozedRequests' }")
-    md-tab#mpj-answered(v-if='isAuthenticated'
-                        md-label='Answered'
-                        :to="{ name: 'AnsweredRequests' }")
-    md-tab#mpj-log-off(v-if='isAuthenticated'
-                       md-label='Log Off'
-                       href='#'
-                       @click.stop='logOff()')
-    md-tab#mpj-log-on(v-if='!isAuthenticated'
-                      md-label='Log On'
-                      href='#'
-                      @click.stop='logOn()')
-    md-tab#mpj-docs(md-label='Docs'
-                    href='https://docs.prayerjournal.me'
-                    target='_blank'
-                    @click.stop='')
+    md-tab(md-label='Home'
+           :to="{ name: 'Home' }")#mpj-home
+    md-tab(v-if='isAuthenticated'
+           md-label='Journal'
+           :to="{ name: 'Journal' }")#mpj-journal
+    md-tab(v-if='isAuthenticated'
+           md-label='Active'
+           :to="{ name: 'ActiveRequests' }")#mpj-active
+    md-tab(v-if='hasSnoozed'
+           md-label='Snoozed'
+           :to="{ name: 'SnoozedRequests' }")#mpj-snoozed
+    md-tab(v-if='isAuthenticated'
+           md-label='Answered'
+           :to="{ name: 'AnsweredRequests' }")#mpj-answered
+    md-tab(v-if='isAuthenticated'
+           md-label='Log Off'
+           href='#'
+           @click.stop='logOff()')#mpj-log-off
+    md-tab(v-if='!isAuthenticated'
+           md-label='Log On'
+           href='#'
+           @click.stop='logOn()')#mpj-log-on
+    md-tab(md-label='Docs'
+           href='https://docs.prayerjournal.me'
+           target='_blank'
+           @click.stop='')#mpj-docs
 </template>
 
 <script>

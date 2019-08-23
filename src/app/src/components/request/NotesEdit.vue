@@ -1,21 +1,20 @@
 <template lang="pug">
-md-dialog(:md-active.sync='notesVisible')
-  .mpj-modal-content.mpj-narrow
-    header.mpj-bg
-      h5 Add Notes to Prayer Request
-    label
-      | Notes
-      br
-      textarea(v-model='form.notes'
-               :rows='10'
-               @blur='trimText()').mpj-full-width
-    .mpj-text-right
-      button(@click='saveNotes()').primary.
-        #[md-icon save] Save
-      | &nbsp; &nbsp;
-      button(@click='closeDialog()').
-        #[md-icon undo] Cancel
-    hr
+md-dialog(:md-active.sync='notesVisible').mpj-note-dialog
+  md-dialog-title Add Notes to Prayer Request
+  md-content.mpj-dialog-content
+    md-field
+      label Notes
+      md-textarea(v-model='form.notes'
+                  md-autogrow
+                  @blur='trimText()')
+  md-dialog-actions
+    md-button(@click='saveNotes()').md-primary
+      md-icon save
+      = ' Save'
+    md-button(@click='closeDialog()')
+      md-icon undo
+      = ' Cancel'
+  .mpj-dialog-content
     div(v-if='hasPriorNotes')
       p.mpj-text-center: strong Prior Notes for This Request
       .mpj-note-list
@@ -26,7 +25,8 @@ md-dialog(:md-active.sync='notesVisible')
           span.mpj-request-text {{ note.notes }}
     div(v-else-if='noPriorNotes').mpj-text-center.mpj-muted-text There are no prior notes for this request
     div(v-else).mpj-text-center
-      button(@click='loadNotes()').
+      hr
+      md-button(@click='loadNotes()').
         #[md-icon cloud_download] Load Prior Notes
 </template>
 
@@ -109,6 +109,20 @@ export default {
 </script>
 
 <style>
+.mpj-note-dialog {
+  width: 40rem;
+  padding-bottom: 1.5rem;
+}
+@media screen and (max-width: 40rem) {
+  @media screen and (max-width: 20rem) {
+    .mpj-note-dialog {
+      width: 100%;
+    }
+  }
+  .mpj-note-dialog {
+    width: 20rem;
+  }
+}
 .mpj-note-list p {
   border-top: dotted 1px lightgray;
 }
