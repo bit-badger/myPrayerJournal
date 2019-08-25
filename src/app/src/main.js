@@ -1,8 +1,24 @@
 /* eslint-disable */
 
 // Vue packages and components
-import Vue         from 'vue'
-import VueMaterial from 'vue-material'
+import Vue from 'vue'
+import { MdApp,
+         MdButton,
+         MdCard,
+         MdContent,
+         MdDatepicker,
+         MdDialog,
+         MdEmptyState,
+         MdField,
+         MdIcon,
+         MdLayout,
+         MdProgress,
+         MdRadio,
+         MdSnackbar,
+         MdTable,
+         MdTabs,
+         MdToolbar,
+         MdTooltip } from 'vue-material/dist/components'
 
 // myPrayerJournal components
 import App         from './App'
@@ -19,7 +35,23 @@ import 'vue-material/dist/theme/default.css'
 
 Vue.config.productionTip = false
 
-Vue.use(VueMaterial)
+Vue.use(MdApp)
+Vue.use(MdButton)
+Vue.use(MdCard)
+Vue.use(MdContent)
+Vue.use(MdDatepicker)
+Vue.use(MdDialog)
+Vue.use(MdEmptyState)
+Vue.use(MdField)
+Vue.use(MdIcon)
+Vue.use(MdLayout)
+Vue.use(MdProgress)
+Vue.use(MdRadio)
+Vue.use(MdSnackbar)
+Vue.use(MdTable)
+Vue.use(MdTabs)
+Vue.use(MdToolbar)
+Vue.use(MdTooltip)
 Vue.component('date-from-now', DateFromNow)
 Vue.component('page-title', PageTitle)
 

@@ -1,5 +1,5 @@
 <template lang="pug">
-#app
+#app.page-container
   md-app(md-waterfall md-mode='fixed-last' role='application')
     md-app-toolbar.md-large.md-dense.md-primary
       .md-toolbar-row
@@ -16,8 +16,7 @@
       md-snackbar(:md-active.sync='snackbar.visible'
                   md-position='center'
                   :md-duration='snackbar.interval'
-                  ref='snackbar')
-        | {{ snackbar.message }}
+                  ref='snackbar') {{ snackbar.message }}
       footer
         p.mpj-muted-text.mpj-text-right
           | myPrayerJournal v{{ version }}

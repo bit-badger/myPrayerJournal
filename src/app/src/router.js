@@ -3,17 +3,7 @@
 /* eslint-disable */
 import Vue    from 'vue'
 import Router from 'vue-router'
-
-import ActiveRequests   from '@/components/request/ActiveRequests'
-import AnsweredRequests from '@/components/request/AnsweredRequests'
-import EditRequest      from '@/components/request/EditRequest'
-import FullRequest      from '@/components/request/FullRequest'
-import Home             from '@/components/Home'
-import Journal          from '@/components/Journal'
-import LogOn            from '@/components/user/LogOn'
-import PrivacyPolicy    from '@/components/legal/PrivacyPolicy'
-import SnoozedRequests  from '@/components/request/SnoozedRequests'
-import TermsOfService   from '@/components/legal/TermsOfService'
+import Home   from '@/components/Home'
 /* eslint-enable */
 
 Vue.use(Router)
@@ -37,49 +27,49 @@ export default new Router({
     {
       path: '/journal',
       name: 'Journal',
-      component: Journal
+      component: () => import('@/components/Journal')
     },
     {
       path: '/legal/privacy-policy',
       name: 'PrivacyPolicy',
-      component: PrivacyPolicy
+      component: () => import('@/components/legal/PrivacyPolicy')
     },
     {
       path: '/legal/terms-of-service',
       name: 'TermsOfService',
-      component: TermsOfService
+      component: () => import('@/components/legal/TermsOfService')
     },
     {
       path: '/request/:id/edit',
       name: 'EditRequest',
-      component: EditRequest,
+      component: () => import('@/components/request/EditRequest'),
       props: true
     },
     {
       path: '/request/:id/full',
       name: 'FullRequest',
-      component: FullRequest,
+      component: () => import('@/components/request/FullRequest'),
       props: true
     },
     {
       path: '/requests/active',
       name: 'ActiveRequests',
-      component: ActiveRequests
+      component: () => import('@/components/request/ActiveRequests')
     },
     {
       path: '/requests/answered',
       name: 'AnsweredRequests',
-      component: AnsweredRequests
+      component: () => import('@/components/request/AnsweredRequests')
     },
     {
       path: '/requests/snoozed',
       name: 'SnoozedRequests',
-      component: SnoozedRequests
+      component: () => import('@/components/request/SnoozedRequests')
     },
     {
       path: '/user/log-on',
       name: 'LogOn',
-      component: LogOn
+      component: () => import('@/components/user/LogOn')
     }
   ]
 })
