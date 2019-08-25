@@ -4,6 +4,7 @@ md-dialog(:md-active.sync='snoozeVisible').mpj-skinny
   md-content.mpj-dialog-content
     span.mpj-text-muted Until
     md-datepicker(v-model='form.snoozedUntil'
+                  :md-disabled-dates='datesInPast'
                   md-immediately)
   md-dialog-actions
     md-button(:disabled='!isValid'
@@ -33,6 +34,7 @@ export default {
   data () {
     return {
       snoozeVisible: false,
+      datesInPast: date => date < new Date(),
       form: {
         requestId: '',
         snoozedUntil: ''

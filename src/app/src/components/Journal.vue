@@ -3,17 +3,22 @@ article.mpj-main-content-wide(role='main')
   page-title(:title='title')
   p(v-if='isLoadingJournal') Loading your prayer journal...
   template(v-else)
-    .mpj-text-center
-      md-button(:to="{ name: 'EditRequest', params: { id: 'new' } }"
-                role='button').
-        #[md-icon add_box] Add a New Request
-    br
-    .mpj-journal(v-if='journal.length > 0')
-      request-card(v-for='request in journal'
-                   :key='request.requestId'
-                   :request='request')
-    p.text-center(v-else): em.
-      No requests found; click the &ldquo;Add a New Request&rdquo; button to add one
+    md-empty-state(v-if='journal.length === 0'
+                   md-icon='done_all'
+                   md-label='No Requests to Show'
+                   md-description='You have no requests to be shown; see the “Active” link above for snoozed/deferred requests, and the “Answered” link for answered requests')
+      md-button(:to="{ name: 'Journal' }").md-primary.md-raised Add a New Request
+    template(v-else)
+      .mpj-text-center
+        md-button(:to="{ name: 'EditRequest', params: { id: 'new' } }"
+                  role='button').md-raised
+          md-icon add_box
+          = ' Add a New Request'
+      br
+      .mpj-journal
+        request-card(v-for='request in journal'
+                    :key='request.requestId'
+                    :request='request')
     notes-edit
     snooze-request
 </template>

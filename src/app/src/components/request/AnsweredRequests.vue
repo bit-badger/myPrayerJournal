@@ -1,12 +1,15 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
-  page-title(title='Answered Requests')
-  div(v-if='loaded').mpj-request-list
-    p.text-center(v-if='requests.length === 0'): em.
-      No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
-    request-list-item(v-for='req in requests'
-                      :key='req.requestId'
-                      :request='req')
+  page-title(title='Answered Requests'
+             hide-on-page=true)
+  template(v-if='loaded')
+    md-empty-state(v-if='requests.length === 0'
+                   md-icon='sentiment_dissatisfied'
+                   md-label='No Answered Requests'
+                   md-description='Your prayer journal has no answered requests; once you have marked one as “Answered”, it will appear here')
+    request-list(v-if='requests.length !== 0'
+                 title='Answered Requests'
+                 :requests='requests')
   p(v-else) Loading answered requests...
 </template>
 
@@ -15,7 +18,7 @@ article.mpj-main-content(role='main')
 
 import api from '@/api'
 
-import RequestListItem from '@/components/request/RequestListItem'
+import RequestList from '@/components/request/RequestList'
 
 export default {
   name: 'answered-requests',
@@ -24,7 +27,7 @@ export default {
     'progress'
   ],
   components: {
-    RequestListItem
+    RequestList
   },
   data () {
     return {
