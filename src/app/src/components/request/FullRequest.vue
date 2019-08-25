@@ -1,22 +1,24 @@
 <template lang="pug">
-article.mpj-main-content(role='main')
-  page-title(title='Full Prayer Request')
-  template(v-if='request')
-    p
-      span(v-if='isAnswered') Answered {{ formatDate(answered) }} (#[date-from-now(:value='answered')]) &nbsp;
-      small: em.mpj-muted-text prayed {{ prayedCount }} times, open {{ openDays }} days
-    p.mpj-request-text {{ lastText }}
-    br
-    table.mpj-request-log
-      thead
-        tr
-          th Action
-          th Update / Notes
-      tbody
-        tr(v-for='item in log' :key='item.asOf')
-          td {{ item.status }} on #[span.mpj-text-nowrap {{ formatDate(item.asOf) }}]
-          td(v-if='item.text').mpj-request-text {{ item.text }}
-          td(v-else) &nbsp;
+md-content(role='main').mpj-main-content
+  page-title(title='Full Prayer Request'
+             hide-on-page=true)
+  md-card(v-if='request')
+    md-card-header
+      .md-title Full Prayer Request
+      .md-subhead
+        span(v-if='isAnswered') Answered {{ formatDate(answered) }} (#[date-from-now(:value='answered')]) !{' &bull; '}
+        | Prayed {{ prayedCount }} times &bull; Open {{ openDays }} days
+    md-card-content.mpj-full-page-card
+      p.mpj-request-text {{ lastText }}
+      md-table
+        md-table-row
+          md-table-head Action
+          md-table-head Update / Notes
+        md-table-row(v-for='item in log'
+                     :key='item.asOf')
+          md-table-cell.mpj-valign-top {{ item.status }} on #[span.mpj-text-nowrap {{ formatDate(item.asOf) }}]
+          md-table-cell(v-if='item.text').mpj-request-text.mpj-valign-top {{ item.text }}
+          md-table-cell(v-else) &nbsp;
   p(v-else) Loading request...
 </template>
 

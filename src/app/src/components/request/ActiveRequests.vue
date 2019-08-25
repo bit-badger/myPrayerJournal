@@ -7,7 +7,7 @@ md-content(role='main').mpj-main-content
                    md-icon='sentiment_dissatisfied'
                    md-label='No Active Requests'
                    md-description='Your prayer journal has no active requests')
-      md-button(:to="{ name: 'Journal' }").md-primary.md-raised Return to your journal
+      md-button(to='/journal').md-primary.md-raised Return to your journal
     request-list(v-if='requests.length !== 0'
                  title='Active Requests'
                  :requests='requests')

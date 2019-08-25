@@ -8,12 +8,8 @@ md-dialog(:md-active.sync='snoozeVisible').mpj-skinny
                   md-immediately)
   md-dialog-actions
     md-button(:disabled='!isValid'
-              @click='snoozeRequest()').md-primary
-      md-icon snooze
-      = ' Snooze'
-    md-button(@click='closeDialog()')
-      md-icon undo
-      = ' Cancel'
+              @click='snoozeRequest()').md-primary #[md-icon snooze] Snooze
+    md-button(@click='closeDialog()') #[md-icon undo] Cancel
 </template>
 
 <script>

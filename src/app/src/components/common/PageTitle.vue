@@ -1,6 +1,6 @@
 <template lang="pug">
-h1.md-title(v-if='!hideOnPage'
-            v-html='title')
+h1(v-if='!hideOnPage'
+   v-html='title').md-title
 </template>
 
 <script>

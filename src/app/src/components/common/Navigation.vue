@@ -1,32 +1,30 @@
 <template lang="pug">
 .md-toolbar-row
-  md-tabs.md-primary(md-sync-route)
-    md-tab(md-label='Home'
-           :to="{ name: 'Home' }")#mpj-home
+  md-tabs(md-sync-route).md-primary
     md-tab(v-if='isAuthenticated'
            md-label='Journal'
-           :to="{ name: 'Journal' }")#mpj-journal
+           to='/journal')
     md-tab(v-if='isAuthenticated'
            md-label='Active'
-           :to="{ name: 'ActiveRequests' }")#mpj-active
+           to='/requests/active')
     md-tab(v-if='hasSnoozed'
            md-label='Snoozed'
-           :to="{ name: 'SnoozedRequests' }")#mpj-snoozed
+           to='/requests/snoozed')
     md-tab(v-if='isAuthenticated'
            md-label='Answered'
-           :to="{ name: 'AnsweredRequests' }")#mpj-answered
+           to='/requests/answered')
     md-tab(v-if='isAuthenticated'
            md-label='Log Off'
            href='#'
-           @click.stop='logOff()')#mpj-log-off
+           @click.stop='logOff()')
     md-tab(v-if='!isAuthenticated'
            md-label='Log On'
            href='#'
-           @click.stop='logOn()')#mpj-log-on
+           @click.stop='logOn()')
     md-tab(md-label='Docs'
            href='https://docs.prayerjournal.me'
            target='_blank'
-           @click.stop='')#mpj-docs
+           @click.stop='')
 </template>
 
 <script>
@@ -61,34 +59,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.mpj-top-nav {
-  position: fixed;
-  display: flex;
-  flex-flow: row wrap;
-  align-items: center;
-  top: 0;
-  left: 0;
-  width: 100%;
-  padding-left: .5rem;
-  min-height: 50px;
-}
-.mpj-top-nav a:link,
-.mpj-top-nav a:visited {
-  text-decoration: none;
-  color: rgba(255, 255, 255, .75);
-  padding-left: 1rem;
-}
-.mpj-top-nav a:link.router-link-active,
-.mpj-top-nav a:visited.router-link-active,
-.mpj-top-nav a:hover {
-  color: white;
-}
-.mpj-top-nav .title {
-  font-size: 1.25rem;
-  color: white;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
-}
-</style>

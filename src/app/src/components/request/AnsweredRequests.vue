@@ -1,5 +1,5 @@
 <template lang="pug">
-article.mpj-main-content(role='main')
+md-content(role='main').mpj-main-content
   page-title(title='Answered Requests'
              hide-on-page=true)
   template(v-if='loaded')

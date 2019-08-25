@@ -8,12 +8,8 @@ md-dialog(:md-active.sync='notesVisible').mpj-note-dialog
                   md-autogrow
                   @blur='trimText()')
   md-dialog-actions
-    md-button(@click='saveNotes()').md-primary
-      md-icon save
-      = ' Save'
-    md-button(@click='closeDialog()')
-      md-icon undo
-      = ' Cancel'
+    md-button(@click='saveNotes()').md-primary #[md-icon save] Save
+    md-button(@click='closeDialog()') #[md-icon undo] Cancel
   .mpj-dialog-content
     div(v-if='hasPriorNotes')
       p.mpj-text-center: strong Prior Notes for This Request
@@ -26,8 +22,7 @@ md-dialog(:md-active.sync='notesVisible').mpj-note-dialog
     div(v-else-if='noPriorNotes').mpj-text-center.mpj-muted-text There are no prior notes for this request
     div(v-else).mpj-text-center
       hr
-      md-button(@click='loadNotes()').
-        #[md-icon cloud_download] Load Prior Notes
+      md-button(@click='loadNotes()') #[md-icon cloud_download] Load Prior Notes
 </template>
 
 <script>
@@ -108,22 +103,16 @@ export default {
 }
 </script>
 
-<style>
-.mpj-note-dialog {
-  width: 40rem;
-  padding-bottom: 1.5rem;
-}
-@media screen and (max-width: 40rem) {
-  @media screen and (max-width: 20rem) {
-    .mpj-note-dialog {
-      width: 100%;
-    }
-  }
-  .mpj-note-dialog {
-    width: 20rem;
-  }
-}
-.mpj-note-list p {
-  border-top: dotted 1px lightgray;
-}
+<style lang="sass">
+.mpj-note-dialog
+  width: 40rem
+  padding-bottom: 1.5rem
+@media screen and (max-width: 40rem)
+  @media screen and (max-width: 20rem)
+    .mpj-note-dialog
+      width: 100%
+  .mpj-note-dialog
+    width: 20rem
+.mpj-note-list p
+  border-top: dotted 1px lightgray
 </style>

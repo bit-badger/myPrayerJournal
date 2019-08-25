@@ -1,31 +1,27 @@
 <template lang="pug">
-md-card.mpj-request-card(v-if='shouldDisplay'
-                         md-with-hover)
+md-card(v-if='shouldDisplay'
+        md-with-hover).mpj-request-card
   md-card-actions(md-alignment='space-between')
-    md-button.md-icon-button.md-raised.md-primary(@click='markPrayed()')
+    md-button(@click='markPrayed()').md-icon-button.md-raised.md-primary
       md-icon done
       md-tooltip(md-direction='top'
                  md-delay=1000) Mark as Prayed
     span
-      md-button.md-icon-button.md-raised(@click.stop='showEdit()')
+      md-button(@click.stop='showEdit()').md-icon-button.md-raised
         md-icon edit
         md-tooltip(md-direction='top'
                    md-delay=1000) Edit Request
-      md-button.md-icon-button.md-raised(@click.stop='showNotes()')
+      md-button(@click.stop='showNotes()').md-icon-button.md-raised
         md-icon comment
         md-tooltip(md-direction='top'
                    md-delay=1000) Add Notes
-      md-button.md-icon-button.md-raised(@click.stop='snooze()')
+      md-button(@click.stop='snooze()').md-icon-button.md-raised
         md-icon schedule
         md-tooltip(md-direction='top'
                    md-delay=1000) Snooze Request
   md-card-content
-    p.card-text.mpj-request-text
-      | {{ request.text }}
-    p.as-of.mpj-text-right: small.mpj-muted-text: em
-      = '(last activity '
-      date-from-now(:value='request.asOf')
-      | )
+    p.mpj-request-text {{ request.text }}
+    p.mpj-text-right: small.mpj-muted-text: em (last activity #[date-from-now(:value='request.asOf')])
 </template>
 
 <script>
@@ -72,41 +68,11 @@ export default {
 }
 </script>
 
-<style>
-.mpj-request-card {
-/*  border: solid 1px darkgray;
-  border-radius: 5px; */
-  width: 20rem;
-  margin-bottom: 1rem;
-/*  margin: .5rem; */
-}
-@media screen and (max-width: 20rem) {
-  .mpj-request-card {
-    width: 100%;
-  }
-}
-/*
-.mpj-card-header {
-  display: flex;
-  flex-flow: row;
-  justify-content: center;
-  background-image: -webkit-gradient(linear, left top, left bottom, from(lightgray), to(whitesmoke));
-  background-image: -webkit-linear-gradient(top, lightgray, whitesmoke);
-  background-image: -moz-linear-gradient(top, lightgray, whitesmoke);
-  background-image: linear-gradient(to bottom, lightgray, whitesmoke);
-}
-.mpj-card-header button {
-  margin: .25rem;
-  padding: 0 .25rem;
-}
-.mpj-card-header button .material-icons {
-  font-size: 1.3rem;
-}
-.mpj-request-card .card-text {
-  margin-left: 1rem;
-  margin-right: 1rem;
-}
-.mpj-request-card .as-of {
-  margin-right: .25rem;
-} */
+<style lang="sass">
+.mpj-request-card
+  width: 20rem
+  margin-bottom: 1rem
+@media screen and (max-width: 20rem)
+  .mpj-request-card
+    width: 100%
 </style>

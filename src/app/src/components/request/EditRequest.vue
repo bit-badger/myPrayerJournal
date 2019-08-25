@@ -1,71 +1,52 @@
 <template lang="pug">
-article.mpj-main-content(role='main')
+md-content(role='main').mpj-narrow
   page-title(:title='title')
-  .mpj-narrow
-    label(for='request_text')
-      | Prayer Request
-      br
-      textarea(v-model='form.requestText'
-               :rows='10'
-               @blur='trimText()'
-               autofocus).mpj-full-width
+  md-field
+    label(for='request_text') Prayer Request
+    md-textarea(v-model='form.requestText'
+                @blur='trimText()'
+                md-autogrow
+                autofocus).mpj-full-width
+  br
+  template(v-if='!isNew')
+    label Also Mark As
     br
-    template(v-if='!isNew')
-      label Also Mark As
-      br
-      label.normal
-        input(v-model='form.status'
-              type='radio'
-              name='status'
-              value='Updated')
-        | Updated
-      | &nbsp; &nbsp;
-      label.normal
-        input(v-model='form.status'
-              type='radio'
-              name='status'
-              value='Prayed')
-        | Prayed
-      | &nbsp; &nbsp;
-      label.normal
-        input(v-model='form.status'
-              type='radio'
-              name='status'
-              value='Answered')
-        | Answered
-      br
-    label Recurrence
-    | &nbsp; &nbsp;
-    em.mpj-muted-text After prayer, request reappears...
+    md-radio(v-model='form.status'
+             value='Updated') Updated
+    md-radio(v-model='form.status'
+             value='Prayed') Prayed
+    md-radio(v-model='form.status'
+             value='Answered') Answered
     br
-    label.normal
-      input(v-model='form.recur.typ'
-            type='radio'
-            name='recur'
-            value='Immediate')
-      | Immediately
-    | &nbsp; &nbsp;
-    label.normal
-      input(v-model='form.recur.typ'
-            type='radio'
-            name='recur'
-            value='other')
-      | Every...
-    input(v-model='form.recur.count'
-          type='number'
-          :disabled='!showRecurrence').mpj-recur-count
-    select(v-model='form.recur.other'
-           :disabled='!showRecurrence').mpj-recur-type
-      option(value='Hours') hours
-      option(value='Days') days
-      option(value='Weeks') weeks
-    .mpj-text-right
-      button(:disabled='!isValidRecurrence'
-             @click.stop='saveRequest()').primary.
-        #[md-icon save] Save
-      | &nbsp; &nbsp;
-      button(@click.stop='goBack()').
-        #[md-icon arrow_back] Cancel
+  label Recurrence
+  | &nbsp; &nbsp;
+  em.mpj-muted-text After prayer, request reappears...
+  br
+  .md-layout
+    .md-layout-item.md-size-30
+      md-radio(v-model='form.recur.typ'
+              value='Immediate') Immediately
+    .md-layout-item.md-size-20
+      md-radio(v-model='form.recur.typ'
+              value='other') Every...
+    .md-layout-item.md-size-10
+      md-field(md-inline)
+        label Count
+        md-input(v-model='form.recur.count'
+                type='number'
+                :disabled='!showRecurrence')
+    .md-layout-item.md-size-20
+      md-field
+        label Interval
+        md-select(v-model='form.recur.other'
+                  :disabled='!showRecurrence')
+          md-option(value='Hours') hours
+          md-option(value='Days') days
+          md-option(value='Weeks') weeks
+  .mpj-text-right
+    md-button(:disabled='!isValidRecurrence'
+              @click.stop='saveRequest()').md-primary.md-raised #[md-icon save] Save
+    md-button(@click.stop='goBack()').md-raised #[md-icon arrow_back] Cancel
 </template>
 
 <script>
@@ -133,7 +114,7 @@ export default {
       this.title = 'Edit Prayer Request'
       this.isNew = false
       if (this.journal.length === 0) {
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
       const req = this.journal.filter(r => r.requestId === this.id)[0]
       this.form.requestId = this.id
@@ -159,7 +140,7 @@ export default {
     },
     async ensureJournal () {
       if (!Array.isArray(this.journal)) {
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
     },
     async saveRequest () {
@@ -191,15 +172,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.mpj-recur-count {
-  width: 3rem;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.mpj-recur-type {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-</style>

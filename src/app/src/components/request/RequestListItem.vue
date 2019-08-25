@@ -1,6 +1,6 @@
 <template lang="pug">
 md-table-row
-  md-table-cell.mpj-action-cell
+  md-table-cell.mpj-action-cell.mpj-valign-top
     md-button(@click='viewFull').md-icon-button.md-raised
       md-icon description
       md-tooltip(md-direction='top'
@@ -16,20 +16,16 @@ md-table-row
         md-tooltip(md-direction='top'
                    md-delay=250) Cancel Snooze
     template(v-if='isPending')
-      md-button(@click='showNow()').md-icon-button.md-rasied
+      md-button(@click='showNow()').md-icon-button.md-raised
         md-icon restore
         md-tooltip(md-direction='top'
                    md-delay=250) Show Now
-  md-table-cell.mpj-request-cell
-    p.mpj-request-text
-      | {{ request.text }}
+  md-table-cell.mpj-valign-top
+    p.mpj-request-text {{ request.text }}
     br(v-if='isSnoozed || isPending || isAnswered')
-    small(v-if='isSnoozed').mpj-muted-text: em.
-      Snooze expires #[date-from-now(:value='request.snoozedUntil')]
-    small(v-if='isPending').mpj-muted-text: em.
-      Request scheduled to reappear #[date-from-now(:value='request.showAfter')]
-    small(v-if='isAnswered').mpj-muted-text: em.
-      Answered #[date-from-now(:value='request.asOf')]
+    small(v-if='isSnoozed').mpj-muted-text: em Snooze expires #[date-from-now(:value='request.snoozedUntil')]
+    small(v-if='isPending').mpj-muted-text: em Request appears next #[date-from-now(:value='request.showAfter')]
+    small(v-if='isAnswered').mpj-muted-text: em Answered #[date-from-now(:value='request.asOf')]
 </template>
 
 <script>
@@ -96,9 +92,4 @@ export default {
 .mpj-action-cell
   width: 1%
   white-space: nowrap
-  vertical-align: top
-.mpj-request-cell
-  vertical-align: top
-  p
-    margin-top: 0
 </style>
