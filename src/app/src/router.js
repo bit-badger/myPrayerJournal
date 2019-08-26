@@ -3,7 +3,9 @@
 /* eslint-disable */
 import Vue    from 'vue'
 import Router from 'vue-router'
-import Home   from '@/components/Home'
+
+import auth from './auth/AuthService'
+import Home from '@/components/Home'
 /* eslint-enable */
 
 Vue.use(Router)
@@ -17,6 +19,12 @@ export default new Router({
     } else {
       return { x: 0, y: 0 }
     }
+  },
+  beforeEach (to, from, next) {
+    if (to.path === '/' || to.path === '/user/log-on' || auth.isAuthenticated()) {
+      return next()
+    }
+    auth.login({ target: to.path })
   },
   routes: [
     {

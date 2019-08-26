@@ -26,6 +26,7 @@ import router      from './router'
 import store       from './store'
 import DateFromNow from './components/common/DateFromNow'
 import PageTitle   from './components/common/PageTitle'
+import AuthPlugin  from './plugins/auth'
 
 /* eslint-enable */
 
@@ -52,6 +53,7 @@ Vue.use(MdTable)
 Vue.use(MdTabs)
 Vue.use(MdToolbar)
 Vue.use(MdTooltip)
+Vue.use(AuthPlugin)
 Vue.component('date-from-now', DateFromNow)
 Vue.component('page-title', PageTitle)
 

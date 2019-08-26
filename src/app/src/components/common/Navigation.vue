@@ -32,29 +32,28 @@
 
 import { mapState } from 'vuex'
 
-import AuthService from '@/auth/AuthService'
-
 export default {
   name: 'navigation',
   data () {
-    return {
-      auth0: new AuthService()
-    }
+    return {}
   },
   computed: {
+    isAuthenticated () {
+      return this.$auth.isAuthenticated()
+    },
     hasSnoozed () {
       return this.isAuthenticated &&
         Array.isArray(this.journal) &&
         this.journal.filter(req => req.snoozedUntil > Date.now()).length > 0
     },
-    ...mapState([ 'journal', 'isAuthenticated' ])
+    ...mapState([ 'journal' ])
   },
   methods: {
     logOn () {
-      this.auth0.login()
+      this.$auth.login()
     },
     logOff () {
-      this.auth0.logout(this.$store, this.$router)
+      this.$auth.logout(this.$store, this.$router)
     }
   }
 }

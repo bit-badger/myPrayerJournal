@@ -57,6 +57,16 @@ export default {
       }
     }
   },
+  async created () {
+    try {
+      await this.$auth.renewTokens()
+    } catch (e) {
+      if (e !== 'Not logged in') {
+        // eslint-disable-next-line
+        console.log(e)
+      }
+    }
+  },
   mounted () {
     this.progress.events.$on('show', this.showProgress)
     this.progress.events.$on('done', this.hideProgress)
@@ -103,10 +113,10 @@ export default {
 </script>
 
 <style lang="sass">
-// Custom theme
 @import "~vue-material/dist/theme/engine"
 @include md-register-theme("default", (primary: md-get-palette-color(green, 800), accent: md-get-palette-color(gray, 700)))
 @import "~vue-material/dist/theme/all"
+
 html, body
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
   font-size: 1rem
