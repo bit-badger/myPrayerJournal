@@ -72,7 +72,8 @@ module Configure =
           fun opts ->
             let jwtCfg = cfg.GetSection "Auth0"
             opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
-            opts.Audience  <- jwtCfg.["Id"])
+            opts.Audience  <- jwtCfg.["Id"]
+            )
       |> ignore
       sc.AddSingleton<IJsonSerializer> (NewtonsoftJsonSerializer jsonSettings)
       |> ignore

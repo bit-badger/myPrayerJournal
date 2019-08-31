@@ -11,14 +11,9 @@ const webAuth = new auth0.WebAuth({
   domain: AUTH_CONFIG.domain,
   clientID: AUTH_CONFIG.clientId,
   redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
-  audience: `https://${AUTH_CONFIG.domain}/userinfo`,
   responseType: 'token id_token',
   scope: 'openid profile email'
 })
-
-const ACCESS_TOKEN = 'access_token'
-const ID_TOKEN = 'id_token'
-const EXPIRES_AT = 'expires_at'
 
 class AuthService extends EventEmitter {
   
@@ -32,15 +27,11 @@ class AuthService extends EventEmitter {
   }
   profile = null
 
-  auth0 = new auth0.WebAuth({
-    domain: AUTH_CONFIG.domain,
-    clientID: AUTH_CONFIG.clientId,
-    redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
-    audience: `https://${AUTH_CONFIG.domain}/userinfo`,
-    responseType: 'token id_token',
-    scope: 'openid profile email'
-  })
-
+  ACCESS_TOKEN = 'access_token'
+  ID_TOKEN = 'id_token'
+  EXPIRES_AT = 'expires_at'
+  USER_PROFILE = 'user_profile'
+  
   /**
    * Starts the user log in flow
    */
@@ -55,28 +46,11 @@ class AuthService extends EventEmitter {
    */
   parseHash () {
     return new Promise((resolve, reject) => {
-      this.auth0.parseHash((err, authResult) => {
+      webAuth.parseHash((err, authResult) => {
         if (err) {
           reject(err)
         } else {
           resolve(authResult)
-        }
-      })
-    })
-  }
-
-  /**
-   * Promisified userInfo function
-   *
-   * @param token The auth token from the login result
-   */
-  userInfo (token) {
-    return new Promise((resolve, reject) => {
-      this.auth0.client.userInfo(token, (err, user) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(user)
         }
       })
     })
@@ -87,10 +61,7 @@ class AuthService extends EventEmitter {
       .then(authResult => {
         if (authResult && authResult.accessToken && authResult.idToken) {
           this.setSession(authResult)
-          this.userInfo(authResult.accessToken)
-            .then(user => {
-              store.commit(mutations.USER_LOGGED_ON, user)
-            })
+          store.commit(mutations.USER_LOGGED_ON, this.profile)
         }
       })
       .catch(err => {
@@ -100,15 +71,16 @@ class AuthService extends EventEmitter {
   }
 
   setSession (authResult) {
+    this.profile = authResult.idTokenPayload
     this.id.token = authResult.idToken
     this.id.expiry = new Date(this.profile.exp * 1000);
-    this.profile = authResult.idTokenPayload
     this.access.token = authResult.accessToken
     this.access.expiry = new Date(Date.now() + authResult.expiresIn * 1000)
 
-    localStorage.setItem(ACCESS_TOKEN, authResult.accessToken)
-    localStorage.setItem(ID_TOKEN, authResult.idToken)
-    localStorage.setItem(EXPIRES_AT, this.id.expiry)
+    localStorage.setItem(this.ACCESS_TOKEN, authResult.accessToken)
+    localStorage.setItem(this.ID_TOKEN, authResult.idToken)
+    localStorage.setItem(this.EXPIRES_AT, this.id.expiry)
+    localStorage.setItem(this.USER_PROFILE, JSON.stringify(this.profile))
 
     this.emit('loginEvent', {
       loggedIn: true,
@@ -119,7 +91,7 @@ class AuthService extends EventEmitter {
 
   renewTokens () {
     return new Promise((resolve, reject) => {
-      if (localStorage.getItem(ID_TOKEN)) {
+      if (localStorage.getItem(this.ID_TOKEN) !== null) {
         webAuth.checkSession({}, (err, authResult) => {
           if (err) {
             reject(err)
@@ -136,9 +108,10 @@ class AuthService extends EventEmitter {
 
   logout (store, router) {
     // Clear access token and ID token from local storage
-    localStorage.removeItem(ACCESS_TOKEN)
-    localStorage.removeItem(ID_TOKEN)
-    localStorage.removeItem(EXPIRES_AT)
+    localStorage.removeItem(this.ACCESS_TOKEN)
+    localStorage.removeItem(this.ID_TOKEN)
+    localStorage.removeItem(this.EXPIRES_AT)
+    localStorage.removeItem(this.USER_PROFILE)
 
     this.idToken = null
     this.idTokenExpiry = null
@@ -154,7 +127,7 @@ class AuthService extends EventEmitter {
   }
 
   isAuthenticated () {
-    return Date().now() < this.id.Expiry && localStorage.getItem(ID_TOKEN)
+    return Date.now() < this.id.Expiry && localStorage.getItem(this.ID_TOKEN)
   }
 
   isAccessTokenValid () {

@@ -38,15 +38,12 @@ export default {
     return {}
   },
   computed: {
-    isAuthenticated () {
-      return this.$auth.isAuthenticated()
-    },
     hasSnoozed () {
       return this.isAuthenticated &&
         Array.isArray(this.journal) &&
         this.journal.filter(req => req.snoozedUntil > Date.now()).length > 0
     },
-    ...mapState([ 'journal' ])
+    ...mapState([ 'isAuthenticated', 'journal' ])
   },
   methods: {
     logOn () {
