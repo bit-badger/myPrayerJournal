@@ -7,31 +7,32 @@ import AUTH_CONFIG from './auth0-variables'
 import mutations   from '@/store/mutation-types'
 /* es-lint-enable*/
 
+// Auth0 web authentication instance to use for our calls
 const webAuth = new auth0.WebAuth({
   domain: AUTH_CONFIG.domain,
   clientID: AUTH_CONFIG.clientId,
   redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
+  audience: `https://${AUTH_CONFIG.domain}/userinfo`,
   responseType: 'token id_token',
   scope: 'openid profile email'
 })
 
+/**
+ * A class to handle all authentication calls and determinations
+ */
 class AuthService extends EventEmitter {
   
-  id = {
-    token: null,
-    expiry: null
-  }
-  access = {
-    token: null,
-    expiry: null
-  }
-  profile = null
+  // Local storage key for our session data
+  AUTH_SESSION = 'auth-session'
 
-  ACCESS_TOKEN = 'access_token'
-  ID_TOKEN = 'id_token'
-  EXPIRES_AT = 'expires_at'
-  USER_PROFILE = 'user_profile'
-  
+  // Received and calculated values for our ssesion (initially loaded from local storage if present)
+  session = {}
+
+  constructor() {
+    super()
+    this.refreshSession()
+  }
+
   /**
    * Starts the user log in flow
    */
@@ -56,31 +57,37 @@ class AuthService extends EventEmitter {
     })
   }
 
-  handleAuthentication (store) {
-    this.parseHash()
-      .then(authResult => {
-        if (authResult && authResult.accessToken && authResult.idToken) {
-          this.setSession(authResult)
-          store.commit(mutations.USER_LOGGED_ON, this.profile)
-        }
-      })
-      .catch(err => {
-        console.log(err)
-        alert(`Error: ${err.error}. Check the console for further details.`)
-      })
+  /**
+   * Handle authentication replies from Auth0
+   * 
+   * @param store The Vuex store
+   */
+  async handleAuthentication (store) {
+    try {
+      const authResult = await this.parseHash()
+      if (authResult && authResult.accessToken && authResult.idToken) {
+        this.setSession(authResult)
+        store.commit(mutations.USER_LOGGED_ON, this.session.profile)
+      }
+    } catch(err) {
+      console.error(err)
+      alert(`Error: ${err.error}. Check the console for further details.`)
+    }
   }
 
+  /**
+   * Set up the session and commit it to local storage
+   * 
+   * @param authResult The authorization result
+   */
   setSession (authResult) {
-    this.profile = authResult.idTokenPayload
-    this.id.token = authResult.idToken
-    this.id.expiry = new Date(this.profile.exp * 1000);
-    this.access.token = authResult.accessToken
-    this.access.expiry = new Date(Date.now() + authResult.expiresIn * 1000)
+    this.session.profile = authResult.idTokenPayload
+    this.session.id.token = authResult.idToken
+    this.session.id.expiry = this.session.profile.exp * 1000
+    this.session.access.token = authResult.accessToken
+    this.session.access.expiry = authResult.expiresIn * 1000 + Date.now()
 
-    localStorage.setItem(this.ACCESS_TOKEN, authResult.accessToken)
-    localStorage.setItem(this.ID_TOKEN, authResult.idToken)
-    localStorage.setItem(this.EXPIRES_AT, this.id.expiry)
-    localStorage.setItem(this.USER_PROFILE, JSON.stringify(this.profile))
+    localStorage.setItem(this.AUTH_SESSION, JSON.stringify(this.session))
 
     this.emit('loginEvent', {
       loggedIn: true,
@@ -89,9 +96,32 @@ class AuthService extends EventEmitter {
     })
   }
 
+  /**
+   * Refresh this instance's session from the one in local storage
+   */
+  refreshSession () {
+    this.session = 
+      localStorage.getItem(this.AUTH_SESSION)
+      ? JSON.parse(localStorage.getItem(this.AUTH_SESSION))
+      : { profile: {},
+          id: {
+            token: null,
+            expiry: null
+          },
+          access: {
+            token: null,
+            expiry: null
+          }
+        }
+  }
+
+  /**
+   * Renew authorzation tokens with Auth0
+   */
   renewTokens () {
     return new Promise((resolve, reject) => {
-      if (localStorage.getItem(this.ID_TOKEN) !== null) {
+      this.refreshSession()
+      if (this.session.id.token !== null) {
         webAuth.checkSession({}, (err, authResult) => {
           if (err) {
             reject(err)
@@ -106,45 +136,58 @@ class AuthService extends EventEmitter {
     })
   }
 
-  logout (store, router) {
+  /**
+   * Log out of myPrayerJournal
+   * 
+   * @param store The Vuex store
+   */
+  logout (store) {
     // Clear access token and ID token from local storage
-    localStorage.removeItem(this.ACCESS_TOKEN)
-    localStorage.removeItem(this.ID_TOKEN)
-    localStorage.removeItem(this.EXPIRES_AT)
-    localStorage.removeItem(this.USER_PROFILE)
-
-    this.idToken = null
-    this.idTokenExpiry = null
-    this.profile = null
+    localStorage.removeItem(this.AUTH_SESSION)
+    this.refreshSession()
 
     store.commit(mutations.USER_LOGGED_OFF)
 
     webAuth.logout({
-      // navigate to the home route
-      returnTo: '/'
+      returnTo: `${AUTH_CONFIG.appDomain}/`,
+      clientID: AUTH_CONFIG.clientId
     })
     this.emit('loginEvent', { loggedIn: false })
   }
 
+  /**
+   * Check expiration for a token (the way it's stored in the session)
+   */
+  checkExpiry = (it) => it.token && it.expiry && Date.now() < it.expiry
+  
+  /**
+   * Is there a user authenticated?
+   */
   isAuthenticated () {
-    return Date.now() < this.id.Expiry && localStorage.getItem(this.ID_TOKEN)
+    return this.checkExpiry(this.session.id)
   }
 
+  /**
+   * Is the current access token valid?
+   */
   isAccessTokenValid () {
-    return this.access.token && this.access.expiry && Date.now() < this.access.expiry
+    return this.checkExpiry(this.session.access)
   }
 
-  getAccessToken () {
-    return new Promise((resolve, reject) => {
-      if (this.isAccessTokenValid()) {
-        resolve(this.access.token)
-      } else {
-        this.renewTokens()
-          .then(authResult => {
-            resolve(authResult.accessToken)
-          }, reject)
+  /**
+   * Get the user's access token, renewing it if required
+   */
+  async getAccessToken () {
+    if (this.isAccessTokenValid()) {
+      return this.session.access.token
+    } else {
+      try {
+        const authResult = await this.renewTokens()
+        return authResult.accessToken
+      } catch (reject) {
+        throw reject
       }
-    })
+    }
   }
 }
 

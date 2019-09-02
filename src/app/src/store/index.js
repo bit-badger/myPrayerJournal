@@ -38,7 +38,7 @@ const logError = function (error) {
 const setBearer = async function () {
   try {
     await auth.getAccessToken()
-    api.setBearer(localStorage.getItem(auth.ID_TOKEN))
+    api.setBearer(auth.session.id.token)
   } catch(err) {
     if (err === 'Not logged in') {
       console.warn('API request attempted when user was not logged in')
@@ -50,7 +50,7 @@ const setBearer = async function () {
 
 export default new Vuex.Store({
   state: {
-    user: JSON.parse(localStorage.getItem(auth.USER_PROFILE) || '{}'),
+    user: auth.session.profile,
     isAuthenticated: auth.isAuthenticated(),
     journal: {},
     isLoadingJournal: false
@@ -98,7 +98,7 @@ export default new Vuex.Store({
     },
     async [actions.CHECK_AUTHENTICATION] ({ commit }) {
       try {
-        await auth.renewTokens()
+        await auth.getAccessToken()
         commit(mutations.SET_AUTHENTICATION, auth.isAuthenticated())
       } catch(_) {
         commit(mutations.SET_AUTHENTICATION, false)

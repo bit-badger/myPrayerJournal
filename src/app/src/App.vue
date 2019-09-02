@@ -93,6 +93,11 @@ export default {
     },
     hideProgress () {
       this.progress.visible = false
+    },
+    handleLoginEvent (data) {
+      if (!data.loggedIn) {
+        this.showInfo('Logged out successfully')
+      }
     }
   },
   provide () {

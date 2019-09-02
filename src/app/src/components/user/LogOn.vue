@@ -10,9 +10,9 @@ article.mpj-main-content(role='main')
 export default {
   name: 'log-on',
   inject: ['progress'],
-  created () {
+  async created () {
     this.progress.$emit('show', 'indeterminate')
-    this.$auth.handleAuthentication(this.$store)
+    await this.$auth.handleAuthentication(this.$store)
   },
   methods: {
     handleLoginEvent (data) {
