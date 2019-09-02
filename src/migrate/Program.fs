@@ -10,8 +10,8 @@ type NpgsqlDataReader with
   member this.getTicks = this.GetOrdinal >> this.GetInt64 >> Ticks
   member this.isNull = this.GetOrdinal >> this.IsDBNull
 
-let pgConn () =
-  let c = new NpgsqlConnection "Host=severus-server;Database=mpj;Username=mpj;Password=devpassword;Application Name=myPrayerJournal"
+let pgConn connStr =
+  let c = new NpgsqlConnection (connStr)
   c.Open ()
   c
 
@@ -21,8 +21,8 @@ let isValidStatus stat =
     true
   with _ -> false
 
-let getHistory reqId =
-  use conn = pgConn ()
+let getHistory reqId connStr =
+  use conn = pgConn connStr
   use cmd = conn.CreateCommand ()
   cmd.CommandText <- """SELECT "asOf", status, text FROM mpj.history WHERE "requestId" = @reqId ORDER BY "asOf" """
   (cmd.Parameters.Add >> ignore) (NpgsqlParameter ("@reqId", reqId :> obj))
@@ -42,8 +42,8 @@ let getHistory reqId =
     }
   |> List.ofSeq
 
-let getNotes reqId =
-  use conn = pgConn ()
+let getNotes reqId connStr =
+  use conn = pgConn connStr
   use cmd = conn.CreateCommand ()
   cmd.CommandText <- """SELECT "asOf", notes FROM mpj.note WHERE "requestId" = @reqId"""
   (cmd.Parameters.Add >> ignore) (NpgsqlParameter ("@reqId", reqId :> obj))
@@ -57,9 +57,9 @@ let getNotes reqId =
     }
   |> List.ofSeq
 
-let migrateRequests (store : IDocumentStore) =
+let migrateRequests (store : IDocumentStore) connStr =
   use sess = store.OpenSession ()
-  use conn = pgConn ()
+  use conn = pgConn connStr
   use cmd = conn.CreateCommand ()
   cmd.CommandText <-
     """SELECT "requestId", "enteredOn", "userId", "snoozedUntil", "showAfter", "recurType", "recurCount" FROM mpj.request"""
@@ -75,8 +75,8 @@ let migrateRequests (store : IDocumentStore) =
         showAfter    = match recurrence with Immediate -> Ticks 0L | _ -> rdr.getTicks "showAfter"
         recurType    = recurrence
         recurCount   = rdr.getShort "recurCount"
-        history      = getHistory reqId
-        notes        = getNotes reqId
+        history      = getHistory reqId connStr
+        notes        = getNotes   reqId connStr
         })
   sess.SaveChanges ()
 
@@ -84,7 +84,7 @@ open Converters
 
 [<EntryPoint>]
 let main argv =
-  let raven = new DocumentStore (Urls = [| "http://localhost:8080" |], Database = "myPrayerJournal")
+  let raven = new DocumentStore (Urls = [| argv.[0] |], Database = "myPrayerJournal")
   raven.Conventions.CustomizeJsonSerializer <-
     fun x ->
         x.Converters.Add (RequestIdJsonConverter ())
@@ -92,6 +92,6 @@ let main argv =
         x.Converters.Add (UserIdJsonConverter ())
         x.Converters.Add (CompactUnionJsonConverter ())
   let store = raven.Initialize ()
-  migrateRequests store
+  migrateRequests store argv.[1]
   printfn "fin"
   0 // return an integer exit code

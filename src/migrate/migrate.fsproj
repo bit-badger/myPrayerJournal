@@ -10,11 +10,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.11.2" />
     <PackageReference Include="Npgsql" Version="4.0.8" />
     <PackageReference Include="RavenDb.Client" Version="4.2.2" />
     <ProjectReference Include="../MyPrayerJournal.Api/MyPrayerJournal.Api.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
 
 </Project>
