@@ -66,7 +66,13 @@ let migrateRequests (store : IDocumentStore) connStr =
   use rdr = cmd.ExecuteReader ()
   while rdr.Read () do
     let reqId      = rdr.getString "requestId"
-    let recurrence = (rdr.getString >> Recurrence.fromString) "recurType"
+    let recurrence =
+      match rdr.getString "recurType" with
+      | "immediate" -> Immediate
+      | "hours" -> Hours
+      | "days" -> Days
+      | "weeks" -> Weeks
+      | x -> invalidOp (sprintf "%s is not a valid recurrence" x)
     sess.Store (
       { Id           = (RequestId.fromIdString >> RequestId.toString) reqId
         enteredOn    = rdr.getTicks "enteredOn"
@@ -81,17 +87,24 @@ let migrateRequests (store : IDocumentStore) connStr =
   sess.SaveChanges ()
 
 open Converters
+open System
+open System.Security.Cryptography.X509Certificates
 
 [<EntryPoint>]
 let main argv =
-  let raven = new DocumentStore (Urls = [| argv.[0] |], Database = "myPrayerJournal")
-  raven.Conventions.CustomizeJsonSerializer <-
-    fun x ->
-        x.Converters.Add (RequestIdJsonConverter ())
-        x.Converters.Add (TicksJsonConverter ())
-        x.Converters.Add (UserIdJsonConverter ())
-        x.Converters.Add (CompactUnionJsonConverter ())
-  let store = raven.Initialize ()
-  migrateRequests store argv.[1]
-  printfn "fin"
-  0 // return an integer exit code
+  match argv.Length with
+  | 4 ->
+      let clientCert = new X509Certificate2 (argv.[1], argv.[2])
+      let raven = new DocumentStore (Urls = [| argv.[0] |], Database = "myPrayerJournal", Certificate = clientCert)
+      raven.Conventions.CustomizeJsonSerializer <-
+        fun x ->
+            x.Converters.Add (RequestIdJsonConverter ())
+            x.Converters.Add (TicksJsonConverter ())
+            x.Converters.Add (UserIdJsonConverter ())
+            x.Converters.Add (CompactUnionJsonConverter ())
+      let store = raven.Initialize ()
+      migrateRequests store argv.[3]
+      printfn "fin"
+  | _ ->
+      Console.WriteLine "Usage: dotnet migrate.dll [raven-url] [raven-cert-file] [raven-cert-pw] [postgres-conn-str]"
+  0
