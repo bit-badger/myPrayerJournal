@@ -1,6 +1,6 @@
 'use strict'
 
-/* eslint-disable */
+/* eslint-disable no-multi-spaces */
 import Vue  from 'vue'
 import Vuex from 'vuex'
 
@@ -9,10 +9,11 @@ import auth from '@/auth/AuthService'
 
 import mutations from './mutation-types'
 import actions   from './action-types'
-/* eslint-enable */
+/* eslint-enable no-multi-spaces */
 
 Vue.use(Vuex)
 
+/* eslint-disable no-console */
 const logError = function (error) {
   if (error.response) {
     // The request was made and the server responded with a status code
@@ -39,7 +40,7 @@ const setBearer = async function () {
   try {
     await auth.getAccessToken()
     api.setBearer(auth.session.id.token)
-  } catch(err) {
+  } catch (err) {
     if (err === 'Not logged in') {
       console.warn('API request attempted when user was not logged in')
     } else {
@@ -47,6 +48,7 @@ const setBearer = async function () {
     }
   }
 }
+/* eslint-enable no-console */
 
 export default new Vuex.Store({
   state: {
@@ -100,7 +102,7 @@ export default new Vuex.Store({
       try {
         await auth.getAccessToken()
         commit(mutations.SET_AUTHENTICATION, auth.isAuthenticated())
-      } catch(_) {
+      } catch (_) {
         commit(mutations.SET_AUTHENTICATION, false)
       }
     },

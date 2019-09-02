@@ -76,7 +76,7 @@ export default {
       await this.$store.dispatch(actions.SHOW_REQUEST_NOW, {
         progress: this.progress,
         requestId: this.request.requestId,
-        showAfter: Date.now()
+        showAfter: 0
       })
       this.messages.$emit('info', 'Recurrence skipped; request now shows in journal')
       this.$parent.$emit('requestNowShown')

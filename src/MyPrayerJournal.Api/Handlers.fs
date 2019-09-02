@@ -126,13 +126,6 @@ module Models =
       recurCount  : int16
       }
   
-  /// Reset the "showAfter" property on a request
-  [<CLIMutable>]
-  type Show =
-    { /// The time after which the request should appear
-      showAfter : int64
-      }
-
   /// The time until which a request should not appear in the journal
   [<CLIMutable>]
   type SnoozeUntil =
@@ -175,7 +168,7 @@ module Request =
                   Id         = RequestId.toString reqId
                   userId     = usrId
                   enteredOn  = now
-                  showAfter  = now
+                  showAfter  = Ticks 0L
                   recurType  = Recurrence.fromString r.recurType
                   recurCount = r.recurCount
                   history    = [
@@ -211,7 +204,10 @@ module Request =
                 } sess
             match act with
             | Prayed ->
-                let nextShow = (Ticks.toLong now) + (Recurrence.duration req.recurType * int64 req.recurCount)
+                let nextShow =
+                  match Recurrence.duration req.recurType with
+                  | 0L -> 0L
+                  | duration -> (Ticks.toLong now) + (duration * int64 req.recurCount)
                 Data.updateShowAfter reqId (Ticks nextShow) sess
             | _ -> ()
             do! Data.saveChanges sess
@@ -292,8 +288,7 @@ module Request =
         let reqId = toReqId requestId
         match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
-            let! show = ctx.BindJsonAsync<Models.Show> ()
-            Data.updateShowAfter reqId (Ticks show.showAfter) sess
+            Data.updateShowAfter reqId (Ticks 0L) sess
             do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
@@ -327,7 +322,9 @@ module Request =
         match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
             let! recur = ctx.BindJsonAsync<Models.Recurrence> ()
-            Data.updateRecurrence reqId (Recurrence.fromString recur.recurType) recur.recurCount sess
+            let recurrence = Recurrence.fromString recur.recurType
+            Data.updateRecurrence reqId recurrence recur.recurCount sess
+            match recurrence with Immediate -> Data.updateShowAfter reqId (Ticks 0L) sess | _ -> ()
             do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx

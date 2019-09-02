@@ -52,7 +52,7 @@ export default {
       this.$auth.logout(this.$store, this.$router)
     },
     showHelp () {
-      window.open('https://docs.prayerjournal.me','_blank')
+      window.open('https://docs.prayerjournal.me', '_blank')
     }
   }
 }

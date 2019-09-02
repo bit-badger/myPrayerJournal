@@ -65,19 +65,22 @@ let migrateRequests (store : IDocumentStore) =
     """SELECT "requestId", "enteredOn", "userId", "snoozedUntil", "showAfter", "recurType", "recurCount" FROM mpj.request"""
   use rdr = cmd.ExecuteReader ()
   while rdr.Read () do
-    let reqId = rdr.getString "requestId"
+    let reqId      = rdr.getString "requestId"
+    let recurrence = (rdr.getString >> Recurrence.fromString) "recurType"
     sess.Store (
       { Id           = (RequestId.fromIdString >> RequestId.toString) reqId
         enteredOn    = rdr.getTicks "enteredOn"
         userId       = (rdr.getString >> UserId) "userId"
         snoozedUntil = rdr.getTicks "snoozedUntil"
-        showAfter    = rdr.getTicks "showAfter"
-        recurType    = (rdr.getString >> Recurrence.fromString) "recurType"
+        showAfter    = match recurrence with Immediate -> Ticks 0L | _ -> rdr.getTicks "showAfter"
+        recurType    = recurrence
         recurCount   = rdr.getShort "recurCount"
         history      = getHistory reqId
         notes        = getNotes reqId
         })
   sess.SaveChanges ()
+
+open Converters
 
 [<EntryPoint>]
 let main argv =
