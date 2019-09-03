@@ -1,21 +1,16 @@
 <template lang="pug">
-.mpj-modal(v-show='notesVisible')
-  .mpj-modal-content.mpj-narrow
-    header.mpj-bg
-      h5 Add Notes to Prayer Request
-    label
-      | Notes
-      br
-      textarea(v-model='form.notes'
-               :rows='10'
-               @blur='trimText()').mpj-full-width
-    .mpj-text-right
-      button(@click='saveNotes()').primary.
-        #[md-icon(icon='save')] Save
-      | &nbsp; &nbsp;
-      button(@click='closeDialog()').
-        #[md-icon(icon='undo')] Cancel
-    hr
+md-dialog(:md-active.sync='notesVisible').mpj-note-dialog
+  md-dialog-title Add Notes to Prayer Request
+  md-content.mpj-dialog-content
+    md-field
+      label Notes
+      md-textarea(v-model='form.notes'
+                  md-autogrow
+                  @blur='trimText()')
+  md-dialog-actions
+    md-button(@click='saveNotes()').md-primary #[md-icon save] Save
+    md-button(@click='closeDialog()') #[md-icon undo] Cancel
+  .mpj-dialog-content
     div(v-if='hasPriorNotes')
       p.mpj-text-center: strong Prior Notes for This Request
       .mpj-note-list
@@ -26,8 +21,8 @@
           span.mpj-request-text {{ note.notes }}
     div(v-else-if='noPriorNotes').mpj-text-center.mpj-muted-text There are no prior notes for this request
     div(v-else).mpj-text-center
-      button(@click='loadNotes()').
-        #[md-icon(icon='cloud_download')] Load Prior Notes
+      hr
+      md-button(@click='loadNotes()') #[md-icon cloud_download] Load Prior Notes
 </template>
 
 <script>
@@ -37,10 +32,11 @@ import api from '@/api'
 
 export default {
   name: 'notes-edit',
-  props: {
-    toast: { required: true },
-    events: { required: true }
-  },
+  inject: [
+    'journalEvents',
+    'messages',
+    'progress'
+  ],
   data () {
     return {
       notesVisible: false,
@@ -61,7 +57,7 @@ export default {
     }
   },
   created () {
-    this.events.$on('notes', this.openDialog)
+    this.journalEvents.$on('notes', this.openDialog)
   },
   methods: {
     closeDialog () {
@@ -72,14 +68,14 @@ export default {
       this.notesVisible = false
     },
     async loadNotes () {
-      this.$Progress.start()
+      this.progress.$emit('show', 'indeterminate')
       try {
         const notes = await api.getNotes(this.form.requestId)
         this.priorNotes = notes.data
-        this.$Progress.finish()
+        this.progress.$emit('done')
       } catch (e) {
         console.error(e)
-        this.$Progress.fail()
+        this.progress.$emit('done')
       } finally {
         this.priorNotesLoaded = true
       }
@@ -89,15 +85,15 @@ export default {
       this.notesVisible = true
     },
     async saveNotes () {
-      this.$Progress.start()
+      this.progress.$emit('show', 'indeterminate')
       try {
         await api.addNote(this.form.requestId, this.form.notes)
-        this.$Progress.finish()
-        this.toast.showToast('Added notes', { theme: 'success' })
+        this.progress.$emit('done')
+        this.messages.$emit('info', 'Added notes')
         this.closeDialog()
       } catch (e) {
         console.error(e)
-        this.$Progress.fail()
+        this.progress.$emit('done')
       }
     },
     trimText () {
@@ -107,8 +103,16 @@ export default {
 }
 </script>
 
-<style>
-.mpj-note-list p {
-  border-top: dotted 1px lightgray;
-}
+<style lang="sass">
+.mpj-note-dialog
+  width: 40rem
+  padding-bottom: 1.5rem
+@media screen and (max-width: 40rem)
+  @media screen and (max-width: 20rem)
+    .mpj-note-dialog
+      width: 100%
+  .mpj-note-dialog
+    width: 20rem
+.mpj-note-list p
+  border-top: dotted 1px lightgray
 </style>

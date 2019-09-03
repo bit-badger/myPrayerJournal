@@ -1,11 +1,8 @@
 ﻿/// HTTP handlers for the myPrayerJournal API
 [<RequireQualifiedAccess>]
-module MyPrayerJournal.Api.Handlers
+module MyPrayerJournal.Handlers
 
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open Giraffe
-open MyPrayerJournal
-open System
 
 /// Handler to return Vue files
 module Vue =
@@ -13,6 +10,7 @@ module Vue =
   /// The application index page
   let app : HttpHandler = htmlFile "wwwroot/index.html"
 
+open System
 
 /// Handlers for error conditions
 module Error =
@@ -34,18 +32,22 @@ module Error =
       | 0 -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
       | _ -> Vue.app next ctx
 
+open Cuid
 
 /// Handler helpers
 [<AutoOpen>]
 module private Helpers =
   
   open Microsoft.AspNetCore.Http
+  open Raven.Client.Documents
   open System.Threading.Tasks
   open System.Security.Claims
 
-  /// Get the database context from DI
-  let db (ctx : HttpContext) =
-    ctx.GetService<AppDbContext> ()
+  /// Create a RavenDB session
+  let session (ctx : HttpContext) =
+    let sess = ctx.GetService<IDocumentStore>().OpenAsyncSession ()
+    sess.Advanced.WaitForIndexesAfterSaveChanges ()
+    sess
 
   /// Get the user's "sub" claim
   let user (ctx : HttpContext) =
@@ -54,15 +56,23 @@ module private Helpers =
   /// Get the current user's ID
   //  NOTE: this may raise if you don't run the request through the authorize handler first
   let userId ctx =
-    ((user >> Option.get) ctx).Value
+    ((user >> Option.get) ctx).Value |> UserId
+
+  /// Create a request ID from a string
+  let toReqId x =
+    let reqId =
+      match Cuid.ofString x with
+      | Ok cuid -> cuid
+      | Error msg -> invalidOp msg
+    RequestId reqId
 
   /// Return a 201 CREATED response
   let created next ctx =
     setStatusCode 201 next ctx
 
-  /// The "now" time in JavaScript
+  /// The "now" time in JavaScript as Ticks
   let jsNow () =
-    DateTime.UtcNow.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> int64 |> (*) 1000L
+    (int64 >> (*) 1000L >> Ticks) <| DateTime.UtcNow.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds
   
   /// Handler to return a 403 Not Authorized reponse
   let notAuthorized : HttpHandler =
@@ -116,13 +126,6 @@ module Models =
       recurCount  : int16
       }
   
-  /// Reset the "showAfter" property on a request
-  [<CLIMutable>]
-  type Show =
-    { /// The time after which the request should appear
-      showAfter : int64
-      }
-
   /// The time until which a request should not appear in the journal
   [<CLIMutable>]
   type SnoozeUntil =
@@ -130,6 +133,7 @@ module Models =
       until : int64
       }
 
+open FSharp.Control.Tasks.V2.ContextInsensitive
 
 /// /api/journal URLs
 module Journal =
@@ -138,99 +142,92 @@ module Journal =
   let journal : HttpHandler =
     authorize
     >=> fun next ctx ->
-      userId ctx
-      |> (db ctx).JournalByUserId
-      |> asJson next ctx
+      task {
+        use  sess  = session ctx
+        let  usrId = userId  ctx
+        let! jrnl  = Data.journalByUserId usrId sess
+        return! json jrnl next ctx
+        }
 
 
 /// /api/request URLs
 module Request =
   
-  open NCuid
-  
-  /// Ticks per recurrence
-  let private recurrence =
-    [ "immediate",         0L
-      "hours",       3600000L
-      "days",       86400000L
-      "weeks",     604800000L
-      ]
-    |> Map.ofList
-
   /// POST /api/request
   let add : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
         let! r     = ctx.BindJsonAsync<Models.Request> ()
-        let  db    = db ctx
-        let  reqId = Cuid.Generate ()
+        use  sess  = session ctx
+        let  reqId = (Cuid.generate >> RequestId) ()
         let  usrId = userId ctx
         let  now   = jsNow ()
-        { Request.empty with
-            requestId  = reqId
-            userId     = usrId
-            enteredOn  = now
-            showAfter  = now
-            recurType  = r.recurType
-            recurCount = r.recurCount
-          }
-        |> db.AddEntry
-        { History.empty with
-            requestId = reqId
-            asOf      = now
-            status    = "Created"
-            text      = Some r.requestText
-            }
-        |> db.AddEntry
-        let! _   = db.SaveChangesAsync ()
-        match! db.TryJournalById reqId usrId with
+        do! Data.addRequest
+              { Request.empty with
+                  Id         = RequestId.toString reqId
+                  userId     = usrId
+                  enteredOn  = now
+                  showAfter  = Ticks 0L
+                  recurType  = Recurrence.fromString r.recurType
+                  recurCount = r.recurCount
+                  history    = [
+                    { asOf   = now
+                      status = Created
+                      text   = Some r.requestText
+                      }      
+                    ]
+                } sess
+        do! Data.saveChanges sess
+        match! Data.tryJournalById reqId usrId sess with
         | Some req -> return! (setStatusCode 201 >=> json req) next ctx
         | None -> return! Error.notFound next ctx
         }
 
   /// POST /api/request/[req-id]/history
-  let addHistory reqId : HttpHandler =
+  let addHistory requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let db = db ctx
-        match! db.TryRequestById reqId (userId ctx) with
+        use sess  = session ctx
+        let usrId = userId ctx
+        let reqId = toReqId requestId
+        match! Data.tryRequestById reqId usrId sess with
         | Some req ->
             let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
             let  now  = jsNow ()
-            { History.empty with
-                requestId = reqId
-                asOf      = now
-                status    = hist.status
-                text      = match hist.updateText with null | "" -> None | x -> Some x
-              }
-            |> db.AddEntry
-            match hist.status with
-            | "Prayed" ->
-                db.UpdateEntry { req with showAfter = now + (recurrence.[req.recurType] * int64 req.recurCount) }
+            let  act  = RequestAction.fromString hist.status
+            Data.addHistory reqId
+              { asOf   = now
+                status = act
+                text   = match hist.updateText with null | "" -> None | x -> Some x
+                } sess
+            match act with
+            | Prayed ->
+                let nextShow =
+                  match Recurrence.duration req.recurType with
+                  | 0L -> 0L
+                  | duration -> (Ticks.toLong now) + (duration * int64 req.recurCount)
+                Data.updateShowAfter reqId (Ticks nextShow) sess
             | _ -> ()
-            let! _ = db.SaveChangesAsync ()
+            do! Data.saveChanges sess
             return! created next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// POST /api/request/[req-id]/note
-  let addNote reqId : HttpHandler =
+  let addNote requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let db = db ctx
-        match! db.TryRequestById reqId (userId ctx) with
+        use sess  = session ctx
+        let usrId = userId ctx
+        let reqId = toReqId requestId
+        match! Data.tryRequestById reqId usrId sess with
         | Some _ ->
             let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
-            { Note.empty with
-                requestId = reqId
-                asOf      = jsNow ()
-                notes     = notes.notes
-              }
-            |> db.AddEntry
-            let! _ = db.SaveChangesAsync ()
+            Data.addNote reqId { asOf = jsNow (); notes = notes.notes } sess
+            do! Data.saveChanges sess
             return! created next ctx
         | None -> return! Error.notFound next ctx
         }
@@ -239,83 +236,129 @@ module Request =
   let answered : HttpHandler =
     authorize
     >=> fun next ctx ->
-      userId ctx
-      |> (db ctx).AnsweredRequests
-      |> asJson next ctx
+      task {
+        use  sess  = session ctx
+        let  usrId = userId ctx
+        let! reqs  = Data.answeredRequests usrId sess
+        return! json reqs next ctx
+        }
   
   /// GET /api/request/[req-id]
-  let get reqId : HttpHandler =
+  let get requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        match! (db ctx).TryJournalById reqId (userId ctx) with
+        use sess  = session ctx
+        let usrId = userId ctx
+        match! Data.tryJournalById (toReqId requestId) usrId sess with
         | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/full
-  let getFull reqId : HttpHandler =
+  let getFull requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        match! (db ctx).TryFullRequestById reqId (userId ctx) with
+        use sess  = session ctx
+        let usrId = userId ctx
+        match! Data.tryFullRequestById (toReqId requestId) usrId sess with
         | Some req -> return! json req next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// GET /api/request/[req-id]/notes
-  let getNotes reqId : HttpHandler =
+  let getNotes requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let! notes = (db ctx).NotesById reqId (userId ctx)
+        use  sess  = session ctx
+        let  usrId = userId ctx
+        let! notes = Data.notesById (toReqId requestId) usrId sess
         return! json notes next ctx
         }
   
   /// PATCH /api/request/[req-id]/show
-  let show reqId : HttpHandler =
+  let show requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let db = db ctx
-        match! db.TryRequestById reqId (userId ctx) with
-        | Some req ->
-            let! show = ctx.BindJsonAsync<Models.Show> ()
-            { req with showAfter = show.showAfter }
-            |> db.UpdateEntry
-            let! _ = db.SaveChangesAsync ()
+        use sess  = session ctx
+        let usrId = userId ctx
+        let reqId = toReqId requestId
+        match! Data.tryRequestById reqId usrId sess with
+        | Some _ ->
+            Data.updateShowAfter reqId (Ticks 0L) sess
+            do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
   
   /// PATCH /api/request/[req-id]/snooze
-  let snooze reqId : HttpHandler =
+  let snooze requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let db = db ctx
-        match! db.TryRequestById reqId (userId ctx) with
-        | Some req ->
+        use sess  = session ctx
+        let usrId = userId ctx
+        let reqId = toReqId requestId
+        match! Data.tryRequestById reqId usrId sess with
+        | Some _ ->
             let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
-            { req with snoozedUntil = until.until; showAfter = until.until }
-            |> db.UpdateEntry
-            let! _ = db.SaveChangesAsync ()
+            Data.updateSnoozed reqId (Ticks until.until) sess
+            do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
 
   /// PATCH /api/request/[req-id]/recurrence
-  let updateRecurrence reqId : HttpHandler =
+  let updateRecurrence requestId : HttpHandler =
     authorize
     >=> fun next ctx ->
       task {
-        let db = db ctx
-        match! db.TryRequestById reqId (userId ctx) with
-        | Some req ->
+        use sess  = session ctx
+        let usrId = userId ctx
+        let reqId = toReqId requestId
+        match! Data.tryRequestById reqId usrId sess with
+        | Some _ ->
             let! recur = ctx.BindJsonAsync<Models.Recurrence> ()
-            { req with recurType = recur.recurType; recurCount = recur.recurCount }
-            |> db.UpdateEntry
-            let! _ = db.SaveChangesAsync ()
+            let recurrence = Recurrence.fromString recur.recurType
+            Data.updateRecurrence reqId recurrence recur.recurCount sess
+            match recurrence with Immediate -> Data.updateShowAfter reqId (Ticks 0L) sess | _ -> ()
+            do! Data.saveChanges sess
             return! setStatusCode 204 next ctx
         | None -> return! Error.notFound next ctx
         }
+
+open Giraffe.TokenRouter
+
+/// The routes for myPrayerJournal
+let webApp : HttpHandler =
+  router Error.notFound [
+    route "/" Vue.app
+    subRoute "/api/" [
+      GET [
+        route    "journal" Journal.journal
+        subRoute "request" [
+          route  "s/answered" Request.answered
+          routef "/%s/full"   Request.getFull
+          routef "/%s/notes"  Request.getNotes
+          routef "/%s"        Request.get
+          ]
+        ]
+      PATCH [
+        subRoute "request" [
+          routef "/%s/recurrence" Request.updateRecurrence
+          routef "/%s/show"       Request.show
+          routef "/%s/snooze"     Request.snooze
+          ]
+        ]
+      POST [
+        subRoute "request" [
+          route  ""            Request.add
+          routef "/%s/history" Request.addHistory
+          routef "/%s/note"    Request.addNote
+          ]
+        ]
+      ]
+    ]

@@ -1,17 +1,27 @@
 <template lang="pug">
-.mpj-request-card(v-if='shouldDisplay')
-  header.mpj-card-header(role='toolbar').
-    #[button(@click='markPrayed()' title='Pray').primary: md-icon(icon='done')]
-    #[button(@click.stop='showEdit()' title='Edit'): md-icon(icon='edit')]
-    #[button(@click.stop='showNotes()' title='Add Notes'): md-icon(icon='comment')]
-    #[button(@click.stop='snooze()' title='Snooze Request'): md-icon(icon='schedule')]
-  div
-    p.card-text.mpj-request-text
-      | {{ request.text }}
-    p.as-of.mpj-text-right: small.mpj-muted-text: em
-      = '(last activity '
-      date-from-now(:value='request.asOf')
-      | )
+md-card(v-if='shouldDisplay'
+        md-with-hover).mpj-request-card
+  md-card-actions(md-alignment='space-between')
+    md-button(@click='markPrayed()').md-icon-button.md-raised.md-primary
+      md-icon done
+      md-tooltip(md-direction='top'
+                 md-delay=1000) Mark as Prayed
+    span
+      md-button(@click.stop='showEdit()').md-icon-button.md-raised
+        md-icon edit
+        md-tooltip(md-direction='top'
+                   md-delay=1000) Edit Request
+      md-button(@click.stop='showNotes()').md-icon-button.md-raised
+        md-icon comment
+        md-tooltip(md-direction='top'
+                   md-delay=1000) Add Notes
+      md-button(@click.stop='snooze()').md-icon-button.md-raised
+        md-icon schedule
+        md-tooltip(md-direction='top'
+                   md-delay=1000) Snooze Request
+  md-card-content
+    p.mpj-request-text {{ request.text }}
+    p.mpj-text-right: small.mpj-muted-text: em (last activity #[date-from-now(:value='request.asOf')])
 </template>
 
 <script>
@@ -21,10 +31,13 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'request-card',
+  inject: [
+    'journalEvents',
+    'messages',
+    'progress'
+  ],
   props: {
-    request: { required: true },
-    toast: { required: true },
-    events: { required: true }
+    request: { required: true }
   },
   computed: {
     shouldDisplay () {
@@ -35,59 +48,31 @@ export default {
   methods: {
     async markPrayed () {
       await this.$store.dispatch(actions.UPDATE_REQUEST, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.request.requestId,
         status: 'Prayed',
         updateText: ''
       })
-      this.toast.showToast('Request marked as prayed', { theme: 'success' })
+      this.messages.$emit('info', 'Request marked as prayed')
     },
     showEdit () {
       this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
     },
     showNotes () {
-      this.events.$emit('notes', this.request)
+      this.journalEvents.$emit('notes', this.request)
     },
     snooze () {
-      this.events.$emit('snooze', this.request.requestId)
+      this.journalEvents.$emit('snooze', this.request.requestId)
     }
   }
 }
 </script>
 
-<style>
-.mpj-request-card {
-  border: solid 1px darkgray;
-  border-radius: 5px;
-  width: 20rem;
-  margin: .5rem;
-}
-@media screen and (max-width: 20rem) {
-  .mpj-request-card {
-    width: 100%;
-  }
-}
-.mpj-card-header {
-  display: flex;
-  flex-flow: row;
-  justify-content: center;
-  background-image: -webkit-gradient(linear, left top, left bottom, from(lightgray), to(whitesmoke));
-  background-image: -webkit-linear-gradient(top, lightgray, whitesmoke);
-  background-image: -moz-linear-gradient(top, lightgray, whitesmoke);
-  background-image: linear-gradient(to bottom, lightgray, whitesmoke);
-}
-.mpj-card-header button {
-  margin: .25rem;
-  padding: 0 .25rem;
-}
-.mpj-card-header button .material-icons {
-  font-size: 1.3rem;
-}
-.mpj-request-card .card-text {
-  margin-left: 1rem;
-  margin-right: 1rem;
-}
-.mpj-request-card .as-of {
-  margin-right: .25rem;
-}
+<style lang="sass">
+.mpj-request-card
+  width: 20rem
+  margin-bottom: 1rem
+@media screen and (max-width: 20rem)
+  .mpj-request-card
+    width: 100%
 </style>

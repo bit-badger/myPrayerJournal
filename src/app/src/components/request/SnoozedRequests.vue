@@ -1,13 +1,16 @@
 <template lang="pug">
 article.mpj-main-content(role='main')
-  page-title(title='Snoozed Requests')
-  div(v-if='loaded').mpj-request-list
-    p.mpj-text-center(v-if='requests.length === 0'): em.
-      No snoozed requests found; return to #[router-link(:to='{ name: "Journal" } ') your journal]
-    request-list-item(v-for='req in requests'
-                      :key='req.requestId'
-                      :request='req'
-                      :toast='toast')
+  page-title(title='Snoozed Requests'
+             hide-on-page=true)
+  template(v-if='loaded')
+    md-empty-state(v-if='requests.length === 0'
+                   md-icon='sentiment_dissatisfied'
+                   md-label='No Snoozed Requests'
+                   md-description='Your prayer journal has no snoozed requests')
+      md-button(to='/journal').md-primary.md-raised Return to your journal
+    request-list(v-if='requests.length !== 0'
+                 title='Snoozed Requests'
+                 :requests='requests')
   p(v-else) Loading journal...
 </template>
 
@@ -18,12 +21,13 @@ import { mapState } from 'vuex'
 
 import actions from '@/store/action-types'
 
-import RequestListItem from '@/components/request/RequestListItem'
+import RequestList from '@/components/request/RequestList'
 
 export default {
   name: 'snoozed-requests',
+  inject: ['progress'],
   components: {
-    RequestListItem
+    RequestList
   },
   data () {
     return {
@@ -32,9 +36,6 @@ export default {
     }
   },
   computed: {
-    toast () {
-      return this.$parent.$refs.toast
-    },
     ...mapState(['journal', 'isLoadingJournal'])
   },
   created () {
@@ -44,7 +45,7 @@ export default {
     async ensureJournal () {
       if (!Array.isArray(this.journal)) {
         this.loaded = false
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
       this.requests = this.journal
         .filter(req => req.snoozedUntil > Date.now())

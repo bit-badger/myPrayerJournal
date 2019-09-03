@@ -7,14 +7,17 @@ article.mpj-main-content(role='main')
 <script>
 'use strict'
 
-import AuthService from '@/auth/AuthService'
-
 export default {
   name: 'log-on',
-  created () {
-    this.$Progress.start()
-    new AuthService().handleAuthentication(this.$store, this.$router)
-    // Auth service redirects to dashboard, which restarts the progress bar
+  inject: ['progress'],
+  async created () {
+    this.progress.$emit('show', 'indeterminate')
+    await this.$auth.handleAuthentication(this.$store)
+  },
+  methods: {
+    handleLoginEvent (data) {
+      this.$router.push(data.state.target || '/journal')
+    }
   }
 }
 </script>

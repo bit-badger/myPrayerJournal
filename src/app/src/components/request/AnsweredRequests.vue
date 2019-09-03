@@ -1,13 +1,15 @@
 <template lang="pug">
-article.mpj-main-content(role='main')
-  page-title(title='Answered Requests')
-  div(v-if='loaded').mpj-request-list
-    p.text-center(v-if='requests.length === 0'): em.
-      No answered requests found; once you have marked one as &ldquo;Answered&rdquo;, it will appear here
-    request-list-item(v-for='req in requests'
-                      :key='req.requestId'
-                      :request='req'
-                      :toast='toast')
+md-content(role='main').mpj-main-content
+  page-title(title='Answered Requests'
+             hide-on-page=true)
+  template(v-if='loaded')
+    md-empty-state(v-if='requests.length === 0'
+                   md-icon='sentiment_dissatisfied'
+                   md-label='No Answered Requests'
+                   md-description='Your prayer journal has no answered requests; once you have marked one as “Answered”, it will appear here')
+    request-list(v-if='requests.length !== 0'
+                 title='Answered Requests'
+                 :requests='requests')
   p(v-else) Loading answered requests...
 </template>
 
@@ -16,12 +18,16 @@ article.mpj-main-content(role='main')
 
 import api from '@/api'
 
-import RequestListItem from '@/components/request/RequestListItem'
+import RequestList from '@/components/request/RequestList'
 
 export default {
   name: 'answered-requests',
+  inject: [
+    'messages',
+    'progress'
+  ],
   components: {
-    RequestListItem
+    RequestList
   },
   data () {
     return {
@@ -29,21 +35,16 @@ export default {
       loaded: false
     }
   },
-  computed: {
-    toast () {
-      return this.$parent.$refs.toast
-    }
-  },
   async mounted () {
-    this.$Progress.start()
+    this.progress.$emit('show', 'query')
     try {
       const reqs = await api.getAnsweredRequests()
       this.requests = reqs.data
-      this.$Progress.finish()
+      this.progress.$emit('done')
     } catch (err) {
       console.error(err)
-      this.toast.showToast('Error loading requests; check console for details', { theme: 'danger' })
-      this.$Progress.fail()
+      this.messages.$emit('error', 'Error loading requests; check console for details')
+      this.progress.$emit('done')
     } finally {
       this.loaded = true
     }

@@ -1,31 +1,31 @@
 <template lang="pug">
-p.mpj-request-text
-  | {{ request.text }}
-  br
-  br
-  button(@click='viewFull'
-         title='View Full Request').
-    #[md-icon(icon='description')] View Full Request
-  | &nbsp; &nbsp;
-  template(v-if='!isAnswered')
-    button(@click='editRequest'
-           title='Edit Request').
-      #[md-icon(icon='edit')] Edit Request
-    | &nbsp; &nbsp;
-  template(v-if='isSnoozed')
-    button(@click='cancelSnooze()').
-      #[md-icon(icon='restore')] Cancel Snooze
-    | &nbsp; &nbsp;
-  template(v-if='isPending')
-    button(@click='showNow()').
-      #[md-icon(icon='restore')] Show Now
-  br(v-if='isSnoozed || isPending || isAnswered')
-  small(v-if='isSnoozed').mpj-muted-text: em.
-    &nbsp; Snooze expires #[date-from-now(:value='request.snoozedUntil')]
-  small(v-if='isPending').mpj-muted-text: em.
-    &nbsp; Request scheduled to reappear #[date-from-now(:value='request.showAfter')]
-  small(v-if='isAnswered').mpj-muted-text: em.
-    &nbsp; Answered #[date-from-now(:value='request.asOf')]
+md-table-row
+  md-table-cell.mpj-action-cell.mpj-valign-top
+    md-button(@click='viewFull').md-icon-button.md-raised
+      md-icon description
+      md-tooltip(md-direction='top'
+                 md-delay=250) View Full Request
+    template(v-if='!isAnswered')
+      md-button(@click='editRequest').md-icon-button.md-raised
+        md-icon edit
+        md-tooltip(md-direction='top'
+                   md-delay=250) Edit Request
+    template(v-if='isSnoozed')
+      md-button(@click='cancelSnooze()').md-icon-button.md-raised
+        md-icon restore
+        md-tooltip(md-direction='top'
+                   md-delay=250) Cancel Snooze
+    template(v-if='isPending')
+      md-button(@click='showNow()').md-icon-button.md-raised
+        md-icon restore
+        md-tooltip(md-direction='top'
+                   md-delay=250) Show Now
+  md-table-cell.mpj-valign-top
+    p.mpj-request-text {{ request.text }}
+    br(v-if='isSnoozed || isPending || isAnswered')
+    small(v-if='isSnoozed').mpj-muted-text: em Snooze expires #[date-from-now(:value='request.snoozedUntil')]
+    small(v-if='isPending').mpj-muted-text: em Request appears next #[date-from-now(:value='request.showAfter')]
+    small(v-if='isAnswered').mpj-muted-text: em Answered #[date-from-now(:value='request.asOf')]
 </template>
 
 <script>
@@ -35,9 +35,12 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'request-list-item',
+  inject: [
+    'messages',
+    'progress'
+  ],
   props: {
-    request: { required: true },
-    toast: { required: true }
+    request: { required: true }
   },
   data () {
     return {}
@@ -59,11 +62,11 @@ export default {
   methods: {
     async cancelSnooze () {
       await this.$store.dispatch(actions.SNOOZE_REQUEST, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.request.requestId,
         until: 0
       })
-      this.toast.showToast('Request un-snoozed', { theme: 'success' })
+      this.messages.$emit('info', 'Request un-snoozed')
       this.$parent.$emit('requestUnsnoozed')
     },
     editRequest () {
@@ -71,11 +74,11 @@ export default {
     },
     async showNow () {
       await this.$store.dispatch(actions.SHOW_REQUEST_NOW, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.request.requestId,
-        showAfter: Date.now()
+        showAfter: 0
       })
-      this.toast.showToast('Recurrence skipped; request now shows in journal', { theme: 'success' })
+      this.messages.$emit('info', 'Recurrence skipped; request now shows in journal')
       this.$parent.$emit('requestNowShown')
     },
     viewFull () {
@@ -84,3 +87,9 @@ export default {
   }
 }
 </script>
+
+<style lang="sass">
+.mpj-action-cell
+  width: 1%
+  white-space: nowrap
+</style>

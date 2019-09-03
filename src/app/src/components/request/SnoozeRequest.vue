@@ -1,22 +1,15 @@
 <template lang="pug">
-.mpj-modal(v-show='snoozeVisible')
-  .mpj-modal-content.mpj-skinny
-    header.mpj-bg
-      h5 Snooze Prayer Request
-    p.mpj-text-center
-      label
-        = 'Until '
-        input(v-model='form.snoozedUntil'
-              type='date'
-              autofocus)
-    br
-    .mpj-text-right
-      button.primary(:disabled='!isValid'
-                     @click='snoozeRequest()').
-        #[md-icon(icon='snooze')] Snooze
-      | &nbsp; &nbsp;
-      button(@click='closeDialog()').
-        #[md-icon(icon='undo')] Cancel
+md-dialog(:md-active.sync='snoozeVisible').mpj-skinny
+  md-dialog-title Snooze Prayer Request
+  md-content.mpj-dialog-content
+    span.mpj-text-muted Until
+    md-datepicker(v-model='form.snoozedUntil'
+                  :md-disabled-dates='datesInPast'
+                  md-immediately)
+  md-dialog-actions
+    md-button(:disabled='!isValid'
+              @click='snoozeRequest()').md-primary #[md-icon snooze] Snooze
+    md-button(@click='closeDialog()') #[md-icon undo] Cancel
 </template>
 
 <script>
@@ -26,13 +19,18 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'snooze-request',
+  inject: [
+    'journalEvents',
+    'messages',
+    'progress'
+  ],
   props: {
-    toast: { required: true },
     events: { required: true }
   },
   data () {
     return {
       snoozeVisible: false,
+      datesInPast: date => date < new Date(),
       form: {
         requestId: '',
         snoozedUntil: ''
@@ -40,7 +38,7 @@ export default {
     }
   },
   created () {
-    this.events.$on('snooze', this.openDialog)
+    this.journalEvents.$on('snooze', this.openDialog)
   },
   computed: {
     isValid () {
@@ -59,11 +57,11 @@ export default {
     },
     async snoozeRequest () {
       await this.$store.dispatch(actions.SNOOZE_REQUEST, {
-        progress: this.$Progress,
+        progress: this.progress,
         requestId: this.form.requestId,
         until: Date.parse(this.form.snoozedUntil)
       })
-      this.toast.showToast(`Request snoozed until ${this.form.snoozedUntil}`, { theme: 'success' })
+      this.messages.$emit('info', `Request snoozed until ${this.form.snoozedUntil}`)
       this.closeDialog()
     }
   }

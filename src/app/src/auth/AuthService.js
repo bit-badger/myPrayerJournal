@@ -1,31 +1,45 @@
 'use strict'
-
-import auth0 from 'auth0-js'
+/* eslint-disable */
+import auth0        from 'auth0-js'
+import EventEmitter from 'events'
 
 import AUTH_CONFIG from './auth0-variables'
-import mutations from '@/store/mutation-types'
+import mutations   from '@/store/mutation-types'
+/* es-lint-enable*/
 
-var tokenRenewalTimeout
+// Auth0 web authentication instance to use for our calls
+const webAuth = new auth0.WebAuth({
+  domain: AUTH_CONFIG.domain,
+  clientID: AUTH_CONFIG.clientId,
+  redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
+  audience: `https://${AUTH_CONFIG.domain}/userinfo`,
+  responseType: 'token id_token',
+  scope: 'openid profile email'
+})
 
-export default class AuthService {
-  constructor () {
-    this.login = this.login.bind(this)
-    this.setSession = this.setSession.bind(this)
-    this.logout = this.logout.bind(this)
-    this.isAuthenticated = this.isAuthenticated.bind(this)
+/**
+ * A class to handle all authentication calls and determinations
+ */
+class AuthService extends EventEmitter {
+  
+  // Local storage key for our session data
+  AUTH_SESSION = 'auth-session'
+
+  // Received and calculated values for our ssesion (initially loaded from local storage if present)
+  session = {}
+
+  constructor() {
+    super()
+    this.refreshSession()
   }
 
-  auth0 = new auth0.WebAuth({
-    domain: AUTH_CONFIG.domain,
-    clientID: AUTH_CONFIG.clientId,
-    redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
-    audience: `https://${AUTH_CONFIG.domain}/userinfo`,
-    responseType: 'token id_token',
-    scope: 'openid profile email'
-  })
-
-  login () {
-    this.auth0.authorize()
+  /**
+   * Starts the user log in flow
+   */
+  login (customState) {
+    webAuth.authorize({
+      appState: customState
+    })
   }
 
   /**
@@ -33,7 +47,7 @@ export default class AuthService {
    */
   parseHash () {
     return new Promise((resolve, reject) => {
-      this.auth0.parseHash((err, authResult) => {
+      webAuth.parseHash((err, authResult) => {
         if (err) {
           reject(err)
         } else {
@@ -44,95 +58,137 @@ export default class AuthService {
   }
 
   /**
-   * Promisified userInfo function
-   *
-   * @param token The auth token from the login result
+   * Handle authentication replies from Auth0
+   * 
+   * @param store The Vuex store
    */
-  userInfo (token) {
-    return new Promise((resolve, reject) => {
-      this.auth0.client.userInfo(token, (err, user) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(user)
-        }
-      })
-    })
-  }
-
-  handleAuthentication (store, router) {
-    this.parseHash()
-      .then(authResult => {
-        if (authResult && authResult.accessToken && authResult.idToken) {
-          this.setSession(authResult)
-          this.userInfo(authResult.accessToken)
-            .then(user => {
-              store.commit(mutations.USER_LOGGED_ON, user)
-              router.replace('/journal')
-            })
-        }
-      })
-      .catch(err => {
-        router.replace('/')
-        console.log(err)
-        alert(`Error: ${err.error}. Check the console for further details.`)
-      })
-  }
-
-  scheduleRenewal () {
-    let expiresAt = JSON.parse(localStorage.getItem('expires_at'))
-    let delay = expiresAt - Date.now()
-    if (delay > 0) {
-      tokenRenewalTimeout = setTimeout(() => {
-        this.renewToken()
-      }, delay)
+  async handleAuthentication (store) {
+    try {
+      const authResult = await this.parseHash()
+      if (authResult && authResult.accessToken && authResult.idToken) {
+        this.setSession(authResult)
+        store.commit(mutations.USER_LOGGED_ON, this.session.profile)
+      }
+    } catch(err) {
+      console.error(err)
+      alert(`Error: ${err.error}. Check the console for further details.`)
     }
   }
 
+  /**
+   * Set up the session and commit it to local storage
+   * 
+   * @param authResult The authorization result
+   */
   setSession (authResult) {
-    // Set the time that the access token will expire at
-    let expiresAt = JSON.stringify(
-      authResult.expiresIn * 1000 + new Date().getTime()
-    )
-    localStorage.setItem('access_token', authResult.accessToken)
-    localStorage.setItem('id_token', authResult.idToken)
-    localStorage.setItem('expires_at', expiresAt)
-    this.scheduleRenewal()
+    this.session.profile = authResult.idTokenPayload
+    this.session.id.token = authResult.idToken
+    this.session.id.expiry = this.session.profile.exp * 1000
+    this.session.access.token = authResult.accessToken
+    this.session.access.expiry = authResult.expiresIn * 1000 + Date.now()
+
+    localStorage.setItem(this.AUTH_SESSION, JSON.stringify(this.session))
+
+    this.emit('loginEvent', {
+      loggedIn: true,
+      profile: authResult.idTokenPayload,
+      state: authResult.appState || {}
+    })
   }
 
-  renewToken () {
-    console.log('attempting renewal...')
-    this.auth0.renewAuth(
-      {
-        audience: `https://${AUTH_CONFIG.domain}/userinfo`,
-        redirectUri: `${AUTH_CONFIG.appDomain}/static/silent.html`,
-        usePostMessage: true
-      },
-      (err, result) => {
-        if (err) {
-          console.log(err)
-        } else {
-          this.setSession(result)
+  /**
+   * Refresh this instance's session from the one in local storage
+   */
+  refreshSession () {
+    this.session = 
+      localStorage.getItem(this.AUTH_SESSION)
+      ? JSON.parse(localStorage.getItem(this.AUTH_SESSION))
+      : { profile: {},
+          id: {
+            token: null,
+            expiry: null
+          },
+          access: {
+            token: null,
+            expiry: null
+          }
         }
+  }
+
+  /**
+   * Renew authorzation tokens with Auth0
+   */
+  renewTokens () {
+    return new Promise((resolve, reject) => {
+      this.refreshSession()
+      if (this.session.id.token !== null) {
+        webAuth.checkSession({}, (err, authResult) => {
+          if (err) {
+            reject(err)
+          } else {
+            this.setSession(authResult)
+            resolve(authResult)
+          }
+        })
+      } else {
+        reject('Not logged in')
       }
-    )
+    })
   }
 
-  logout (store, router) {
+  /**
+   * Log out of myPrayerJournal
+   * 
+   * @param store The Vuex store
+   */
+  logout (store) {
     // Clear access token and ID token from local storage
-    clearTimeout(tokenRenewalTimeout)
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('id_token')
-    localStorage.removeItem('expires_at')
-    localStorage.setItem('user_profile', JSON.stringify({}))
-    // navigate to the home route
+    localStorage.removeItem(this.AUTH_SESSION)
+    this.refreshSession()
+
     store.commit(mutations.USER_LOGGED_OFF)
-    router.replace('/')
+
+    webAuth.logout({
+      returnTo: `${AUTH_CONFIG.appDomain}/`,
+      clientID: AUTH_CONFIG.clientId
+    })
+    this.emit('loginEvent', { loggedIn: false })
   }
 
+  /**
+   * Check expiration for a token (the way it's stored in the session)
+   */
+  checkExpiry = (it) => it.token && it.expiry && Date.now() < it.expiry
+  
+  /**
+   * Is there a user authenticated?
+   */
   isAuthenticated () {
-    // Check whether the current time is past the access token's expiry time
-    let expiresAt = JSON.parse(localStorage.getItem('expires_at'))
-    return new Date().getTime() < expiresAt
+    return this.checkExpiry(this.session.id)
+  }
+
+  /**
+   * Is the current access token valid?
+   */
+  isAccessTokenValid () {
+    return this.checkExpiry(this.session.access)
+  }
+
+  /**
+   * Get the user's access token, renewing it if required
+   */
+  async getAccessToken () {
+    if (this.isAccessTokenValid()) {
+      return this.session.access.token
+    } else {
+      try {
+        const authResult = await this.renewTokens()
+        return authResult.accessToken
+      } catch (reject) {
+        throw reject
+      }
+    }
   }
 }
+
+export default new AuthService()

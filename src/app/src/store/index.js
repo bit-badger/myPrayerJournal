@@ -1,47 +1,59 @@
 'use strict'
 
-import Vue from 'vue'
+/* eslint-disable no-multi-spaces */
+import Vue  from 'vue'
 import Vuex from 'vuex'
 
-import api from '@/api'
-import AuthService from '@/auth/AuthService'
+import api  from '@/api'
+import auth from '@/auth/AuthService'
 
 import mutations from './mutation-types'
-import actions from './action-types'
+import actions   from './action-types'
+/* eslint-enable no-multi-spaces */
 
 Vue.use(Vuex)
 
-const auth0 = new AuthService()
-
+/* eslint-disable no-console */
 const logError = function (error) {
   if (error.response) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx
-    console.log(error.response.data)
-    console.log(error.response.status)
-    console.log(error.response.headers)
+    console.error(error.response.data)
+    console.error(error.response.status)
+    console.error(error.response.headers)
   } else if (error.request) {
     // The request was made but no response was received
     // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
     // http.ClientRequest in node.js
-    console.log(error.request)
+    console.error(error.request)
   } else {
     // Something happened in setting up the request that triggered an Error
-    console.log('Error', error.message)
+    console.error('Error', error.message)
   }
-  console.log(error.config)
+  console.error(`config: ${error.config}`)
 }
+
+/**
+ * Set the "Bearer" authorization header with the current access token
+ */
+const setBearer = async function () {
+  try {
+    await auth.getAccessToken()
+    api.setBearer(auth.session.id.token)
+  } catch (err) {
+    if (err === 'Not logged in') {
+      console.warn('API request attempted when user was not logged in')
+    } else {
+      console.error(err)
+    }
+  }
+}
+/* eslint-enable no-console */
 
 export default new Vuex.Store({
   state: {
-    user: JSON.parse(localStorage.getItem('user_profile') || '{}'),
-    isAuthenticated: (() => {
-      auth0.scheduleRenewal()
-      if (auth0.isAuthenticated()) {
-        api.setBearer(localStorage.getItem('id_token'))
-      }
-      return auth0.isAuthenticated()
-    })(),
+    user: auth.session.profile,
+    isAuthenticated: auth.isAuthenticated(),
     journal: {},
     isLoadingJournal: false
   },
@@ -60,49 +72,60 @@ export default new Vuex.Store({
       if (request.lastStatus !== 'Answered') jrnl.push(request)
       state.journal = jrnl
     },
+    [mutations.SET_AUTHENTICATION] (state, value) {
+      state.isAuthenticated = value
+    },
     [mutations.USER_LOGGED_OFF] (state) {
       state.user = {}
       api.removeBearer()
       state.isAuthenticated = false
     },
     [mutations.USER_LOGGED_ON] (state, user) {
-      localStorage.setItem('user_profile', JSON.stringify(user))
       state.user = user
-      api.setBearer(localStorage.getItem('id_token'))
       state.isAuthenticated = true
     }
   },
   actions: {
     async [actions.ADD_REQUEST] ({ commit }, { progress, requestText, recurType, recurCount }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
+        await setBearer()
         const newRequest = await api.addRequest(requestText, recurType, recurCount)
         commit(mutations.REQUEST_ADDED, newRequest.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
+      }
+    },
+    async [actions.CHECK_AUTHENTICATION] ({ commit }) {
+      try {
+        await auth.getAccessToken()
+        commit(mutations.SET_AUTHENTICATION, auth.isAuthenticated())
+      } catch (_) {
+        commit(mutations.SET_AUTHENTICATION, false)
       }
     },
     async [actions.LOAD_JOURNAL] ({ commit }, progress) {
       commit(mutations.LOADED_JOURNAL, {})
-      progress.start()
+      progress.$emit('show', 'query')
       commit(mutations.LOADING_JOURNAL, true)
-      api.setBearer(localStorage.getItem('id_token'))
+      await setBearer()
       try {
         const jrnl = await api.journal()
         commit(mutations.LOADED_JOURNAL, jrnl.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       } finally {
         commit(mutations.LOADING_JOURNAL, false)
       }
     },
     async [actions.UPDATE_REQUEST] ({ commit, state }, { progress, requestId, status, updateText, recurType, recurCount }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
+        await setBearer()
         let oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
         if (!(status === 'Prayed' && updateText === '')) {
           if (status !== 'Answered' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
@@ -114,34 +137,36 @@ export default new Vuex.Store({
         }
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     },
     async [actions.SHOW_REQUEST_NOW] ({ commit }, { progress, requestId, showAfter }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
+        await setBearer()
         await api.showRequest(requestId, showAfter)
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     },
     async [actions.SNOOZE_REQUEST] ({ commit }, { progress, requestId, until }) {
-      progress.start()
+      progress.$emit('show', 'indeterminate')
       try {
+        await setBearer()
         await api.snoozeRequest(requestId, until)
         const request = await api.getRequest(requestId)
         commit(mutations.REQUEST_UPDATED, request.data)
-        progress.finish()
+        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.fail()
+        progress.$emit('done')
       }
     }
   },

@@ -1,71 +1,52 @@
 <template lang="pug">
-article.mpj-main-content(role='main')
+md-content(role='main').mpj-narrow
   page-title(:title='title')
-  .mpj-narrow
-    label(for='request_text')
-      | Prayer Request
-      br
-      textarea(v-model='form.requestText'
-               :rows='10'
-               @blur='trimText()'
-               autofocus).mpj-full-width
+  md-field
+    label(for='request_text') Prayer Request
+    md-textarea(v-model='form.requestText'
+                @blur='trimText()'
+                md-autogrow
+                autofocus).mpj-full-width
+  br
+  template(v-if='!isNew')
+    label Also Mark As
     br
-    template(v-if='!isNew')
-      label Also Mark As
-      br
-      label.normal
-        input(v-model='form.status'
-              type='radio'
-              name='status'
-              value='Updated')
-        | Updated
-      | &nbsp; &nbsp;
-      label.normal
-        input(v-model='form.status'
-              type='radio'
-              name='status'
-              value='Prayed')
-        | Prayed
-      | &nbsp; &nbsp;
-      label.normal
-        input(v-model='form.status'
-              type='radio'
-              name='status'
-              value='Answered')
-        | Answered
-      br
-    label Recurrence
-    | &nbsp; &nbsp;
-    em.mpj-muted-text After prayer, request reappears...
+    md-radio(v-model='form.status'
+             value='Updated') Updated
+    md-radio(v-model='form.status'
+             value='Prayed') Prayed
+    md-radio(v-model='form.status'
+             value='Answered') Answered
     br
-    label.normal
-      input(v-model='form.recur.typ'
-            type='radio'
-            name='recur'
-            value='immediate')
-      | Immediately
-    | &nbsp; &nbsp;
-    label.normal
-      input(v-model='form.recur.typ'
-            type='radio'
-            name='recur'
-            value='other')
-      | Every...
-    input(v-model='form.recur.count'
-          type='number'
-          :disabled='!showRecurrence').mpj-recur-count
-    select(v-model='form.recur.other'
-           :disabled='!showRecurrence').mpj-recur-type
-      option(value='hours') hours
-      option(value='days') days
-      option(value='weeks') weeks
-    .mpj-text-right
-      button(:disabled='!isValidRecurrence'
-             @click.stop='saveRequest()').primary.
-        #[md-icon(icon='save')] Save
-      | &nbsp; &nbsp;
-      button(@click.stop='goBack()').
-        #[md-icon(icon='arrow_back')] Cancel
+  label Recurrence
+  | &nbsp; &nbsp;
+  em.mpj-muted-text After prayer, request reappears...
+  br
+  .md-layout
+    .md-layout-item.md-size-30
+      md-radio(v-model='form.recur.typ'
+              value='Immediate') Immediately
+    .md-layout-item.md-size-20
+      md-radio(v-model='form.recur.typ'
+              value='other') Every...
+    .md-layout-item.md-size-10
+      md-field(md-inline)
+        label Count
+        md-input(v-model='form.recur.count'
+                type='number'
+                :disabled='!showRecurrence')
+    .md-layout-item.md-size-20
+      md-field
+        label Interval
+        md-select(v-model='form.recur.other'
+                  :disabled='!showRecurrence')
+          md-option(value='Hours') hours
+          md-option(value='Days') days
+          md-option(value='Weeks') weeks
+  .mpj-text-right
+    md-button(:disabled='!isValidRecurrence'
+              @click.stop='saveRequest()').md-primary.md-raised #[md-icon save] Save
+    md-button(@click.stop='goBack()').md-raised #[md-icon arrow_back] Cancel
 </template>
 
 <script>
@@ -77,6 +58,10 @@ import actions from '@/store/action-types'
 
 export default {
   name: 'edit-request',
+  inject: [
+    'messages',
+    'progress'
+  ],
   props: {
     id: {
       type: String,
@@ -92,7 +77,7 @@ export default {
         requestText: '',
         status: 'Updated',
         recur: {
-          typ: 'immediate',
+          typ: 'Immediate',
           other: '',
           count: ''
         }
@@ -101,19 +86,16 @@ export default {
   },
   computed: {
     isValidRecurrence () {
-      if (this.form.recur.typ === 'immediate') return true
+      if (this.form.recur.typ === 'Immediate') return true
       const count = Number.parseInt(this.form.recur.count)
       if (isNaN(count) || this.form.recur.other === '') return false
-      if (this.form.recur.other === 'hours' && count > (365 * 24)) return false
-      if (this.form.recur.other === 'days' && count > 365) return false
-      if (this.form.recur.other === 'weeks' && count > 52) return false
+      if (this.form.recur.other === 'Hours' && count > (365 * 24)) return false
+      if (this.form.recur.other === 'Days' && count > 365) return false
+      if (this.form.recur.other === 'Weeks' && count > 52) return false
       return true
     },
     showRecurrence () {
-      return this.form.recur.typ !== 'immediate'
-    },
-    toast () {
-      return this.$parent.$refs.toast
+      return this.form.recur.typ !== 'Immediate'
     },
     ...mapState(['journal'])
   },
@@ -125,21 +107,21 @@ export default {
       this.form.requestId = ''
       this.form.requestText = ''
       this.form.status = 'Created'
-      this.form.recur.typ = 'immediate'
+      this.form.recur.typ = 'Immediate'
       this.form.recur.other = ''
       this.form.recur.count = ''
     } else {
       this.title = 'Edit Prayer Request'
       this.isNew = false
       if (this.journal.length === 0) {
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
       const req = this.journal.filter(r => r.requestId === this.id)[0]
       this.form.requestId = this.id
       this.form.requestText = req.text
       this.form.status = 'Updated'
-      if (req.recurType === 'immediate') {
-        this.form.recur.typ = 'immediate'
+      if (req.recurType === 'Immediate') {
+        this.form.recur.typ = 'Immediate'
         this.form.recur.other = ''
         this.form.recur.count = ''
       } else {
@@ -158,31 +140,31 @@ export default {
     },
     async ensureJournal () {
       if (!Array.isArray(this.journal)) {
-        await this.$store.dispatch(actions.LOAD_JOURNAL, this.$Progress)
+        await this.$store.dispatch(actions.LOAD_JOURNAL, this.progress)
       }
     },
     async saveRequest () {
       if (this.isNew) {
         await this.$store.dispatch(actions.ADD_REQUEST, {
-          progress: this.$Progress,
+          progress: this.progress,
           requestText: this.form.requestText,
-          recurType: this.form.recur.typ === 'immediate' ? 'immediate' : this.form.recur.other,
-          recurCount: this.form.recur.typ === 'immediate' ? 0 : Number.parseInt(this.form.recur.count)
+          recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
+          recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
         })
-        this.toast.showToast('New prayer request added', { theme: 'success' })
+        this.messages.$emit('info', 'New prayer request added')
       } else {
         await this.$store.dispatch(actions.UPDATE_REQUEST, {
-          progress: this.$Progress,
+          progress: this.progress,
           requestId: this.form.requestId,
           updateText: this.form.requestText,
           status: this.form.status,
-          recurType: this.form.recur.typ === 'immediate' ? 'immediate' : this.form.recur.other,
-          recurCount: this.form.recur.typ === 'immediate' ? 0 : Number.parseInt(this.form.recur.count)
+          recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
+          recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
         })
         if (this.form.status === 'Answered') {
-          this.toast.showToast('Request updated and removed from active journal', { theme: 'success' })
+          this.messages.$emit('info', 'Request updated and removed from active journal')
         } else {
-          this.toast.showToast('Request updated', { theme: 'success' })
+          this.messages.$emit('info', 'Request updated')
         }
       }
       this.goBack()
@@ -190,15 +172,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.mpj-recur-count {
-  width: 3rem;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.mpj-recur-type {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-</style>
