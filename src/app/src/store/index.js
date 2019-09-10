@@ -50,6 +50,14 @@ const setBearer = async function () {
 }
 /* eslint-enable no-console */
 
+/**
+ * Sort journal requests either by asOf or showAfter
+ */
+const journalSort = function (a, b) {
+  const sortValue = x => x.showAfter === 0 ? x.asOf : x.showAfter
+  return sortValue(a) - sortValue(b)
+}
+
 export default new Vuex.Store({
   state: {
     user: auth.session.profile,
@@ -62,7 +70,7 @@ export default new Vuex.Store({
       state.isLoadingJournal = flag
     },
     [mutations.LOADED_JOURNAL] (state, journal) {
-      state.journal = journal
+      state.journal = journal.sort(journalSort)
     },
     [mutations.REQUEST_ADDED] (state, newRequest) {
       state.journal.push(newRequest)
