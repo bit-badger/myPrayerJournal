@@ -51,18 +51,21 @@ const setBearer = async function () {
 /* eslint-enable no-console */
 
 /**
+ * Get the sort value for a prayer request
+ * @param x The prayer request
+ */
+const sortValue = x => x.showAfter === 0 ? x.asOf : x.showAfter
+
+/**
  * Sort journal requests either by asOf or showAfter
  */
-const journalSort = function (a, b) {
-  const sortValue = x => x.showAfter === 0 ? x.asOf : x.showAfter
-  return sortValue(a) - sortValue(b)
-}
+const journalSort = (a, b) => sortValue(a) - sortValue(b)
 
 export default new Vuex.Store({
   state: {
     user: auth.session.profile,
     isAuthenticated: auth.isAuthenticated(),
-    journal: {},
+    journal: [],
     isLoadingJournal: false
   },
   mutations: {
@@ -115,7 +118,7 @@ export default new Vuex.Store({
       }
     },
     async [actions.LOAD_JOURNAL] ({ commit }, progress) {
-      commit(mutations.LOADED_JOURNAL, {})
+      commit(mutations.LOADED_JOURNAL, [])
       progress.$emit('show', 'query')
       commit(mutations.LOADING_JOURNAL, true)
       await setBearer()
