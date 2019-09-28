@@ -90,11 +90,12 @@ module Configure =
     bldr.ConfigureServices svcs
   
   open Microsoft.Extensions.Logging
+  open Microsoft.Extensions.Hosting
 
   /// Configure logging
   let logging (bldr : IWebHostBuilder) =
     let logz (log : ILoggingBuilder) =
-      let env = log.Services.BuildServiceProvider().GetService<IHostingEnvironment> ()
+      let env = log.Services.BuildServiceProvider().GetService<IWebHostEnvironment> ()
       match env.IsDevelopment () with
       | true -> log
       | false -> log.AddFilter(fun l -> l > LogLevel.Information)
@@ -109,7 +110,7 @@ module Configure =
     let appConfig =
       Action<IApplicationBuilder> (
         fun (app : IApplicationBuilder) ->
-            let env = app.ApplicationServices.GetService<IHostingEnvironment> ()
+            let env = app.ApplicationServices.GetService<IWebHostEnvironment> ()
             match env.IsDevelopment () with
             | true -> app.UseDeveloperExceptionPage ()
             | false -> app.UseGiraffeErrorHandler Handlers.Error.error

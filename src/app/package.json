@@ -1,6 +1,6 @@
 {
   "name": "my-prayer-journal",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "myPrayerJournal - Front End",
   "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
   "private": true,
@@ -10,7 +10,7 @@
     "lint": "vue-cli-service lint",
     "apistart": "cd ../MyPrayerJournal.Api && dotnet run",
     "vue": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet run",
-    "publish": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet publish -c Release"
+    "publish": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet publish -c Release -r linux-x64 --self-contained false"
   },
   "dependencies": {
     "auth0-js": "^9.7.3",

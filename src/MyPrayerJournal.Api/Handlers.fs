@@ -85,6 +85,15 @@ module private Helpers =
   /// Flip JSON result so we can pipe into it
   let asJson<'T> next ctx (o : 'T) =
     json o next ctx
+  
+  /// Work-around to let the Json.NET serializer synchronously deserialize from the request stream
+  // TODO: Remove this once there is an async serializer
+  let allowSyncIO : HttpHandler =
+    fun next ctx ->
+      match ctx.Features.Get<Features.IHttpBodyControlFeature>() with
+      | null -> ()
+      | f -> f.AllowSynchronousIO <- true
+      next ctx
 
 
 /// Strongly-typed models for post requests
@@ -156,6 +165,7 @@ module Request =
   /// POST /api/request
   let add : HttpHandler =
     authorize
+    >=> allowSyncIO
     >=> fun next ctx ->
       task {
         let! r     = ctx.BindJsonAsync<Models.Request> ()
@@ -187,6 +197,7 @@ module Request =
   /// POST /api/request/[req-id]/history
   let addHistory requestId : HttpHandler =
     authorize
+    >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -218,6 +229,7 @@ module Request =
   /// POST /api/request/[req-id]/note
   let addNote requestId : HttpHandler =
     authorize
+    >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -297,6 +309,7 @@ module Request =
   /// PATCH /api/request/[req-id]/snooze
   let snooze requestId : HttpHandler =
     authorize
+    >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -314,6 +327,7 @@ module Request =
   /// PATCH /api/request/[req-id]/recurrence
   let updateRecurrence requestId : HttpHandler =
     authorize
+    >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx

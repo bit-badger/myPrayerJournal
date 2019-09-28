@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
-    <Version>2.0.1.0</Version>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <Version>2.1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +16,7 @@
     <PackageReference Include="FunctionalCuid" Version="1.0.0" />
     <PackageReference Include="Giraffe" Version="3.6.0" />
     <PackageReference Include="Giraffe.TokenRouter" Version="1.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.0.0" />
     <PackageReference Include="Microsoft.FSharpLu" Version="0.10.29" />
     <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.10.29" />
     <PackageReference Include="RavenDb.Client" Version="4.2.1" />
