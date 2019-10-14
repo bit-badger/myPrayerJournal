@@ -10,7 +10,7 @@ md-dialog(:md-active.sync='notesVisible').mpj-note-dialog
   md-dialog-actions
     md-button(@click='saveNotes()').md-primary #[md-icon save] Save
     md-button(@click='closeDialog()') #[md-icon undo] Cancel
-  .mpj-dialog-content
+  md-dialog-content(md-scrollbar='true').mpj-dialog-content
     div(v-if='hasPriorNotes')
       p.mpj-text-center: strong Prior Notes for This Request
       .mpj-note-list
@@ -71,7 +71,7 @@ export default {
       this.progress.$emit('show', 'indeterminate')
       try {
         const notes = await api.getNotes(this.form.requestId)
-        this.priorNotes = notes.data
+        this.priorNotes = notes.data.sort((a, b) => b.asOf - a.asOf)
         this.progress.$emit('done')
       } catch (e) {
         console.error(e)
