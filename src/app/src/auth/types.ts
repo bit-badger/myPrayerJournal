@@ -1,10 +1,11 @@
 /** A token and expiration set */
 export class Token {
-  /** The actual token */
-  token: string = ''
-
-  /** The expiration for the token */
-  expiry: number = 0
+  /**
+   * Create a new token
+   * @param token The actual token
+   * @param expiry The expiration for the token
+   */
+  constructor (public token: string, public expiry: number) { } // eslint-disable-line no-useless-constructor
 
   /** Whether this token is currently valid */
   isValid (): boolean {
@@ -18,8 +19,8 @@ export class Session {
   profile: any = {}
 
   /** The user's ID token */
-  id = new Token()
+  id = new Token('', 0)
 
   /** The user's access token */
-  access = new Token()
+  access = new Token('', 0)
 }

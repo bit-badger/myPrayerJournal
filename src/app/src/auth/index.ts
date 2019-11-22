@@ -5,7 +5,7 @@ import { EventEmitter } from 'events'
 import { Mutations, AppState } from '@/store/types'
 
 import Auth0Config from './auth0-variables'
-import { Session } from './types'
+import { Session, Token } from './types'
 
 // Auth0 web authentication instance to use for our calls
 const webAuth = new auth0.WebAuth({
@@ -79,10 +79,8 @@ class AuthService extends EventEmitter {
    */
   setSession (authResult: Auth0DecodedHash) {
     this.session.profile = authResult.idTokenPayload
-    this.session.id.token = authResult.idToken!
-    this.session.id.expiry = this.session.profile.exp * 1000
-    this.session.access.token = authResult.accessToken!
-    this.session.access.expiry = authResult.expiresIn! * 1000 + Date.now()
+    this.session.id = new Token(authResult.idToken!, this.session.profile.exp * 1000)
+    this.session.access = new Token(authResult.accessToken!, authResult.expiresIn! * 1000 + Date.now())
 
     localStorage.setItem(this.AUTH_SESSION, JSON.stringify(this.session))
 
@@ -97,21 +95,10 @@ class AuthService extends EventEmitter {
    * Refresh this instance's session from the one in local storage
    */
   refreshSession () {
-    const emptySession = {
-      profile: {},
-      id: {
-        token: null,
-        expiry: null
-      },
-      access: {
-        token: null,
-        expiry: null
-      }
-    }
     this.session =
       localStorage.getItem(this.AUTH_SESSION)
         ? JSON.parse(localStorage.getItem(this.AUTH_SESSION) || '{}')
-        : emptySession
+        : new Session()
   }
 
   /**
@@ -158,14 +145,14 @@ class AuthService extends EventEmitter {
    * Is there a user authenticated?
    */
   isAuthenticated () {
-    return this.session.id.isValid()
+    return this.session && this.session.id && this.session.id.isValid()
   }
 
   /**
    * Is the current access token valid?
    */
   isAccessTokenValid () {
-    return this.session.access.isValid()
+    return this.session && this.session.access && this.session.access.isValid()
   }
 
   /**
