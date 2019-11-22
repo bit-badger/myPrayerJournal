@@ -21,11 +21,11 @@ import { MdApp,
          MdTooltip } from 'vue-material/dist/components'
 
 // myPrayerJournal components
-import App         from './App'
+import App         from './App.vue'
 import router      from './router'
 import store       from './store'
-import DateFromNow from './components/common/DateFromNow'
-import PageTitle   from './components/common/PageTitle'
+import DateFromNow from './components/common/DateFromNow.vue'
+import PageTitle   from './components/common/PageTitle.vue'
 import AuthPlugin  from './plugins/auth'
 
 /* eslint-enable */

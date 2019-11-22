@@ -1,7 +1,7 @@
 'use strict'
 /* eslint-disable */
-import auth0        from 'auth0-js'
-import EventEmitter from 'events'
+import auth0            from 'auth0-js'
+import { EventEmitter } from 'events'
 
 import AUTH_CONFIG from './auth0-variables'
 import mutations   from '@/store/mutation-types'
@@ -26,7 +26,7 @@ class AuthService extends EventEmitter {
   AUTH_SESSION = 'auth-session'
 
   // Received and calculated values for our ssesion (initially loaded from local storage if present)
-  session = {}
+  session: any = {}
 
   constructor() {
     super()
@@ -64,7 +64,7 @@ class AuthService extends EventEmitter {
    */
   async handleAuthentication (store) {
     try {
-      const authResult = await this.parseHash()
+      const authResult: any = await this.parseHash()
       if (authResult && authResult.accessToken && authResult.idToken) {
         this.setSession(authResult)
         store.commit(mutations.USER_LOGGED_ON, this.session.profile)
@@ -102,7 +102,7 @@ class AuthService extends EventEmitter {
   refreshSession () {
     this.session = 
       localStorage.getItem(this.AUTH_SESSION)
-      ? JSON.parse(localStorage.getItem(this.AUTH_SESSION))
+      ? JSON.parse(localStorage.getItem(this.AUTH_SESSION) || '{}')
       : { profile: {},
           id: {
             token: null,
@@ -182,7 +182,7 @@ class AuthService extends EventEmitter {
       return this.session.access.token
     } else {
       try {
-        const authResult = await this.renewTokens()
+        const authResult: any = await this.renewTokens()
         return authResult.accessToken
       } catch (reject) {
         throw reject

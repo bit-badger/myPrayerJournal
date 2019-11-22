@@ -61,11 +61,13 @@ const sortValue = x => x.showAfter === 0 ? x.asOf : x.showAfter
  */
 const journalSort = (a, b) => sortValue(a) - sortValue(b)
 
+const emptyJournal: any = []
+
 export default new Vuex.Store({
   state: {
     user: auth.session.profile,
     isAuthenticated: auth.isAuthenticated(),
-    journal: [],
+    journal: emptyJournal,
     isLoadingJournal: false
   },
   mutations: {
@@ -137,7 +139,7 @@ export default new Vuex.Store({
       progress.$emit('show', 'indeterminate')
       try {
         await setBearer()
-        const oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
+        const oldReq: any = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
         if (!(status === 'Prayed' && updateText === '')) {
           if (status !== 'Answered' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
             await api.updateRecurrence(requestId, recurType, recurCount)
