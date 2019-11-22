@@ -39,7 +39,7 @@ export default {
   },
   methods: {
     updateFromNow () {
-      let newFromNow = moment(this.value).fromNow()
+      const newFromNow = moment(this.value).fromNow()
       if (newFromNow !== this.fromNow) this.fromNow = newFromNow
     }
   },

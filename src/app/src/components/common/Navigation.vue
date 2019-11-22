@@ -42,7 +42,7 @@ export default {
         Array.isArray(this.journal) &&
         this.journal.filter(req => req.snoozedUntil > Date.now()).length > 0
     },
-    ...mapState([ 'isAuthenticated', 'journal' ])
+    ...mapState(['isAuthenticated', 'journal'])
   },
   methods: {
     logOn () {

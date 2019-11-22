@@ -81,7 +81,7 @@ export default {
       this.request = req.data
       this.progress.$emit('done')
     } catch (e) {
-      console.log(e)
+      console.log(e) // eslint-disable-line no-console
       this.progress.$emit('done')
     }
   },

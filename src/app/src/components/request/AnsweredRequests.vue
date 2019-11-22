@@ -42,7 +42,7 @@ export default {
       this.requests = reqs.data
       this.progress.$emit('done')
     } catch (err) {
-      console.error(err)
+      console.error(err) // eslint-disable-line no-console
       this.messages.$emit('error', 'Error loading requests; check console for details')
       this.progress.$emit('done')
     } finally {

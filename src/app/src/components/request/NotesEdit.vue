@@ -74,7 +74,7 @@ export default {
         this.priorNotes = notes.data.sort((a, b) => b.asOf - a.asOf)
         this.progress.$emit('done')
       } catch (e) {
-        console.error(e)
+        console.error(e) // eslint-disable-line no-console
         this.progress.$emit('done')
       } finally {
         this.priorNotesLoaded = true
@@ -92,7 +92,7 @@ export default {
         this.messages.$emit('info', 'Added notes')
         this.closeDialog()
       } catch (e) {
-        console.error(e)
+        console.error(e) // eslint-disable-line no-console
         this.progress.$emit('done')
       }
     },

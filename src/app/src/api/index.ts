@@ -15,12 +15,12 @@ export default {
    * Set the bearer token for all future requests
    * @param {string} token The token to use to identify the user to the server
    */
-  setBearer: token => { http.defaults.headers.common['Authorization'] = `Bearer ${token}` },
+  setBearer: token => { http.defaults.headers.common.Authorization = `Bearer ${token}` },
 
   /**
    * Remove the bearer token
    */
-  removeBearer: () => delete http.defaults.headers.common['Authorization'],
+  removeBearer: () => delete http.defaults.headers.common.Authorization,
 
   /**
    * Add a note for a prayer request
