@@ -1,12 +1,8 @@
-'use strict'
-
-/* eslint-disable */
-import Vue    from 'vue'
+import Vue from 'vue'
 import Router from 'vue-router'
 
-import auth from './auth/AuthService'
+import auth from '@/auth'
 import Home from '@/components/Home.vue'
-/* eslint-enable */
 
 Vue.use(Router)
 

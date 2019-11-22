@@ -35,7 +35,7 @@ import Vue from 'vue'
 
 import Navigation from '@/components/common/Navigation'
 
-import actions from '@/store/action-types'
+import { Actions } from '@/store/types'
 import { version } from '../package.json'
 
 export default {
@@ -63,7 +63,7 @@ export default {
     this.progress.events.$on('done', this.hideProgress)
     this.snackbar.events.$on('info', this.showInfo)
     this.snackbar.events.$on('error', this.showError)
-    await this.$store.dispatch(actions.CHECK_AUTHENTICATION)
+    await this.$store.dispatch(Actions.CheckAuthentication)
   },
   computed: {
     version () {

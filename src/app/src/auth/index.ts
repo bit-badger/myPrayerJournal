@@ -1,18 +1,18 @@
-'use strict'
-/* eslint-disable */
-import auth0            from 'auth0-js'
+import { Store } from 'vuex'
+import auth0, { Auth0DecodedHash } from 'auth0-js'
 import { EventEmitter } from 'events'
 
-import AUTH_CONFIG from './auth0-variables'
-import mutations   from '@/store/mutation-types'
-/* es-lint-enable*/
+import { Mutations, AppState } from '@/store/types'
+
+import Auth0Config from './auth0-variables'
+import { Session } from './types'
 
 // Auth0 web authentication instance to use for our calls
 const webAuth = new auth0.WebAuth({
-  domain: AUTH_CONFIG.domain,
-  clientID: AUTH_CONFIG.clientId,
-  redirectUri: AUTH_CONFIG.appDomain + AUTH_CONFIG.callbackUrl,
-  audience: `https://${AUTH_CONFIG.domain}/userinfo`,
+  domain: Auth0Config.domain,
+  clientID: Auth0Config.clientId,
+  redirectUri: Auth0Config.appDomain + Auth0Config.callbackUrl,
+  audience: `https://${Auth0Config.domain}/userinfo`,
   responseType: 'token id_token',
   scope: 'openid profile email'
 })
@@ -21,14 +21,13 @@ const webAuth = new auth0.WebAuth({
  * A class to handle all authentication calls and determinations
  */
 class AuthService extends EventEmitter {
-  
   // Local storage key for our session data
   AUTH_SESSION = 'auth-session'
 
   // Received and calculated values for our ssesion (initially loaded from local storage if present)
-  session: any = {}
+  session = new Session()
 
-  constructor() {
+  constructor () {
     super()
     this.refreshSession()
   }
@@ -36,7 +35,7 @@ class AuthService extends EventEmitter {
   /**
    * Starts the user log in flow
    */
-  login (customState) {
+  login (customState: any) {
     webAuth.authorize({
       appState: customState
     })
@@ -45,10 +44,10 @@ class AuthService extends EventEmitter {
   /**
    * Promisified parseHash function
    */
-  parseHash () {
+  parseHash (): Promise<Auth0DecodedHash> {
     return new Promise((resolve, reject) => {
       webAuth.parseHash((err, authResult) => {
-        if (err) {
+        if (err || authResult === null) {
           reject(err)
         } else {
           resolve(authResult)
@@ -59,33 +58,31 @@ class AuthService extends EventEmitter {
 
   /**
    * Handle authentication replies from Auth0
-   * 
    * @param store The Vuex store
    */
-  async handleAuthentication (store) {
+  async handleAuthentication (store: Store<AppState>) {
     try {
-      const authResult: any = await this.parseHash()
+      const authResult = await this.parseHash()
       if (authResult && authResult.accessToken && authResult.idToken) {
         this.setSession(authResult)
-        store.commit(mutations.USER_LOGGED_ON, this.session.profile)
+        store.commit(Mutations.UserLoggedOn, this.session.profile)
       }
-    } catch(err) {
-      console.error(err)
+    } catch (err) {
+      console.error(err) // eslint-disable-line no-console
       alert(`Error: ${err.error}. Check the console for further details.`)
     }
   }
 
   /**
    * Set up the session and commit it to local storage
-   * 
    * @param authResult The authorization result
    */
-  setSession (authResult) {
+  setSession (authResult: Auth0DecodedHash) {
     this.session.profile = authResult.idTokenPayload
-    this.session.id.token = authResult.idToken
+    this.session.id.token = authResult.idToken!
     this.session.id.expiry = this.session.profile.exp * 1000
-    this.session.access.token = authResult.accessToken
-    this.session.access.expiry = authResult.expiresIn * 1000 + Date.now()
+    this.session.access.token = authResult.accessToken!
+    this.session.access.expiry = authResult.expiresIn! * 1000 + Date.now()
 
     localStorage.setItem(this.AUTH_SESSION, JSON.stringify(this.session))
 
@@ -100,25 +97,27 @@ class AuthService extends EventEmitter {
    * Refresh this instance's session from the one in local storage
    */
   refreshSession () {
-    this.session = 
+    const emptySession = {
+      profile: {},
+      id: {
+        token: null,
+        expiry: null
+      },
+      access: {
+        token: null,
+        expiry: null
+      }
+    }
+    this.session =
       localStorage.getItem(this.AUTH_SESSION)
-      ? JSON.parse(localStorage.getItem(this.AUTH_SESSION) || '{}')
-      : { profile: {},
-          id: {
-            token: null,
-            expiry: null
-          },
-          access: {
-            token: null,
-            expiry: null
-          }
-        }
+        ? JSON.parse(localStorage.getItem(this.AUTH_SESSION) || '{}')
+        : emptySession
   }
 
   /**
    * Renew authorzation tokens with Auth0
    */
-  renewTokens () {
+  renewTokens (): Promise<Auth0DecodedHash> {
     return new Promise((resolve, reject) => {
       this.refreshSession()
       if (this.session.id.token !== null) {
@@ -126,67 +125,58 @@ class AuthService extends EventEmitter {
           if (err) {
             reject(err)
           } else {
-            this.setSession(authResult)
-            resolve(authResult)
+            const result = authResult as Auth0DecodedHash
+            this.setSession(result)
+            resolve(result)
           }
         })
       } else {
-        reject('Not logged in')
+        reject(new Error('Not logged in'))
       }
     })
   }
 
   /**
    * Log out of myPrayerJournal
-   * 
    * @param store The Vuex store
    */
-  logout (store) {
+  logout (store: Store<AppState>) {
     // Clear access token and ID token from local storage
     localStorage.removeItem(this.AUTH_SESSION)
     this.refreshSession()
 
-    store.commit(mutations.USER_LOGGED_OFF)
+    store.commit(Mutations.UserLoggedOff)
 
     webAuth.logout({
-      returnTo: `${AUTH_CONFIG.appDomain}/`,
-      clientID: AUTH_CONFIG.clientId
+      returnTo: `${Auth0Config.appDomain}/`,
+      clientID: Auth0Config.clientId
     })
     this.emit('loginEvent', { loggedIn: false })
   }
 
   /**
-   * Check expiration for a token (the way it's stored in the session)
-   */
-  checkExpiry = (it) => it.token && it.expiry && Date.now() < it.expiry
-  
-  /**
    * Is there a user authenticated?
    */
   isAuthenticated () {
-    return this.checkExpiry(this.session.id)
+    return this.session.id.isValid()
   }
 
   /**
    * Is the current access token valid?
    */
   isAccessTokenValid () {
-    return this.checkExpiry(this.session.access)
+    return this.session.access.isValid()
   }
 
   /**
    * Get the user's access token, renewing it if required
    */
-  async getAccessToken () {
+  async getAccessToken (): Promise<string> {
     if (this.isAccessTokenValid()) {
       return this.session.access.token
     } else {
-      try {
-        const authResult: any = await this.renewTokens()
-        return authResult.accessToken
-      } catch (reject) {
-        throw reject
-      }
+      const authResult = await this.renewTokens()
+      return authResult.accessToken!
     }
   }
 }

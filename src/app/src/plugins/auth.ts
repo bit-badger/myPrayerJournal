@@ -1,6 +1,4 @@
-'use strict'
-
-import authService from '../auth/AuthService'
+import authService from '@/auth'
 
 export default {
   install (Vue) {
