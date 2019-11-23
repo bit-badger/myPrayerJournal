@@ -1,7 +1,8 @@
-import authService from '@/auth'
+import { inject, provide } from '@vue/composition-api'
+import authService, { AuthService } from '@/auth'
 
 export default {
-  install (Vue) {
+  install (Vue: any) {
     Vue.prototype.$auth = authService
 
     Vue.mixin({
@@ -17,4 +18,19 @@ export default {
       }
     })
   }
+}
+
+const AuthSymbol = Symbol('Auth service')
+
+export function provideAuth (auth: AuthService) {
+  provide(AuthSymbol, auth)
+}
+
+/** Use the auth service */
+export function useAuth (): AuthService {
+  const auth = inject(AuthSymbol)
+  if (!auth) {
+    throw new Error('Auth not configured!')
+  }
+  return auth as AuthService
 }

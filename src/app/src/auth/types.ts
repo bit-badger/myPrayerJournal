@@ -6,11 +6,6 @@ export class Token {
    * @param expiry The expiration for the token
    */
   constructor (public token: string, public expiry: number) { } // eslint-disable-line no-useless-constructor
-
-  /** Whether this token is currently valid */
-  isValid (): boolean {
-    return this.token !== '' && this.expiry !== 0 && Date.now() < this.expiry
-  }
 }
 
 /** A user's current session */

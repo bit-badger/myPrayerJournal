@@ -1,6 +1,5 @@
-<script>
-'use strict'
-
+<script lang="ts">
+import { computed, createElement, onBeforeUnmount, onMounted, ref } from '@vue/composition-api'
 import moment from 'moment'
 
 export default {
@@ -19,35 +18,32 @@ export default {
       default: 10000
     }
   },
-  data () {
-    return {
-      fromNow: moment(this.value).fromNow(),
-      intervalId: null
+  setup (props: any) {
+    /** Interval ID for updating relative time */
+    let intervalId: number = 0
+
+    /** The relative time string */
+    const fromNow = ref(moment(props.value).fromNow())
+
+    /** The actual date/time (used as the title for the relative time) */
+    const actual = computed(() => moment(props.value).format('LLLL'))
+
+    /** Update the relative time string if it is different */
+    const updateFromNow = () => {
+      const newFromNow = moment(props.value).fromNow()
+      if (newFromNow !== fromNow.value) fromNow.value = newFromNow
     }
-  },
-  computed: {
-    actual () {
-      return moment(this.value).format('LLLL')
-    }
-  },
-  mounted () {
-    this.intervalId = setInterval(this.updateFromNow, this.interval)
-    this.$watch('value', this.updateFromNow)
-  },
-  beforeDestroy () {
-    clearInterval(this.intervalId)
-  },
-  methods: {
-    updateFromNow () {
-      const newFromNow = moment(this.value).fromNow()
-      if (newFromNow !== this.fromNow) this.fromNow = newFromNow
-    }
-  },
-  render (createElement) {
-    return createElement(this.tag, {
+
+    /** Refresh the relative time string to keep it accurate */
+    onMounted(() => { intervalId = setInterval(updateFromNow, props.interval) })
+
+    /** Cancel refreshing the time string represented with this component */
+    onBeforeUnmount(() => clearInterval(intervalId))
+
+    return () => createElement(props.tag, {
       domProps: {
-        title: this.actual,
-        innerText: this.fromNow
+        title: actual.value,
+        innerText: fromNow.value
       }
     })
   }

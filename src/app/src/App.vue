@@ -10,13 +10,13 @@
             span(style='font-weight:700;') Journal
       navigation
     md-app-content
-      md-progress-bar(v-if='progress.visible'
-                      :md-mode='progress.mode')
+      md-progress-bar(v-if='progress.visible.value'
+                      :md-mode='progress.mode.value')
       router-view
-      md-snackbar(:md-active.sync='snackbar.visible'
+      md-snackbar(:md-active.sync='snackbar.visible.value'
                   md-position='center'
-                  :md-duration='snackbar.interval'
-                  ref='snackbar') {{ snackbar.message }}
+                  :md-duration='snackbar.interval.value'
+                  ref='snackbar') {{ snackbar.message.value }}
       footer
         p.mpj-muted-text.mpj-text-right
           | myPrayerJournal v{{ version }}
@@ -28,82 +28,119 @@
             #[a(href='https://bitbadger.solutions' target='_blank') Bit Badger Solutions]
 </template>
 
-<script>
-'use strict'
-
+<script lang="ts">
 import Vue from 'vue'
+import { computed, ref, onMounted, provide } from '@vue/composition-api'
 
-import Navigation from '@/components/common/Navigation'
+import Navigation from '@/components/common/Navigation.vue'
 
-import { Actions } from '@/store/types'
-import { version } from '../package.json'
+import auth from './auth'
+import router from './router'
+import store from './store'
+import { Actions } from './store/types'
+
+import { provideAuth } from './plugins/auth'
+import { provideRouter } from './plugins/router'
+import { provideStore } from './plugins/store'
+// import { version } = require('../package.json')
+
+function useSnackbar () {
+  const events = new Vue()
+  const visible = ref(false)
+  const message = ref('')
+  const interval = ref(4000)
+
+  const showSnackbar = (msg: string) => {
+    message.value = msg
+    visible.value = true
+  }
+
+  const showInfo = (msg: string) => {
+    interval.value = 4000
+    showSnackbar(msg)
+  }
+
+  const showError = (msg: string) => {
+    interval.value = Infinity
+    showSnackbar(msg)
+  }
+
+  onMounted(() => {
+    events.$on('info', showInfo)
+    events.$on('error', showError)
+  })
+
+  return {
+    events,
+    visible,
+    message,
+    interval,
+    showSnackbar,
+    showInfo,
+    showError
+  }
+}
+
+function useProgress () {
+  const events = new Vue()
+  const visible = ref(false)
+  const mode = ref('query')
+
+  const showProgress = (mod: string) => {
+    mode.value = mod
+    visible.value = true
+  }
+
+  const hideProgress = () => { visible.value = false }
+
+  onMounted(() => {
+    events.$on('show', showProgress)
+    events.$on('done', hideProgress)
+  })
+
+  return {
+    events,
+    visible,
+    mode,
+    showProgress,
+    hideProgress
+  }
+}
 
 export default {
   name: 'app',
   components: {
     Navigation
   },
-  data () {
+  setup () {
+    const pkg = require('../package.json')
+
+    provideAuth(auth)
+    provideRouter(router)
+    provideStore(store)
+
+    const version = computed(() =>
+      pkg.version.endsWith('.0')
+        ? pkg.version.endsWith('.0.0')
+          ? pkg.version.substr(0, pkg.version.length - 4)
+          : pkg.version.substr(0, pkg.version.length - 2)
+        : pkg.version)
+
+    const progress = useProgress()
+    const snackbar = useSnackbar()
+
+    onMounted(async () => store.dispatch(Actions.CheckAuthentication))
+
+    const SnackbarSymbol = Symbol('Snackbar events')
+    provide(SnackbarSymbol, snackbar.events)
+
+    const ProgressSymbol = Symbol('Progress events')
+    provide(ProgressSymbol, progress.events)
+
     return {
-      progress: {
-        events: new Vue(),
-        visible: false,
-        mode: 'query'
-      },
-      snackbar: {
-        events: new Vue(),
-        visible: false,
-        message: '',
-        interval: 4000
-      }
-    }
-  },
-  async mounted () {
-    this.progress.events.$on('show', this.showProgress)
-    this.progress.events.$on('done', this.hideProgress)
-    this.snackbar.events.$on('info', this.showInfo)
-    this.snackbar.events.$on('error', this.showError)
-    await this.$store.dispatch(Actions.CheckAuthentication)
-  },
-  computed: {
-    version () {
-      return version.endsWith('.0')
-        ? version.endsWith('.0.0')
-          ? version.substr(0, version.length - 4)
-          : version.substr(0, version.length - 2)
-        : version
-    }
-  },
-  methods: {
-    showSnackbar (message) {
-      this.snackbar.message = message
-      this.snackbar.visible = true
-    },
-    showInfo (message) {
-      this.snackbar.interval = 4000
-      this.showSnackbar(message)
-    },
-    showError (message) {
-      this.snackbar.interval = Infinity
-      this.showSnackbar(message)
-    },
-    showProgress (mode) {
-      this.progress.mode = mode
-      this.progress.visible = true
-    },
-    hideProgress () {
-      this.progress.visible = false
-    },
-    handleLoginEvent (data) {
-      if (!data.loggedIn) {
-        this.showInfo('Logged out successfully')
-      }
-    }
-  },
-  provide () {
-    return {
-      messages: this.snackbar.events,
-      progress: this.progress.events
+      version,
+      progress,
+      snackbar
     }
   }
 }

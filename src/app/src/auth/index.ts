@@ -20,7 +20,7 @@ const webAuth = new auth0.WebAuth({
 /**
  * A class to handle all authentication calls and determinations
  */
-class AuthService extends EventEmitter {
+export class AuthService extends EventEmitter {
   // Local storage key for our session data
   AUTH_SESSION = 'auth-session'
 
@@ -34,8 +34,9 @@ class AuthService extends EventEmitter {
 
   /**
    * Starts the user log in flow
+   * @param customState Application state to be returned after user has authenticated
    */
-  login (customState: any) {
+  login (customState?: any) {
     webAuth.authorize({
       appState: customState
     })
@@ -43,6 +44,7 @@ class AuthService extends EventEmitter {
 
   /**
    * Promisified parseHash function
+   * @returns A promise that resolves with the parsed hash returned from Auth0
    */
   parseHash (): Promise<Auth0DecodedHash> {
     return new Promise((resolve, reject) => {
@@ -103,6 +105,7 @@ class AuthService extends EventEmitter {
 
   /**
    * Renew authorzation tokens with Auth0
+   * @returns A promise with the parsed hash from the Auth0 response
    */
   renewTokens (): Promise<Auth0DecodedHash> {
     return new Promise((resolve, reject) => {
@@ -142,21 +145,31 @@ class AuthService extends EventEmitter {
   }
 
   /**
+   * Whether the given token is currently valid
+   * @param t The token to be validated
+   * @returns True if the token is valid
+   */
+  isTokenValid = (t: Token) => t.token !== '' && t.expiry !== 0 && Date.now() < t.expiry
+
+  /**
    * Is there a user authenticated?
+   * @returns True if a user is authenticated
    */
   isAuthenticated () {
-    return this.session && this.session.id && this.session.id.isValid()
+    return this.session && this.session.id && this.isTokenValid(this.session.id)
   }
 
   /**
    * Is the current access token valid?
+   * @returns True if the user's access token is valid
    */
   isAccessTokenValid () {
-    return this.session && this.session.access && this.session.access.isValid()
+    return this.session && this.session.access && this.isTokenValid(this.session.access)
   }
 
   /**
    * Get the user's access token, renewing it if required
+   * @returns A promise that resolves to the user's access token
    */
   async getAccessToken (): Promise<string> {
     if (this.isAccessTokenValid()) {

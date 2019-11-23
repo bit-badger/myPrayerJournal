@@ -6,7 +6,7 @@
              to='/journal')
       md-tab(md-label='Active'
              to='/requests/active')
-      md-tab(v-if='hasSnoozed'
+      md-tab(v-if='hasSnoozed.value'
              md-label='Snoozed'
              to='/requests/snoozed')
       md-tab(md-label='Answered'
@@ -26,33 +26,48 @@
              @click.prevent='showHelp()')
 </template>
 
-<script>
-'use strict'
+<script lang="ts">
+import { computed } from '@vue/composition-api'
+import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
-import { mapState } from 'vuex'
+import { AppState } from '../../store/types' // eslint-disable-line no-unused-vars
+import { AuthService } from '../../auth' // eslint-disable-line no-unused-vars
+import { useAuth } from '../../plugins/auth'
+import { useRouter } from '../../plugins/router'
+import { useStore } from '../../plugins/store'
 
 export default {
-  name: 'navigation',
-  data () {
-    return {}
-  },
-  computed: {
-    hasSnoozed () {
-      return this.isAuthenticated &&
-        Array.isArray(this.journal) &&
-        this.journal.filter(req => req.snoozedUntil > Date.now()).length > 0
-    },
-    ...mapState(['isAuthenticated', 'journal'])
-  },
-  methods: {
-    logOn () {
-      this.$auth.login()
-    },
-    logOff () {
-      this.$auth.logout(this.$store, this.$router)
-    },
-    showHelp () {
-      window.open('https://docs.prayerjournal.me', '_blank')
+  setup () {
+    /** The Vuex store */
+    const store = useStore() as Store<AppState>
+
+    /** The auth service */
+    const auth = useAuth() as AuthService
+
+    /** Whether the user has any snoozed requests */
+    const hasSnoozed = computed(() =>
+      store.state.isAuthenticated &&
+        Array.isArray(store.state.journal) &&
+        store.state.journal.filter(req => req.snoozedUntil > Date.now()).length > 0)
+
+    /** Log a user on using Auth0 */
+    const logOn = () => auth.login()
+
+    /** Log a user off using Auth0 */
+    const logOff = () => {
+      auth.logout(store)
+      const router = useRouter()
+      router.push('/')
+    }
+
+    /** Open a new window/tab with help */
+    const showHelp = () => { window.open('https://docs.prayerjournal.me', '_blank') }
+
+    return {
+      hasSnoozed,
+      logOn,
+      logOff,
+      showHelp
     }
   }
 }

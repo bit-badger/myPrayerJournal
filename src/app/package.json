@@ -13,6 +13,7 @@
     "vue": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet run"
   },
   "dependencies": {
+    "@vue/composition-api": "^0.3.2",
     "auth0-js": "^9.7.3",
     "axios": "^0.19.0",
     "core-js": "^3.3.2",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@types/auth0-js": "^9.10.6",
+    "@types/node": "^12.12.12",
     "@typescript-eslint/eslint-plugin": "^2.8.0",
     "@typescript-eslint/parser": "^2.8.0",
     "@vue/cli-plugin-babel": "^4.0.5",

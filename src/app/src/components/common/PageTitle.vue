@@ -3,9 +3,10 @@ h1(v-if='!hideOnPage'
    v-html='title').md-title
 </template>
 
-<script>
+<script lang="ts">
+import { watch } from '@vue/composition-api'
+
 export default {
-  name: 'page-title',
   props: {
     title: {
       type: String,
@@ -16,13 +17,11 @@ export default {
       default: false
     }
   },
-  watch: {
-    title () {
-      document.title = `${this.title.replace('&rsquo;', "'")} « myPrayerJournal`
-    }
-  },
-  created () {
-    document.title = `${this.title.replace('&rsquo;', "'")} « myPrayerJournal`
+  setup (props: any) {
+    watch(props.title, (title, prevTitle) => {
+      document.title = `${props.title.replace('&rsquo;', "'")} « myPrayerJournal`
+    })
+    return { }
   }
 }
 </script>
