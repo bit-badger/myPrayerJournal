@@ -30,7 +30,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import { computed, ref, onMounted, provide } from '@vue/composition-api'
+import { computed, ref, onMounted, provide, inject } from '@vue/composition-api'
 
 import Navigation from '@/components/common/Navigation.vue'
 
@@ -38,13 +38,14 @@ import auth from './auth'
 import router from './router'
 import store from './store'
 import { Actions } from './store/types'
+import { ISnackbar, IProgress } from './types' // eslint-disable-line no-unused-vars
 
 import { provideAuth } from './plugins/auth'
 import { provideRouter } from './plugins/router'
 import { provideStore } from './plugins/store'
 // import { version } = require('../package.json')
 
-function useSnackbar () {
+function setupSnackbar (): ISnackbar {
   const events = new Vue()
   const visible = ref(false)
   const message = ref('')
@@ -81,7 +82,7 @@ function useSnackbar () {
   }
 }
 
-function useProgress () {
+function setupProgress (): IProgress {
   const events = new Vue()
   const visible = ref(false)
   const mode = ref('query')
@@ -107,6 +108,9 @@ function useProgress () {
   }
 }
 
+const SnackbarSymbol = Symbol('Snackbar events')
+const ProgressSymbol = Symbol('Progress events')
+
 export default {
   name: 'app',
   components: {
@@ -126,15 +130,12 @@ export default {
           : pkg.version.substr(0, pkg.version.length - 2)
         : pkg.version)
 
-    const progress = useProgress()
-    const snackbar = useSnackbar()
+    const progress = setupProgress()
+    const snackbar = setupSnackbar()
 
     onMounted(async () => store.dispatch(Actions.CheckAuthentication))
 
-    const SnackbarSymbol = Symbol('Snackbar events')
     provide(SnackbarSymbol, snackbar.events)
-
-    const ProgressSymbol = Symbol('Progress events')
     provide(ProgressSymbol, progress.events)
 
     return {
@@ -143,6 +144,22 @@ export default {
       snackbar
     }
   }
+}
+
+export function useSnackbar () {
+  const snackbar = inject(SnackbarSymbol)
+  if (!snackbar) {
+    throw new Error('Snackbar not configured')
+  }
+  return snackbar as ISnackbar
+}
+
+export function useProgress () {
+  const progress = inject(ProgressSymbol)
+  if (!progress) {
+    throw new Error('Progress not configured')
+  }
+  return progress as IProgress
 }
 </script>
 

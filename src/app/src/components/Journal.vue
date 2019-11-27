@@ -21,52 +21,65 @@ md-content(role='main').mpj-main-content-wide
     snooze-request
 </template>
 
-<script>
-'use strict'
-
+<script lang="ts">
 import Vue from 'vue'
-import { mapState } from 'vuex'
+import { computed, inject, onBeforeMount, provide } from '@vue/composition-api'
+import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
-import NotesEdit from './request/NotesEdit'
-import RequestCard from './request/RequestCard'
-import SnoozeRequest from './request/SnoozeRequest'
+import NotesEdit from './request/NotesEdit.vue'
+import RequestCard from './request/RequestCard.vue'
+import SnoozeRequest from './request/SnoozeRequest.vue'
 
-import { Actions } from '@/store/types'
+import { Actions, AppState } from '../store/types' // eslint-disable-line no-unused-vars
+import { useStore } from '../plugins/store'
+import { useSnackbar, useProgress } from '../App.vue'
+
+const EventSymbol = Symbol('Journal events')
 
 export default {
-  name: 'journal',
-  inject: [
-    'messages',
-    'progress'
-  ],
   components: {
     NotesEdit,
     RequestCard,
     SnoozeRequest
   },
-  data () {
+  setup () {
+    /** The Vuex store */
+    const store = useStore() as Store<AppState>
+
+    /** The title of the page */
+    const title = computed(() => `${store.state.user.given_name}&rsquo;s Prayer Journal`)
+
+    /** Events to which the journal will respond */
+    const eventBus = new Vue()
+
+    /** Reference to the application's snackbar component */
+    const snackbar = useSnackbar()
+
+    /** Reference to the application's progress bar component */
+    const progress = useProgress()
+
+    /** Provide the event bus for child components */
+    provide(EventSymbol, eventBus)
+
+    onBeforeMount(async () => {
+      await store.dispatch(Actions.LoadJournal, progress)
+      snackbar.events.$emit('info', `Loaded ${store.state.journal.length} prayer requests`)
+    })
+
     return {
-      eventBus: new Vue()
-    }
-  },
-  computed: {
-    title () {
-      return `${this.user.given_name}&rsquo;s Prayer Journal`
-    },
-    snackbar () {
-      return this.$parent.$refs.snackbar
-    },
-    ...mapState(['user', 'journal', 'isLoadingJournal'])
-  },
-  async created () {
-    await this.$store.dispatch(Actions.LoadJournal, this.progress)
-    this.messages.$emit('info', `Loaded ${this.journal.length} prayer requests`)
-  },
-  provide () {
-    return {
-      journalEvents: this.eventBus
+      title,
+      journal: store.state.journal,
+      isLoadingJournal: store.state.isLoadingJournal
     }
   }
+}
+
+export function useEvents () {
+  const events = inject(EventSymbol)
+  if (!events) {
+    throw new Error('Event bus not configured')
+  }
+  return events as Vue
 }
 </script>
 

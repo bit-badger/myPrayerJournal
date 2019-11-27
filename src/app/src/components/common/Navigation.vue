@@ -44,6 +44,9 @@ export default {
     /** The auth service */
     const auth = useAuth() as AuthService
 
+    /** The router for myPrayerJournal */
+    const router = useRouter()
+
     /** Whether the user has any snoozed requests */
     const hasSnoozed = computed(() =>
       store.state.isAuthenticated &&
@@ -56,7 +59,6 @@ export default {
     /** Log a user off using Auth0 */
     const logOff = () => {
       auth.logout(store)
-      const router = useRouter()
       router.push('/')
     }
 

@@ -1,3 +1,5 @@
+import { IProgress } from '@/types'
+
 /** A prayer request that is part of the user's journal */
 export interface JournalRequest {
   /** The ID of the request (just the CUID part) */
@@ -93,3 +95,23 @@ const mutations = {
   UserLoggedOn: 'user-logged-on'
 }
 export { mutations as Mutations }
+
+/** The shape of the parameter to the show request action */
+export interface IShowRequestAction {
+  /** The progress bar component instance */
+  progress: IProgress
+  /** The ID of the prayer request being shown */
+  requestId: string
+  /** The date/time after which the request will be once again shown */
+  showAfter: number
+}
+
+/** The shape of the parameter to the snooze request action */
+export interface ISnoozeRequestAction {
+  /** The progress bar component instance */
+  progress: IProgress
+  /** The ID of the prayer request being snoozed/unsnoozed */
+  requestId: string
+  /** The date/time after which the request will be once again shown */
+  until: number
+}

@@ -4,7 +4,15 @@ import Vuex, { StoreOptions } from 'vuex'
 import api from '@/api'
 import auth from '@/auth'
 
-import { AppState, Actions, JournalRequest, Mutations } from './types'
+import {
+  AppState,
+  Actions,
+  JournalRequest,
+  Mutations,
+  ISnoozeRequestAction,
+  IShowRequestAction
+} from './types'
+import { IProgress } from '@/types'
 
 Vue.use(Vuex)
 
@@ -113,18 +121,18 @@ const store : StoreOptions<AppState> = {
         commit(Mutations.SetAuthentication, false)
       }
     },
-    async [Actions.LoadJournal] ({ commit }, progress) {
+    async [Actions.LoadJournal] ({ commit }, progress: IProgress) {
       commit(Mutations.LoadedJournal, [])
-      progress.$emit('show', 'query')
+      progress.events.$emit('show', 'query')
       commit(Mutations.LoadingJournal, true)
       await setBearer()
       try {
         const jrnl = await api.journal()
         commit(Mutations.LoadedJournal, jrnl.data)
-        progress.$emit('done')
+        progress.events.$emit('done')
       } catch (err) {
         logError(err)
-        progress.$emit('done')
+        progress.events.$emit('done')
       } finally {
         commit(Mutations.LoadingJournal, false)
       }
@@ -150,30 +158,32 @@ const store : StoreOptions<AppState> = {
         progress.$emit('done')
       }
     },
-    async [Actions.ShowRequestNow] ({ commit }, { progress, requestId, showAfter }) {
-      progress.$emit('show', 'indeterminate')
+    async [Actions.ShowRequestNow] ({ commit }, p: IShowRequestAction) {
+      const { progress, requestId, showAfter } = p
+      progress.events.$emit('show', 'indeterminate')
       try {
         await setBearer()
         await api.showRequest(requestId, showAfter)
         const request = await api.getRequest(requestId)
         commit(Mutations.RequestUpdated, request.data)
-        progress.$emit('done')
+        progress.events.$emit('done')
       } catch (err) {
         logError(err)
-        progress.$emit('done')
+        progress.events.$emit('done')
       }
     },
-    async [Actions.SnoozeRequest] ({ commit }, { progress, requestId, until }) {
-      progress.$emit('show', 'indeterminate')
+    async [Actions.SnoozeRequest] ({ commit }, p: ISnoozeRequestAction) {
+      const { progress, requestId, until } = p
+      progress.events.$emit('show', 'indeterminate')
       try {
         await setBearer()
         await api.snoozeRequest(requestId, until)
         const request = await api.getRequest(requestId)
         commit(Mutations.RequestUpdated, request.data)
-        progress.$emit('done')
+        progress.events.$emit('done')
       } catch (err) {
         logError(err)
-        progress.$emit('done')
+        progress.events.$emit('done')
       }
     }
   },

@@ -8,16 +8,12 @@ md-table(md-card)
   request-list-item(v-for='req in requests'
                     :key='req.requestId'
                     :request='req')
-
 </template>
 
-<script>
-'use strict'
-
-import RequestListItem from '@/components/request/RequestListItem'
+<script lang="ts">
+import RequestListItem from './RequestListItem.vue'
 
 export default {
-  name: 'request-list',
   components: { RequestListItem },
   props: {
     title: {
@@ -29,12 +25,13 @@ export default {
       required: true
     }
   },
-  data () {
-    return { }
+  setup (props, { parent }) {
+    this.$on('requestUnsnoozed', parent.$emit('requestUnsnoozed'))
+    this.$on('requestNowShown', parent.$emit('requestNowShown'))
+    return {
+      title: props.title,
+      requests: props.requests
+    }
   },
-  created () {
-    this.$on('requestUnsnoozed', this.$parent.$emit('requestUnsnoozed'))
-    this.$on('requestNowShown', this.$parent.$emit('requestNowShown'))
-  }
 }
 </script>
