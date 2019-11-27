@@ -9,10 +9,10 @@ import {
   Actions,
   JournalRequest,
   Mutations,
-  ISnoozeRequestAction,
-  IShowRequestAction
+  SnoozeRequestAction,
+  ShowRequestAction
 } from './types'
-import { IProgress } from '@/types'
+import { ProgressProps } from '@/types'
 
 Vue.use(Vuex)
 
@@ -121,7 +121,7 @@ const store : StoreOptions<AppState> = {
         commit(Mutations.SetAuthentication, false)
       }
     },
-    async [Actions.LoadJournal] ({ commit }, progress: IProgress) {
+    async [Actions.LoadJournal] ({ commit }, progress: ProgressProps) {
       commit(Mutations.LoadedJournal, [])
       progress.events.$emit('show', 'query')
       commit(Mutations.LoadingJournal, true)
@@ -158,7 +158,7 @@ const store : StoreOptions<AppState> = {
         progress.$emit('done')
       }
     },
-    async [Actions.ShowRequestNow] ({ commit }, p: IShowRequestAction) {
+    async [Actions.ShowRequestNow] ({ commit }, p: ShowRequestAction) {
       const { progress, requestId, showAfter } = p
       progress.events.$emit('show', 'indeterminate')
       try {
@@ -172,7 +172,7 @@ const store : StoreOptions<AppState> = {
         progress.events.$emit('done')
       }
     },
-    async [Actions.SnoozeRequest] ({ commit }, p: ISnoozeRequestAction) {
+    async [Actions.SnoozeRequest] ({ commit }, p: SnoozeRequestAction) {
       const { progress, requestId, until } = p
       progress.events.$emit('show', 'indeterminate')
       try {

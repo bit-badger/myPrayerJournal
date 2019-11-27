@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import { Ref } from '@vue/composition-api';
 
-export interface ISnackbar {
+export interface SnackbarProps {
   events: Vue
   visible: Ref<boolean>
   message: Ref<string>
@@ -11,7 +11,7 @@ export interface ISnackbar {
   showError: (msg: string) => void
 }
 
-export interface IProgress {
+export interface ProgressProps {
   events: Vue
   visible: Ref<boolean>
   mode: Ref<string>

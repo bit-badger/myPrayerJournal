@@ -11,9 +11,13 @@ md-table(md-card)
 </template>
 
 <script lang="ts">
+import { createComponent } from '@vue/composition-api'
+
 import RequestListItem from './RequestListItem.vue'
 
-export default {
+import { JournalRequest } from '../../store/types' // eslint-disable-line no-unused-vars
+
+export default createComponent({
   components: { RequestListItem },
   props: {
     title: {
@@ -26,12 +30,13 @@ export default {
     }
   },
   setup (props, { parent }) {
-    this.$on('requestUnsnoozed', parent.$emit('requestUnsnoozed'))
-    this.$on('requestNowShown', parent.$emit('requestNowShown'))
+    // TODO: custom events
+    // this.$on('requestUnsnoozed', parent.$emit('requestUnsnoozed'))
+    // this.$on('requestNowShown', parent.$emit('requestNowShown'))
     return {
       title: props.title,
-      requests: props.requests
+      requests: props.requests as JournalRequest[]
     }
-  },
-}
+  }
+})
 </script>

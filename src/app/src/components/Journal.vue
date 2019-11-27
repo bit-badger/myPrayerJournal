@@ -23,7 +23,7 @@ md-content(role='main').mpj-main-content-wide
 
 <script lang="ts">
 import Vue from 'vue'
-import { computed, inject, onBeforeMount, provide } from '@vue/composition-api'
+import { computed, createComponent, inject, onBeforeMount, provide } from '@vue/composition-api'
 import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
 import NotesEdit from './request/NotesEdit.vue'
@@ -36,7 +36,7 @@ import { useSnackbar, useProgress } from '../App.vue'
 
 const EventSymbol = Symbol('Journal events')
 
-export default {
+export default createComponent({
   components: {
     NotesEdit,
     RequestCard,
@@ -72,7 +72,7 @@ export default {
       isLoadingJournal: store.state.isLoadingJournal
     }
   }
-}
+})
 
 export function useEvents () {
   const events = inject(EventSymbol)

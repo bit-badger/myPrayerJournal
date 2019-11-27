@@ -13,40 +13,50 @@ md-content(role='main').mpj-main-content
   p(v-else) Loading answered requests...
 </template>
 
-<script>
-'use strict'
+<script lang="ts">
+import { ref, onMounted } from '@vue/composition-api'
 
-import api from '@/api'
+import RequestList from './RequestList.vue'
 
-import RequestList from '@/components/request/RequestList'
+import api from '../../api'
+import { JournalRequest } from '../../store/types' // eslint-disable-line no-unused-vars
+import { useProgress, useSnackbar } from '../../App.vue'
 
 export default {
-  name: 'answered-requests',
-  inject: [
-    'messages',
-    'progress'
-  ],
   components: {
     RequestList
   },
-  data () {
+  setup () {
+    /** The answered requests */
+    let requests: JournalRequest[] = []
+
+    /** Whether the requests have been loaded */
+    const isLoaded = ref(false)
+
+    /** The snackbar component instance */
+    const snackbar = useSnackbar()
+
+    /** The progress bar instance */
+    const progress = useProgress()
+
+    onMounted(async () => {
+      progress.events.$emit('show', 'query')
+      try {
+        const reqs = await api.getAnsweredRequests()
+        requests = reqs.data
+        progress.events.$emit('done')
+      } catch (err) {
+        console.error(err) // eslint-disable-line no-console
+        snackbar.events.$emit('error', 'Error loading requests; check console for details')
+        progress.events.$emit('done')
+      } finally {
+        isLoaded.value = true
+      }
+    })
+
     return {
-      requests: [],
-      loaded: false
-    }
-  },
-  async mounted () {
-    this.progress.$emit('show', 'query')
-    try {
-      const reqs = await api.getAnsweredRequests()
-      this.requests = reqs.data
-      this.progress.$emit('done')
-    } catch (err) {
-      console.error(err) // eslint-disable-line no-console
-      this.messages.$emit('error', 'Error loading requests; check console for details')
-      this.progress.$emit('done')
-    } finally {
-      this.loaded = true
+      requests,
+      isLoaded
     }
   }
 }

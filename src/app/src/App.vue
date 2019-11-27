@@ -30,7 +30,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import { computed, ref, onMounted, provide, inject } from '@vue/composition-api'
+import { computed, createComponent, inject, onMounted, provide, ref } from '@vue/composition-api'
 
 import Navigation from '@/components/common/Navigation.vue'
 
@@ -38,14 +38,13 @@ import auth from './auth'
 import router from './router'
 import store from './store'
 import { Actions } from './store/types'
-import { ISnackbar, IProgress } from './types' // eslint-disable-line no-unused-vars
+import { SnackbarProps, ProgressProps } from './types' // eslint-disable-line no-unused-vars
 
 import { provideAuth } from './plugins/auth'
 import { provideRouter } from './plugins/router'
 import { provideStore } from './plugins/store'
-// import { version } = require('../package.json')
 
-function setupSnackbar (): ISnackbar {
+function setupSnackbar (): SnackbarProps {
   const events = new Vue()
   const visible = ref(false)
   const message = ref('')
@@ -82,7 +81,7 @@ function setupSnackbar (): ISnackbar {
   }
 }
 
-function setupProgress (): IProgress {
+function setupProgress (): ProgressProps {
   const events = new Vue()
   const visible = ref(false)
   const mode = ref('query')
@@ -111,7 +110,7 @@ function setupProgress (): IProgress {
 const SnackbarSymbol = Symbol('Snackbar events')
 const ProgressSymbol = Symbol('Progress events')
 
-export default {
+export default createComponent({
   name: 'app',
   components: {
     Navigation
@@ -144,14 +143,14 @@ export default {
       snackbar
     }
   }
-}
+})
 
 export function useSnackbar () {
   const snackbar = inject(SnackbarSymbol)
   if (!snackbar) {
     throw new Error('Snackbar not configured')
   }
-  return snackbar as ISnackbar
+  return snackbar as SnackbarProps
 }
 
 export function useProgress () {
@@ -159,7 +158,7 @@ export function useProgress () {
   if (!progress) {
     throw new Error('Progress not configured')
   }
-  return progress as IProgress
+  return progress as ProgressProps
 }
 </script>
 

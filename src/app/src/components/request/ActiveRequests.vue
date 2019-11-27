@@ -15,17 +15,16 @@ md-content(role='main').mpj-main-content
 </template>
 
 <script lang="ts">
-import { onBeforeMount, ref } from '@vue/composition-api'
-import { Store } from 'vuex'
+import { onBeforeMount, createComponent, ref } from '@vue/composition-api'
+import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
-import RequestList from '@/components/request/RequestList.vue'
+import RequestList from './RequestList.vue'
 import { useProgress } from '../../App.vue'
 
-import { Actions, AppState, JournalRequest } from '../../store/types'
+import { Actions, AppState, JournalRequest } from '../../store/types' // eslint-disable-line no-unused-vars
 import { useStore } from '../../plugins/store'
 
-export default {
-  inject: ['progress'],
+export default createComponent({
   components: {
     RequestList
   },
@@ -53,14 +52,14 @@ export default {
 
     onBeforeMount(async () => { await ensureJournal() })
 
-    // TODO: is "this" what we think it is here?
-    this.$on('requestUnsnoozed', ensureJournal)
-    this.$on('requestNowShown', ensureJournal)
+    // TODO: how do we do this?
+    // this.$on('requestUnsnoozed', ensureJournal)
+    // this.$on('requestNowShown', ensureJournal)
 
     return {
       requests,
       isLoaded
     }
   }
-}
+})
 </script>

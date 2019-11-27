@@ -1,39 +1,51 @@
-import { IProgress } from '@/types'
+import { ProgressProps } from '@/types'
+
+/** A history entry for a prayer request */
+export class HistoryEntry {
+  /** The status for this history entry */
+  status = '' // TODO string union?
+
+  /** The date/time for this history entry */
+  asOf = 0
+
+  /** The text of this history entry */
+  text?: string = undefined
+}
 
 /** A prayer request that is part of the user's journal */
-export interface JournalRequest {
+export class JournalRequest {
   /** The ID of the request (just the CUID part) */
-  requestId: string
+  requestId = ''
 
   /** The ID of the user to whom the request belongs */
-  userId: string
+  userId = ''
 
   /** The current text of the request */
-  text: string
+  text = ''
 
   /** The last time action was taken on the request */
-  asOf: number
+  asOf = 0
 
   /** The last status for the request */
-  lastStatus: string // TODO string union?
+  lastStatus = '' // TODO string union?
 
   /** The time that this request should reappear in the user's journal */
-  snoozedUntil: number
+  snoozedUntil = 0
 
   /** The time after which this request should reappear in the user's journal by configured recurrence */
-  showAfter: number
+  showAfter = 0
 
   /** The type of recurrence for this request */
-  recurType: string // TODO Recurrence union?
+  recurType = '' // TODO Recurrence union?
 
   /** How many of the recurrence intervals should occur between appearances in the journal */
-  recurCount: number
+  recurCount = 0
 
   /** History entries for the request */
-  history: any[] // History list
+  history: HistoryEntry[] = []
 
   /** Note entries for the request */
-  notes: any[] // Note list
+  notes: any[] = [] // Note list
 }
 
 /** The state of myPrayerJournal */
@@ -97,9 +109,9 @@ const mutations = {
 export { mutations as Mutations }
 
 /** The shape of the parameter to the show request action */
-export interface IShowRequestAction {
+export interface ShowRequestAction {
   /** The progress bar component instance */
-  progress: IProgress
+  progress: ProgressProps
   /** The ID of the prayer request being shown */
   requestId: string
   /** The date/time after which the request will be once again shown */
@@ -107,9 +119,9 @@ export interface IShowRequestAction {
 }
 
 /** The shape of the parameter to the snooze request action */
-export interface ISnoozeRequestAction {
+export interface SnoozeRequestAction {
   /** The progress bar component instance */
-  progress: IProgress
+  progress: ProgressProps
   /** The ID of the prayer request being snoozed/unsnoozed */
   requestId: string
   /** The date/time after which the request will be once again shown */

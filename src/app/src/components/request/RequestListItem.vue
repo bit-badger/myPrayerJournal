@@ -29,20 +29,23 @@ md-table-row
 </template>
 
 <script lang="ts">
-import { computed } from '@vue/composition-api'
+import { computed, createComponent } from '@vue/composition-api'
 
-import { Actions, JournalRequest, ISnoozeRequestAction, IShowRequestAction } from '../../store/types'
+import { Actions, JournalRequest, SnoozeRequestAction, ShowRequestAction } from '../../store/types' // eslint-disable-line no-unused-vars
 import { useStore } from '../../plugins/store'
 import { useRouter } from '../../plugins/router'
 import { useProgress, useSnackbar } from '../../App.vue'
 
-export default {
+export default createComponent({
   props: {
-    request: { required: true }
+    request: {
+      type: JournalRequest,
+      required: true
+    }
   },
   setup (props, { parent }) {
-    /** The request to be rendered */
-    const request = props.request as JournalRequest
+    /** Shorthand for props.request */
+    const r = props.request
 
     /** The Vuex store */
     const store = useStore()
@@ -57,44 +60,48 @@ export default {
     const progress = useProgress()
 
     /** Whether the request has been answered */
-    const isAnswered = computed(() => request.lastStatus === 'Answered')
+    const isAnswered = computed(() => r.lastStatus === 'Answered')
 
     /** Whether the request is snoozed */
-    const isSnoozed = computed(() => request.snoozedUntil > Date.now())
+    const isSnoozed = computed(() => r.snoozedUntil > Date.now())
 
     /** Whether the request is not shown because of an interval */
-    const isPending = computed(() => !isSnoozed.value && request.showAfter > Date.now())
+    const isPending = computed(() => !isSnoozed.value && r.showAfter > Date.now())
 
     /** Cancel the snooze period for this request */
     const cancelSnooze = async () => {
-      const opts: ISnoozeRequestAction = {
-        progress: progress,
-        requestId: request.requestId,
+      const opts: SnoozeRequestAction = {
+        progress,
+        requestId: r.requestId,
         until: 0
       }
       await store.dispatch(Actions.SnoozeRequest, opts)
       snackbar.events.$emit('info', 'Request un-snoozed')
-      parent.$emit('requestUnsnoozed')
+      if (parent) {
+        parent.$emit('requestUnsnoozed')
+      }
     }
 
     /** Edit the given request */
-    const editRequest = () => { router.push({ name: 'EditRequest', params: { id: request.requestId } }) }
-    
+    const editRequest = () => { router.push({ name: 'EditRequest', params: { id: r.requestId } }) }
+
     /** Show the request now */
     const showNow = async () => {
-      const opts: IShowRequestAction = {
-        progress: this.progress,
-        requestId: this.request.requestId,
+      const opts: ShowRequestAction = {
+        progress,
+        requestId: r.requestId,
         showAfter: 0
       }
       await store.dispatch(Actions.ShowRequestNow, opts)
       snackbar.events.$emit('info', 'Recurrence skipped; request now shows in journal')
-      parent.$emit('requestNowShown')
+      if (parent) {
+        parent.$emit('requestNowShown')
+      }
     }
 
     /** View the full request */
-    const viewFull = () => { router.push({ name: 'FullRequest', params: { id: request.requestId } }) }
-    
+    const viewFull = () => { router.push({ name: 'FullRequest', params: { id: r.requestId } }) }
+
     return {
       cancelSnooze,
       editRequest,
@@ -105,7 +112,7 @@ export default {
       viewFull
     }
   }
-}
+})
 </script>
 
 <style lang="sass">
