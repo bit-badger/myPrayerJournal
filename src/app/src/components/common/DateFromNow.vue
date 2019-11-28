@@ -1,9 +1,8 @@
 <script lang="ts">
-import { computed, createElement, onBeforeUnmount, onMounted, ref } from '@vue/composition-api'
+import { computed, createComponent, createElement, onBeforeUnmount, onMounted, ref } from '@vue/composition-api'
 import moment from 'moment'
 
-export default {
-  name: 'date-from-now',
+export default createComponent({
   props: {
     tag: {
       type: String,
@@ -18,7 +17,7 @@ export default {
       default: 10000
     }
   },
-  setup (props: any) {
+  setup (props) {
     /** Interval ID for updating relative time */
     let intervalId: number = 0
 
@@ -47,5 +46,5 @@ export default {
       }
     })
   }
-}
+})
 </script>

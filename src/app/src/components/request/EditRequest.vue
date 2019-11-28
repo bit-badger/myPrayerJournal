@@ -1,6 +1,6 @@
 <template lang="pug">
 md-content(role='main').mpj-narrow
-  page-title(:title='title')
+  page-title(:title='title.value')
   md-field
     label(for='request_text') Prayer Request
     md-textarea(v-model='form.requestText'
@@ -8,7 +8,7 @@ md-content(role='main').mpj-narrow
                 md-autogrow
                 autofocus).mpj-full-width
   br
-  template(v-if='!isNew')
+  template(v-if='!isNew.value')
     label Also Mark As
     br
     md-radio(v-model='form.status'
@@ -34,141 +34,191 @@ md-content(role='main').mpj-narrow
         label Count
         md-input(v-model='form.recur.count'
                 type='number'
-                :disabled='!showRecurrence')
+                :disabled='!showRecurrence.value')
     .md-layout-item.md-size-20
       md-field
         label Interval
         md-select(v-model='form.recur.other'
-                  :disabled='!showRecurrence')
+                  :disabled='!showRecurrence.value')
           md-option(value='Hours') hours
           md-option(value='Days') days
           md-option(value='Weeks') weeks
   .mpj-text-right
-    md-button(:disabled='!isValidRecurrence'
+    md-button(:disabled='!isValidRecurrence.value'
               @click.stop='saveRequest()').md-primary.md-raised #[md-icon save] Save
     md-button(@click.stop='goBack()').md-raised #[md-icon arrow_back] Cancel
 </template>
 
-<script>
-'use strict'
+<script lang="ts">
+import { createComponent, ref, computed, onMounted } from '@vue/composition-api'
+import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
-import { mapState } from 'vuex'
+import { Actions, AppState, AddRequestAction, UpdateRequestAction } from '../../store/types' // eslint-disable-line no-unused-vars
+import { useProgress, useSnackbar } from '../../App.vue'
+import { useStore } from '../../plugins/store'
+import { useRouter } from '../../plugins/router'
 
-import { Actions } from '@/store/types'
+/** The recurrence settings for the request */
+class RecurrenceForm {
+  /** The type of recurrence */
+  typ = 'Immediate'
 
-export default {
-  name: 'edit-request',
-  inject: [
-    'messages',
-    'progress'
-  ],
+  /** The type of recurrence (other than immediate) */
+  other = ''
+
+  /** The count of non-immediate intervals */
+  count = ''
+
+  /**
+   * The recurrence represented by the given form
+   * @param x The recurrence form
+   */
+  static recurrence = (x: RecurrenceForm) => x.typ === 'Immediate' ? 'Immediate' : x.other
+
+  /**
+   * The interval represented by the given form
+   * @param x The recurrence form
+   */
+  static interval = (x: RecurrenceForm) => x.typ === 'Immediate' ? 0 : Number.parseInt(x.count)
+}
+
+/** The form for editing the request */
+class EditForm {
+  /** The ID of the request */
+  requestId = ''
+
+  /** The text of the request */
+  requestText = ''
+
+  /** The status associated with this update */
+  status = 'Updated'
+
+  /** The recurrence for the request */
+  recur = new RecurrenceForm()
+}
+
+export default createComponent({
   props: {
     id: {
       type: String,
       required: true
     }
   },
-  data () {
-    return {
-      title: 'Edit Prayer Request',
-      isNew: false,
-      form: {
-        requestId: '',
-        requestText: '',
-        status: 'Updated',
-        recur: {
-          typ: 'Immediate',
-          other: '',
-          count: ''
-        }
-      }
-    }
-  },
-  computed: {
-    isValidRecurrence () {
-      if (this.form.recur.typ === 'Immediate') return true
-      const count = Number.parseInt(this.form.recur.count)
-      if (isNaN(count) || this.form.recur.other === '') return false
-      if (this.form.recur.other === 'Hours' && count > (365 * 24)) return false
-      if (this.form.recur.other === 'Days' && count > 365) return false
-      if (this.form.recur.other === 'Weeks' && count > 52) return false
+  setup (props) {
+    /** The Vuex store */
+    const store = useStore() as Store<AppState>
+
+    /** The snackbar component properties */
+    const snackbar = useSnackbar()
+
+    /** The progress bar component properties */
+    const progress = useProgress()
+
+    /** The application router */
+    const router = useRouter()
+
+    /** The page title */
+    const title = ref('Edit Prayer Request')
+
+    /** Whether this is a new request */
+    const isNew = ref(false)
+
+    /** The input form */
+    const form = new EditForm()
+
+    /** Is the selected recurrence a valid recurrence? */
+    const isValidRecurrence = computed(() => {
+      if (form.recur.typ === 'Immediate') return true
+      const count = Number.parseInt(form.recur.count)
+      if (isNaN(count) || form.recur.other === '') return false
+      if (form.recur.other === 'Hours' && count > (365 * 24)) return false
+      if (form.recur.other === 'Days' && count > 365) return false
+      if (form.recur.other === 'Weeks' && count > 52) return false
       return true
-    },
-    showRecurrence () {
-      return this.form.recur.typ !== 'Immediate'
-    },
-    ...mapState(['journal'])
-  },
-  async mounted () {
-    await this.ensureJournal()
-    if (this.id === 'new') {
-      this.title = 'Add Prayer Request'
-      this.isNew = true
-      this.form.requestId = ''
-      this.form.requestText = ''
-      this.form.status = 'Created'
-      this.form.recur.typ = 'Immediate'
-      this.form.recur.other = ''
-      this.form.recur.count = ''
-    } else {
-      this.title = 'Edit Prayer Request'
-      this.isNew = false
-      if (this.journal.length === 0) {
-        await this.$store.dispatch(Actions.LoadJournal, this.progress)
-      }
-      const req = this.journal.filter(r => r.requestId === this.id)[0]
-      this.form.requestId = this.id
-      this.form.requestText = req.text
-      this.form.status = 'Updated'
-      if (req.recurType === 'Immediate') {
-        this.form.recur.typ = 'Immediate'
-        this.form.recur.other = ''
-        this.form.recur.count = ''
+    })
+
+    /** Whether the recurrence should be shown */
+    const showRecurrence = computed(() => form.recur.typ !== 'Immediate')
+
+    /** Go back 1 in browser history */
+    const goBack = () => { router.go(-1) }
+
+    /** Trim the request text */
+    const trimText = () => { form.requestText = form.requestText.trim() }
+
+    /** Save the edited request */
+    const saveRequest = async () => {
+      if (isNew.value) {
+        const opts: AddRequestAction = {
+          progress,
+          requestText: form.requestText,
+          recurType: RecurrenceForm.recurrence(form.recur),
+          recurCount: RecurrenceForm.interval(form.recur)
+        }
+        await store.dispatch(Actions.AddRequest, opts)
+        snackbar.events.$emit('info', 'New prayer request added')
       } else {
-        this.form.recur.typ = 'other'
-        this.form.recur.other = req.recurType
-        this.form.recur.count = req.recurCount
-      }
-    }
-  },
-  methods: {
-    goBack () {
-      this.$router.go(-1)
-    },
-    trimText () {
-      this.form.requestText = this.form.requestText.trim()
-    },
-    async ensureJournal () {
-      if (!Array.isArray(this.journal)) {
-        await this.$store.dispatch(Actions.LoadJournal, this.progress)
-      }
-    },
-    async saveRequest () {
-      if (this.isNew) {
-        await this.$store.dispatch(Actions.AddRequest, {
-          progress: this.progress,
-          requestText: this.form.requestText,
-          recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
-          recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
-        })
-        this.messages.$emit('info', 'New prayer request added')
-      } else {
-        await this.$store.dispatch(Actions.UpdateRequest, {
-          progress: this.progress,
-          requestId: this.form.requestId,
-          updateText: this.form.requestText,
-          status: this.form.status,
-          recurType: this.form.recur.typ === 'Immediate' ? 'Immediate' : this.form.recur.other,
-          recurCount: this.form.recur.typ === 'Immediate' ? 0 : Number.parseInt(this.form.recur.count)
-        })
-        if (this.form.status === 'Answered') {
-          this.messages.$emit('info', 'Request updated and removed from active journal')
+        const opts: UpdateRequestAction = {
+          progress,
+          requestId: form.requestId,
+          updateText: form.requestText,
+          status: form.status,
+          recurType: RecurrenceForm.recurrence(form.recur),
+          recurCount: RecurrenceForm.interval(form.recur)
+        }
+        await store.dispatch(Actions.UpdateRequest, opts)
+        if (form.status === 'Answered') {
+          snackbar.events.$emit('info', 'Request updated and removed from active journal')
         } else {
-          this.messages.$emit('info', 'Request updated')
+          snackbar.events.$emit('info', 'Request updated')
         }
       }
-      this.goBack()
+      goBack()
+    }
+
+    onMounted(async () => {
+      if (!Array.isArray(store.state.journal)) {
+        await store.dispatch(Actions.LoadJournal, progress)
+      }
+      if (props.id === 'new') {
+        title.value = 'Add Prayer Request'
+        isNew.value = true
+        form.requestId = ''
+        form.requestText = ''
+        form.status = 'Created'
+        form.recur.typ = 'Immediate'
+        form.recur.other = ''
+        form.recur.count = ''
+      } else {
+        title.value = 'Edit Prayer Request'
+        isNew.value = false
+        const req = store.state.journal.filter(r => r.requestId === props.id)[0]
+        form.requestId = props.id
+        form.requestText = req.text
+        form.status = 'Updated'
+        if (req.recurType === 'Immediate') {
+          form.recur.typ = 'Immediate'
+          form.recur.other = ''
+          form.recur.count = ''
+        } else {
+          form.recur.typ = 'other'
+          form.recur.other = req.recurType
+          form.recur.count = req.recurCount.toString()
+        }
+      }
+    })
+
+    return {
+      form,
+      goBack,
+      isNew,
+      isValidRecurrence,
+      journal: store.state.journal,
+      saveRequest,
+      showRecurrence,
+      title,
+      trimText
     }
   }
-}
+})
 </script>

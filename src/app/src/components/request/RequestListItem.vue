@@ -77,9 +77,7 @@ export default createComponent({
       }
       await store.dispatch(Actions.SnoozeRequest, opts)
       snackbar.events.$emit('info', 'Request un-snoozed')
-      if (parent) {
-        parent.$emit('requestUnsnoozed')
-      }
+      if (parent) parent.$emit('requestUnsnoozed')
     }
 
     /** Edit the given request */
@@ -94,9 +92,7 @@ export default createComponent({
       }
       await store.dispatch(Actions.ShowRequestNow, opts)
       snackbar.events.$emit('info', 'Recurrence skipped; request now shows in journal')
-      if (parent) {
-        parent.$emit('requestNowShown')
-      }
+      if (parent) parent.$emit('requestNowShown')
     }
 
     /** View the full request */

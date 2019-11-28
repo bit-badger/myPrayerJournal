@@ -14,7 +14,7 @@ md-content(role='main').mpj-main-content
 </template>
 
 <script lang="ts">
-import { ref, onMounted } from '@vue/composition-api'
+import { createComponent, onMounted, ref } from '@vue/composition-api'
 
 import RequestList from './RequestList.vue'
 
@@ -22,7 +22,7 @@ import api from '../../api'
 import { JournalRequest } from '../../store/types' // eslint-disable-line no-unused-vars
 import { useProgress, useSnackbar } from '../../App.vue'
 
-export default {
+export default createComponent({
   components: {
     RequestList
   },
@@ -59,5 +59,5 @@ export default {
       isLoaded
     }
   }
-}
+})
 </script>

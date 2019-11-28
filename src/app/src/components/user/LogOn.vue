@@ -5,17 +5,18 @@ article.mpj-main-content(role='main')
 </template>
 
 <script lang="ts">
-import { onBeforeMount } from '@vue/composition-api'
+import { createComponent, onBeforeMount } from '@vue/composition-api'
 import VueRouter from 'vue-router' // eslint-disable-line no-unused-vars
 import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
 import { AppState } from '../../store/types' // eslint-disable-line no-unused-vars
 import { AuthService } from '../../auth' // eslint-disable-line no-unused-vars
+
 import { useAuth } from '../../plugins/auth'
 import { useRouter } from '../../plugins/router'
 import { useStore } from '../../plugins/store'
 
-export default {
+export default createComponent({
   setup () {
     /** Auth service instance */
     const auth = useAuth() as AuthService
@@ -36,5 +37,5 @@ export default {
 
     return { }
   }
-}
+})
 </script>

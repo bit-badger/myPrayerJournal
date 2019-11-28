@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import { computed } from '@vue/composition-api'
+import { computed, createComponent } from '@vue/composition-api'
 import { Store } from 'vuex' // eslint-disable-line no-unused-vars
 
 import { AppState } from '../../store/types' // eslint-disable-line no-unused-vars
@@ -36,7 +36,7 @@ import { useAuth } from '../../plugins/auth'
 import { useRouter } from '../../plugins/router'
 import { useStore } from '../../plugins/store'
 
-export default {
+export default createComponent({
   setup () {
     /** The Vuex store */
     const store = useStore() as Store<AppState>
@@ -72,5 +72,5 @@ export default {
       showHelp
     }
   }
-}
+})
 </script>

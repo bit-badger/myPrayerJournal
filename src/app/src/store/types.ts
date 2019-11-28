@@ -12,6 +12,15 @@ export class HistoryEntry {
   text?: string = undefined
 }
 
+/** An entry with notes for a request */
+export class NotesEntry {
+  /** The date/time the notes were recorded */
+  asOf = 0
+
+  /** The notes */
+  notes = ''
+}
+
 /** A prayer request that is part of the user's journal */
 export class JournalRequest {
   /** The ID of the request (just the CUID part) */
@@ -45,7 +54,7 @@ export class JournalRequest {
   history: HistoryEntry[] = []
 
   /** Note entries for the request */
-  notes: any[] = [] // Note list
+  notes: NotesEntry[] = []
 }
 
 /** The state of myPrayerJournal */
@@ -108,9 +117,21 @@ const mutations = {
 }
 export { mutations as Mutations }
 
+/** The shape of the parameter to the add request action */
+export interface AddRequestAction {
+  /** The progress bar component properties */
+  progress: ProgressProps
+  /** The text of the request */
+  requestText: string
+  /** The recurrence type */
+  recurType: string
+  /** The number of intervals for non-immediate recurrence */
+  recurCount: number
+}
+
 /** The shape of the parameter to the show request action */
 export interface ShowRequestAction {
-  /** The progress bar component instance */
+  /** The progress bar component properties */
   progress: ProgressProps
   /** The ID of the prayer request being shown */
   requestId: string
@@ -120,10 +141,26 @@ export interface ShowRequestAction {
 
 /** The shape of the parameter to the snooze request action */
 export interface SnoozeRequestAction {
-  /** The progress bar component instance */
+  /** The progress bar component properties */
   progress: ProgressProps
   /** The ID of the prayer request being snoozed/unsnoozed */
   requestId: string
   /** The date/time after which the request will be once again shown */
   until: number
+}
+
+/** The shape of the parameter to the update request action */
+export interface UpdateRequestAction {
+  /** The progress bar component properties */
+  progress: ProgressProps
+  /** The ID of the prayer request */
+  requestId: string
+  /** The text of the update */
+  updateText: string
+  /** The status associated with the update */
+  status: string
+  /** The type of recurrence for the request */
+  recurType: string
+  /** The number of intervals for non-immediate recurrence */
+  recurCount: number
 }

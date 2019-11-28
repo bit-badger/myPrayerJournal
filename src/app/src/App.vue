@@ -112,9 +112,7 @@ const ProgressSymbol = Symbol('Progress events')
 
 export default createComponent({
   name: 'app',
-  components: {
-    Navigation
-  },
+  components: { Navigation },
   setup () {
     const pkg = require('../package.json')
 

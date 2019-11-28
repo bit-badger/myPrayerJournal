@@ -23,7 +23,7 @@ md-content(role='main').mpj-main-content
 </template>
 
 <script lang="ts">
-import { createComponent, onMounted, computed } from '@vue/composition-api'
+import { computed, createComponent, onMounted } from '@vue/composition-api'
 import moment from 'moment'
 
 import api from '../../api'
@@ -45,13 +45,16 @@ export default createComponent({
     const progress = useProgress()
 
     /** The request being displayed */
-    let request: JournalRequest = undefined
+    let request = new JournalRequest()
+
+    /** The history entry where the request was marked as answered */
+    const answer = computed(() => request.history.find(hist => hist.status === 'Answered'))
 
     /** Whether this request is answered */
-    const isAnswered = computed(() => request.history.find(hist => hist.status === 'Answered'))
+    const isAnswered = computed(() => answer.value !== undefined)
 
     /** The date/time this request was answered */
-    const answered = computed(() => request.history.find(hist => hist.status === 'Answered').asOf)
+    const answered = computed(() => answer.value ? answer.value.asOf : undefined)
 
     /** The last recorded text for the request */
     const lastText = computed(() => request.history.filter(hist => hist.text).sort(asOfDesc)[0].text)
@@ -68,8 +71,9 @@ export default createComponent({
 
     /** The number of days this request [was|has been] open */
     const openDays = computed(() => {
-      const asOf = isAnswered.value ? answered.value : Date.now()
-      return Math.floor((asOf - request.history.find(hist => hist.status === 'Created').asOf) / 1000 / 60 / 60 / 24)
+      const asOf = answered.value ? answered.value : Date.now()
+      return Math.floor(
+        (asOf - request.history.filter(hist => hist.status === 'Created')[0].asOf) / 1000 / 60 / 60 / 24)
     })
 
     /** How many times this request has been prayed for */
@@ -82,7 +86,7 @@ export default createComponent({
       progress.events.$emit('show', 'indeterminate')
       try {
         const req = await api.getFullRequest(props.id)
-        request = req.data
+        request = req.data as JournalRequest
       } catch (e) {
         console.log(e) // eslint-disable-line no-console
       } finally {

@@ -24,48 +24,78 @@ md-card(v-if='shouldDisplay'
     p.mpj-text-right: small.mpj-muted-text: em (last activity #[date-from-now(:value='request.asOf')])
 </template>
 
-<script>
-'use strict'
+<script lang="ts">
+import { createComponent, computed } from '@vue/composition-api'
 
-import { Actions } from '@/store/types'
+import { Actions, JournalRequest, UpdateRequestAction } from '../../store/types' // eslint-disable-line no-unused-vars
 
-export default {
-  name: 'request-card',
-  inject: [
-    'journalEvents',
-    'messages',
-    'progress'
-  ],
+import { useEvents } from '../Journal.vue'
+import { useStore } from '../../plugins/store'
+import { useProgress, useSnackbar } from '../../App.vue'
+import { useRouter } from '../../plugins/router'
+
+export default createComponent({
   props: {
-    request: { required: true }
-  },
-  computed: {
-    shouldDisplay () {
-      const now = Date.now()
-      return Math.max(now, this.request.showAfter, this.request.snoozedUntil) === now
+    request: {
+      type: JournalRequest,
+      required: true
     }
   },
-  methods: {
-    async markPrayed () {
-      await this.$store.dispatch(Actions.UpdateRequest, {
-        progress: this.progress,
-        requestId: this.request.requestId,
+  setup (props) {
+    /** The Vuex store */
+    const store = useStore()
+
+    /** The application router */
+    const router = useRouter()
+
+    /** The progress bar component properties */
+    const progress = useProgress()
+
+    /** The snackbar component properties */
+    const snackbar = useSnackbar()
+
+    /** The journal event bus */
+    const events = useEvents()
+
+    /** Should this request be displayed? */
+    const shouldDisplay = computed(() => {
+      const now = Date.now()
+      return Math.max(now, props.request.showAfter, props.request.snoozedUntil) === now
+    })
+
+    /** Mark the request as prayed */
+    const markPrayed = async () => {
+      const opts: UpdateRequestAction = {
+        progress,
+        requestId: props.request.requestId,
         status: 'Prayed',
-        updateText: ''
-      })
-      this.messages.$emit('info', 'Request marked as prayed')
-    },
-    showEdit () {
-      this.$router.push({ name: 'EditRequest', params: { id: this.request.requestId } })
-    },
-    showNotes () {
-      this.journalEvents.$emit('notes', this.request)
-    },
-    snooze () {
-      this.journalEvents.$emit('snooze', this.request.requestId)
+        updateText: '',
+        recurType: '',
+        recurCount: 0
+      }
+      await store.dispatch(Actions.UpdateRequest, opts)
+      snackbar.events.$emit('info', 'Request marked as prayed')
+    }
+
+    /** Show the edit page for this request */
+    const showEdit = () => { router.push({ name: 'EditRequest', params: { id: props.request.requestId } }) }
+
+    /** Show the request notes dialog */
+    const showNotes = () => events.$emit('notes', props.request)
+
+    /** Show the snooze request dialog */
+    const snooze = () => events.$emit('snooze', props.request.requestId)
+
+    return {
+      markPrayed,
+      request: props.request,
+      shouldDisplay,
+      showEdit,
+      showNotes,
+      snooze
     }
   }
-}
+})
 </script>
 
 <style lang="sass">

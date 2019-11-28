@@ -10,7 +10,9 @@ import {
   JournalRequest,
   Mutations,
   SnoozeRequestAction,
-  ShowRequestAction
+  ShowRequestAction,
+  AddRequestAction,
+  UpdateRequestAction
 } from './types'
 import { ProgressProps } from '@/types'
 
@@ -101,16 +103,17 @@ const store : StoreOptions<AppState> = {
     }
   },
   actions: {
-    async [Actions.AddRequest] ({ commit }, { progress, requestText, recurType, recurCount }) {
-      progress.$emit('show', 'indeterminate')
+    async [Actions.AddRequest] ({ commit }, p: AddRequestAction) {
+      const { progress, requestText, recurType, recurCount } = p
+      progress.events.$emit('show', 'indeterminate')
       try {
         await setBearer()
         const newRequest = await api.addRequest(requestText, recurType, recurCount)
         commit(Mutations.RequestAdded, newRequest.data)
-        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.$emit('done')
+      } finally {
+        progress.events.$emit('done')
       }
     },
     async [Actions.CheckAuthentication] ({ commit }) {
@@ -129,19 +132,19 @@ const store : StoreOptions<AppState> = {
       try {
         const jrnl = await api.journal()
         commit(Mutations.LoadedJournal, jrnl.data)
-        progress.events.$emit('done')
       } catch (err) {
         logError(err)
-        progress.events.$emit('done')
       } finally {
+        progress.events.$emit('done')
         commit(Mutations.LoadingJournal, false)
       }
     },
-    async [Actions.UpdateRequest] ({ commit, state }, { progress, requestId, status, updateText, recurType, recurCount }) {
-      progress.$emit('show', 'indeterminate')
+    async [Actions.UpdateRequest] ({ commit, state }, p: UpdateRequestAction) {
+      const { progress, requestId, status, updateText, recurType, recurCount } = p
+      progress.events.$emit('show', 'indeterminate')
       try {
         await setBearer()
-        const oldReq: any = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
+        const oldReq = (state.journal.filter(req => req.requestId === requestId) || [])[0] || {}
         if (!(status === 'Prayed' && updateText === '')) {
           if (status !== 'Answered' && (oldReq.recurType !== recurType || oldReq.recurCount !== recurCount)) {
             await api.updateRecurrence(requestId, recurType, recurCount)
@@ -152,10 +155,10 @@ const store : StoreOptions<AppState> = {
         }
         const request = await api.getRequest(requestId)
         commit(Mutations.RequestUpdated, request.data)
-        progress.$emit('done')
       } catch (err) {
         logError(err)
-        progress.$emit('done')
+      } finally {
+        progress.events.$emit('done')
       }
     },
     async [Actions.ShowRequestNow] ({ commit }, p: ShowRequestAction) {
@@ -166,9 +169,9 @@ const store : StoreOptions<AppState> = {
         await api.showRequest(requestId, showAfter)
         const request = await api.getRequest(requestId)
         commit(Mutations.RequestUpdated, request.data)
-        progress.events.$emit('done')
       } catch (err) {
         logError(err)
+      } finally {
         progress.events.$emit('done')
       }
     },
@@ -180,9 +183,9 @@ const store : StoreOptions<AppState> = {
         await api.snoozeRequest(requestId, until)
         const request = await api.getRequest(requestId)
         commit(Mutations.RequestUpdated, request.data)
-        progress.events.$emit('done')
       } catch (err) {
         logError(err)
+      } finally {
         progress.events.$emit('done')
       }
     }

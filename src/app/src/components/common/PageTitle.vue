@@ -4,9 +4,9 @@ h1(v-if='!hideOnPage'
 </template>
 
 <script lang="ts">
-import { watch } from '@vue/composition-api'
+import { createComponent, watch, ref } from '@vue/composition-api'
 
-export default {
+export default createComponent({
   props: {
     title: {
       type: String,
@@ -17,11 +17,11 @@ export default {
       default: false
     }
   },
-  setup (props: any) {
-    watch(props.title, (title, prevTitle) => {
+  setup (props) {
+    watch(ref(props.title), (title: string, prevTitle: string) => {
       document.title = `${props.title.replace('&rsquo;', "'")} « myPrayerJournal`
     })
     return { }
   }
-}
+})
 </script>
