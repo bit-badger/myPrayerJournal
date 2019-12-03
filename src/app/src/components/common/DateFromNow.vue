@@ -1,6 +1,6 @@
 <script lang="ts">
 import { computed, createComponent, createElement, onBeforeUnmount, onMounted, ref } from '@vue/composition-api'
-import moment from 'moment'
+import { format, formatDistance } from 'date-fns'
 
 export default createComponent({
   props: {
@@ -22,14 +22,14 @@ export default createComponent({
     let intervalId: number = 0
 
     /** The relative time string */
-    const fromNow = ref(moment(props.value).fromNow())
+    const fromNow = ref(formatDistance(props.value, Date.now(), { addSuffix: true }))
 
     /** The actual date/time (used as the title for the relative time) */
-    const actual = computed(() => moment(props.value).format('LLLL'))
+    const actual = computed(() => format(props.value, 'PPPPp'))
 
     /** Update the relative time string if it is different */
     const updateFromNow = () => {
-      const newFromNow = moment(props.value).fromNow()
+      const newFromNow = formatDistance(props.value, Date.now(), { addSuffix: true })
       if (newFromNow !== fromNow.value) fromNow.value = newFromNow
     }
 

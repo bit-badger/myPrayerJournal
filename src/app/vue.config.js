@@ -5,7 +5,6 @@ module.exports = {
   configureWebpack: {
     plugins: [
       // new BundleAnalyzerPlugin(),
-      new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/)
     ],
     optimization: {
       splitChunks: {

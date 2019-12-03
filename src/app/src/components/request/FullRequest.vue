@@ -24,7 +24,7 @@ md-content(role='main').mpj-main-content
 
 <script lang="ts">
 import { computed, createComponent, onMounted } from '@vue/composition-api'
-import moment from 'moment'
+import { format } from 'date-fns'
 
 import api from '../../api'
 import { useProgress } from '../../App.vue'
@@ -80,7 +80,7 @@ export default createComponent({
     const prayedCount = computed(() => request.history.filter(hist => hist.status === 'Prayed').length)
 
     /** Format a date */
-    const formatDate = (asOf: number) => moment(asOf).format('LL')
+    const formatDate = (asOf: number) => format(asOf, 'PPP')
 
     onMounted(async () => {
       progress.events.$emit('show', 'indeterminate')
