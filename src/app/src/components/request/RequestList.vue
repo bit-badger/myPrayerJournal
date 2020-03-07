@@ -11,7 +11,7 @@ md-table(md-card)
 </template>
 
 <script lang="ts">
-import { createComponent } from '@vue/composition-api'
+import { createComponent, onMounted } from '@vue/composition-api'
 
 import RequestListItem from './RequestListItem.vue'
 
@@ -30,9 +30,11 @@ export default createComponent({
     }
   },
   setup (props, { parent }) {
-    // TODO: custom events
-    // this.$on('requestUnsnoozed', parent.$emit('requestUnsnoozed'))
-    // this.$on('requestNowShown', parent.$emit('requestNowShown'))
+    // TODO: custom events; does this work?
+    onMounted(function () {
+      this.$on('requestUnsnoozed', parent.$emit('requestUnsnoozed'))
+      this.$on('requestNowShown', parent.$emit('requestNowShown'))
+    })
     return {
       title: props.title,
       requests: props.requests as JournalRequest[]
