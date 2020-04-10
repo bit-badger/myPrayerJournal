@@ -13,7 +13,7 @@
     "publish": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet publish -c Release -r linux-x64 --self-contained false"
   },
   "dependencies": {
-    "auth0-js": "^9.7.3",
+    "auth0-js": "^9.13.2",
     "axios": "^0.19.0",
     "moment": "^2.18.1",
     "vue": "^2.5.15",
