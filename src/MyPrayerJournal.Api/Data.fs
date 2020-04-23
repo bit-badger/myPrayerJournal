@@ -126,8 +126,8 @@ module Data =
           .ToListAsync()
       return
         jrnl
+        |> Seq.map (fun r -> r.history <- []; r.notes <- []; r)
         |> List.ofSeq
-        |> List.map (fun r -> r.history <- []; r.notes <- []; r)
       }
 
   /// Save changes in the current document session
@@ -166,7 +166,9 @@ module Data =
           .Where(fun x -> x.Id = (RequestId.toString reqId) && x.userId = userId)
           .ProjectInto<JournalRequest>()
           .FirstOrDefaultAsync ()
-      return Option.fromObject req
+      return
+        Option.fromObject req
+        |> Option.map (fun r -> r.history <- []; r.notes <- []; r)
       }
       
   /// Update the recurrence for a request
