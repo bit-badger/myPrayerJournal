@@ -14,17 +14,17 @@
 
   <ItemGroup>
     <PackageReference Include="FunctionalCuid" Version="1.0.0" />
-    <PackageReference Include="Giraffe" Version="3.6.0" />
+    <PackageReference Include="Giraffe" Version="4.1.0" />
     <PackageReference Include="Giraffe.TokenRouter" Version="1.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.0.0" />
-    <PackageReference Include="Microsoft.FSharpLu" Version="0.10.29" />
-    <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.10.29" />
-    <PackageReference Include="RavenDb.Client" Version="4.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.3" />
+    <PackageReference Include="Microsoft.FSharpLu" Version="0.11.6" />
+    <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.11.6" />
+    <PackageReference Include="RavenDb.Client" Version="4.2.102" />
     <PackageReference Include="TaskBuilder.fs" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="FSharp.Core" Version="4.7.1" />
   </ItemGroup>
 
   <ItemGroup>
