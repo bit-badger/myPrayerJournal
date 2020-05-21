@@ -2,6 +2,9 @@
 #app.page-container
   md-app(md-waterfall md-mode='fixed-last' role='application')
     md-app-toolbar.md-large.md-dense.md-primary
+      md-progress-bar(v-if='progress.visible'
+                      :md-mode='progress.mode')
+      .md-no-progress-bar(v-if='!progress.visible')
       .md-toolbar-row
         .md-toolbar-section-start
           router-link(to='/').md-title
@@ -10,8 +13,6 @@
             span(style='font-weight:700;') Journal
       navigation
     md-app-content
-      md-progress-bar(v-if='progress.visible'
-                      :md-mode='progress.mode')
       router-view
       md-snackbar(:md-active.sync='snackbar.visible'
                   md-position='center'
@@ -153,6 +154,12 @@ p.mpj-request-text
   margin: auto
 .mpj-full-width
   width: 100%
-.md-progress-bar
-  margin: 24px
+.md-toolbar > .md-progress-bar
+  height: 2px
+  width: 100%
+  background-color: rgba(255, 255, 255, .8) !important
+  margin: 0
+.md-toolbar > .md-no-progress-bar
+  height: 2px
+  width: 100%
 </style>
