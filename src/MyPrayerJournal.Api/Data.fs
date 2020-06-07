@@ -49,6 +49,7 @@ module Indexes =
   open Raven.Client.Documents.Indexes
 
   /// Index requests for a journal view
+  // fsharplint:disable-next-line TypeNames
   type Requests_AsJournal () as this =
     inherit AbstractJavaScriptIndexCreationTask ()
     do

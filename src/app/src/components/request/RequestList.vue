@@ -32,8 +32,8 @@ export default createComponent({
   setup (props, { parent }) {
     // TODO: custom events; does this work?
     onMounted(function () {
-      this.$on('requestUnsnoozed', parent.$emit('requestUnsnoozed'))
-      this.$on('requestNowShown', parent.$emit('requestNowShown'))
+      this.$on('requestUnsnoozed', parent?.$emit('requestUnsnoozed'))
+      this.$on('requestNowShown', parent?.$emit('requestNowShown'))
     })
     return {
       title: props.title,
