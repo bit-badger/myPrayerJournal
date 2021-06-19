@@ -261,6 +261,8 @@ src/MyPrayerJournal.Api/wwwroot/favicon.ico
 src/MyPrayerJournal.Api/wwwroot/index.html
 src/MyPrayerJournal.Api/wwwroot/*.js
 src/MyPrayerJournal.Api/wwwroot/*.js.map
+src/MyPrayerJournal.Api/wwwroot/css
+src/MyPrayerJournal.Api/wwwroot/js
 src/MyPrayerJournal.Api/appsettings.Development.json
 /build
 src/*.exe
