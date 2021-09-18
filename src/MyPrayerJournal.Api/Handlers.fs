@@ -2,6 +2,8 @@
 [<RequireQualifiedAccess>]
 module MyPrayerJournal.Handlers
 
+// fsharplint:disable RecordFieldNames
+
 open Giraffe
 
 /// Handler to return Vue files
@@ -60,11 +62,10 @@ module private Helpers =
 
   /// Create a request ID from a string
   let toReqId x =
-    let reqId =
-      match Cuid.ofString x with
-      | Ok cuid -> cuid
-      | Error msg -> invalidOp msg
-    RequestId reqId
+    match Cuid.ofString x with
+    | Ok cuid -> cuid
+    | Error msg -> invalidOp msg
+    |> RequestId
 
   /// Return a 201 CREATED response
   let created next ctx =
@@ -88,12 +89,12 @@ module private Helpers =
   
   /// Work-around to let the Json.NET serializer synchronously deserialize from the request stream
   // TODO: Remove this once there is an async serializer
-  let allowSyncIO : HttpHandler =
-    fun next ctx ->
-      match ctx.Features.Get<Features.IHttpBodyControlFeature>() with
-      | null -> ()
-      | f -> f.AllowSynchronousIO <- true
-      next ctx
+  // let allowSyncIO : HttpHandler =
+  //   fun next ctx ->
+  //     match ctx.Features.Get<Features.IHttpBodyControlFeature>() with
+  //     | null -> ()
+  //     | f -> f.AllowSynchronousIO <- true
+  //     next ctx
 
 
 /// Strongly-typed models for post requests
@@ -142,8 +143,6 @@ module Models =
       until : int64
       }
 
-open FSharp.Control.Tasks.V2.ContextInsensitive
-
 /// /api/journal URLs
 module Journal =
   
@@ -165,7 +164,7 @@ module Request =
   /// POST /api/request
   let add : HttpHandler =
     authorize
-    >=> allowSyncIO
+    // >=> allowSyncIO
     >=> fun next ctx ->
       task {
         let! r     = ctx.BindJsonAsync<Models.Request> ()
@@ -197,7 +196,7 @@ module Request =
   /// POST /api/request/[req-id]/history
   let addHistory requestId : HttpHandler =
     authorize
-    >=> allowSyncIO
+    // >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -229,7 +228,7 @@ module Request =
   /// POST /api/request/[req-id]/note
   let addNote requestId : HttpHandler =
     authorize
-    >=> allowSyncIO
+    // >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -309,7 +308,7 @@ module Request =
   /// PATCH /api/request/[req-id]/snooze
   let snooze requestId : HttpHandler =
     authorize
-    >=> allowSyncIO
+    // >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -327,7 +326,7 @@ module Request =
   /// PATCH /api/request/[req-id]/recurrence
   let updateRecurrence requestId : HttpHandler =
     authorize
-    >=> allowSyncIO
+    // >=> allowSyncIO
     >=> fun next ctx ->
       task {
         use sess  = session ctx
@@ -344,12 +343,11 @@ module Request =
         | None -> return! Error.notFound next ctx
         }
 
-open Giraffe.TokenRouter
+open Giraffe.EndpointRouting
 
 /// The routes for myPrayerJournal
-let webApp : HttpHandler =
-  router Error.notFound [
-    route "/" Vue.app
+let routes =
+  [ route "/" Vue.app
     subRoute "/api/" [
       GET [
         route    "journal" Journal.journal

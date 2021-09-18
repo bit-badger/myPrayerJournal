@@ -36,7 +36,6 @@ module Configure =
     (Path.Combine >> bldr.UseWebRoot) pathSegments
 
   open Giraffe
-  open Giraffe.Serialization
   open Microsoft.AspNetCore.Authentication.JwtBearer
   open Microsoft.Extensions.DependencyInjection
   open MyPrayerJournal.Indexes
@@ -51,7 +50,7 @@ module Configure =
     let svcs (sc : IServiceCollection) =
       /// Custom settings for the JSON serializer (uses compact representation for options and DUs)
       let jsonSettings =
-        let x = NewtonsoftJsonSerializer.DefaultSettings
+        let x = NewtonsoftJson.Serializer.DefaultSettings
         Converters.all |> List.ofSeq |> List.iter x.Converters.Add
         x.NullValueHandling     <- NullValueHandling.Ignore
         x.MissingMemberHandling <- MissingMemberHandling.Error
@@ -61,7 +60,8 @@ module Configure =
 
       use sp  = sc.BuildServiceProvider ()
       let cfg = sp.GetRequiredService<IConfiguration> ()
-      sc.AddGiraffe()
+      sc.AddRouting()
+        .AddGiraffe()
         .AddAuthentication(
           /// Use HTTP "Bearer" authentication with JWTs
           fun opts ->
@@ -75,7 +75,7 @@ module Configure =
             opts.Audience  <- jwtCfg.["Id"]
             )
       |> ignore
-      sc.AddSingleton<IJsonSerializer> (NewtonsoftJsonSerializer jsonSettings)
+      sc.AddSingleton<Json.ISerializer> (NewtonsoftJson.Serializer jsonSettings)
       |> ignore
       let config = sc.BuildServiceProvider().GetRequiredService<IConfiguration>().GetSection "RavenDB"
       let store = new DocumentStore ()
@@ -104,6 +104,7 @@ module Configure =
     bldr.ConfigureLogging logz
 
   open System
+  open Giraffe.EndpointRouting
 
   /// Configure the web application
   let application (bldr : IWebHostBuilder) =
@@ -118,7 +119,8 @@ module Configure =
             | a ->
                 a.UseAuthentication()
                   .UseStaticFiles()
-                  .UseGiraffe Handlers.webApp
+                  .UseRouting()
+                  .UseEndpoints (fun e -> e.MapGiraffeEndpoints Handlers.routes)
             |> ignore)
     bldr.Configure appConfig
 

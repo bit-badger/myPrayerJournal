@@ -79,7 +79,6 @@ module Indexes =
 /// All data manipulations within myPrayerJournal
 module Data =
   
-  open FSharp.Control.Tasks.V2.ContextInsensitive
   open Indexes
   open Microsoft.FSharpLu
   open Raven.Client.Documents
