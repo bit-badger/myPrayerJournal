@@ -17,12 +17,12 @@ const routes: Array<RouteRecordRaw> = [
     component: Home,
     meta: { title: "Welcome!" }
   },
-  {
-    path: "/journal",
-    name: "Journal",
-    component: () => import(/* webpackChunkName: "journal" */ "@/views/Journal.vue"),
-    meta: { auth: true, title: "Loading Prayer Journal..." }
-  },
+  // {
+  //   path: "/journal",
+  //   name: "Journal",
+  //   component: () => import(/* webpackChunkName: "journal" */ "@/views/Journal.vue"),
+  //   meta: { auth: true, title: "Loading Prayer Journal..." }
+  // },
   {
     path: "/legal/privacy-policy",
     name: "PrivacyPolicy",
@@ -35,36 +35,36 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import(/* webpackChunkName: "legal" */ "@/views/legal/TermsOfService.vue"),
     meta: { title: "Terms of Service" }
   },
-  {
-    path: "/request/:id/edit",
-    name: "EditRequest",
-    component: () => import(/* webpackChunkName: "edit" */ "@/views/request/EditRequest.vue"),
-    meta: { auth: true, title: "Edit Prayer Request" }
-  },
-  {
-    path: "/request/:id/full",
-    name: "FullRequest",
-    component: () => import(/* webpackChunkName: "full" */ "@/views/request/FullRequest.vue"),
-    meta: { auth: true, title: "View Full Prayer Request" }
-  },
-  {
-    path: "/requests/active",
-    name: "ActiveRequests",
-    component: () => import(/* webpackChunkName: "list" */ "@/views/request/ActiveRequests.vue"),
-    meta: { auth: true, title: "All Active Requests" }
-  },
-  {
-    path: "/requests/answered",
-    name: "AnsweredRequests",
-    component: () => import(/* webpackChunkName: "list" */ "@/views/request/AnsweredRequests.vue"),
-    meta: { auth: true, title: "Answered Requests" }
-  },
-  {
-    path: "/requests/snoozed",
-    name: "SnoozedRequests",
-    component: () => import(/* webpackChunkName: "list" */ "@/views/request/SnoozedRequests.vue"),
-    meta: { auth: true, title: "Snoozed Requests" }
-  },
+  // {
+  //   path: "/request/:id/edit",
+  //   name: "EditRequest",
+  //   component: () => import(/* webpackChunkName: "edit" */ "@/views/request/EditRequest.vue"),
+  //   meta: { auth: true, title: "Edit Prayer Request" }
+  // },
+  // {
+  //   path: "/request/:id/full",
+  //   name: "FullRequest",
+  //   component: () => import(/* webpackChunkName: "full" */ "@/views/request/FullRequest.vue"),
+  //   meta: { auth: true, title: "View Full Prayer Request" }
+  // },
+  // {
+  //   path: "/requests/active",
+  //   name: "ActiveRequests",
+  //   component: () => import(/* webpackChunkName: "list" */ "@/views/request/ActiveRequests.vue"),
+  //   meta: { auth: true, title: "All Active Requests" }
+  // },
+  // {
+  //   path: "/requests/answered",
+  //   name: "AnsweredRequests",
+  //   component: () => import(/* webpackChunkName: "list" */ "@/views/request/AnsweredRequests.vue"),
+  //   meta: { auth: true, title: "Answered Requests" }
+  // },
+  // {
+  //   path: "/requests/snoozed",
+  //   name: "SnoozedRequests",
+  //   component: () => import(/* webpackChunkName: "list" */ "@/views/request/SnoozedRequests.vue"),
+  //   meta: { auth: true, title: "Snoozed Requests" }
+  // },
   {
     path: "/user/log-on",
     name: "LogOn",

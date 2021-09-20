@@ -8,17 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { provide } from "vue"
-
 import "bootstrap/dist/css/bootstrap.min.css"
-
-import { AuthService } from "./auth"
-
-/** The auth service injection symbol */
-export const AuthSymbol = Symbol("AuthService")
-
-provide(AuthSymbol, AuthService)
-
 </script>
 
 <style lang="sass">

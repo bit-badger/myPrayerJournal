@@ -4,18 +4,16 @@ main.container
 </template>
 
 <script setup lang="ts">
-import { inject, onBeforeMount } from "vue"
+import { onBeforeMount } from "vue"
 import { useRouter } from "vue-router"
-
-import { AuthService } from "@/auth"
+import { useAuth } from "@/plugins/auth"
 import { useStore } from "@/store"
-import { AuthSymbol } from "@/App.vue"
 
 const store = useStore()
 const router = useRouter()
 
 /** Auth service instance */
-const auth = inject(AuthSymbol) as AuthService
+const auth = useAuth()
 
 /** Navigate on auth completion */
 auth.on("loginEvent", (data: any) => {
