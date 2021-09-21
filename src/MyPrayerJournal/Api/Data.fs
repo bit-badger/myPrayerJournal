@@ -1,186 +1,227 @@
-﻿namespace MyPrayerJournal
+﻿module MyPrayerJournal.Data
 
+open LiteDB
 open System
-open System.Collections.Generic
+open System.Threading.Tasks
 
-/// JSON converters for various DUs
-module Converters =
+// fsharplint:disable MemberNames
+
+/// LiteDB extensions
+[<AutoOpen>]
+module Extensions =
   
-  open Microsoft.FSharpLu.Json
-  open Newtonsoft.Json
+  /// Extensions on the LiteDatabase class
+  type LiteDatabase with
+    /// The Request collection
+    member this.requests
+      with get () = this.GetCollection<Request>("request")
+    /// Async version of the checkpoint command (flushes log)
+    member this.saveChanges () =
+      this.Checkpoint()
+      Task.CompletedTask
 
-  /// JSON converter for request IDs
-  type RequestIdJsonConverter () =
-    inherit JsonConverter<RequestId> ()
-    override __.WriteJson(writer : JsonWriter, value : RequestId, _ : JsonSerializer) =
-      (RequestId.toString >> writer.WriteValue) value
-    override __.ReadJson(reader: JsonReader, _ : Type, _ : RequestId, _ : bool, _ : JsonSerializer) =
-      (string >> RequestId.fromIdString) reader.Value
 
-  /// JSON converter for user IDs
-  type UserIdJsonConverter () =
-    inherit JsonConverter<UserId> ()
-    override __.WriteJson(writer : JsonWriter, value : UserId, _ : JsonSerializer) =
-      (UserId.toString >> writer.WriteValue) value
-    override __.ReadJson(reader: JsonReader, _ : Type, _ : UserId, _ : bool, _ : JsonSerializer) =
-      (string >> UserId) reader.Value
+/// Map domain to LiteDB
+//  It does mapping, but since we're so DU-heavy, this gives us control over the JSON representation
+[<RequireQualifiedAccess>]
+module Mapping =
+  
+  /// Map a history entry to BSON
+  let historyToBson (hist : History) : BsonValue =
+    let doc = BsonDocument ()
+    doc.["asOf"]   <- BsonValue (Ticks.toLong hist.asOf)
+    doc.["status"] <- BsonValue (RequestAction.toString hist.status)
+    doc.["text"]   <- BsonValue (Option.toObj hist.text)
+    upcast doc
 
-  /// JSON converter for Ticks
-  type TicksJsonConverter () =
-    inherit JsonConverter<Ticks> ()
-    override __.WriteJson(writer : JsonWriter, value : Ticks, _ : JsonSerializer) =
-      (Ticks.toLong >> writer.WriteValue) value
-    override __.ReadJson(reader: JsonReader, _ : Type, _ : Ticks, _ : bool, _ : JsonSerializer) =
-      (string >> int64 >> Ticks) reader.Value
+  /// Map a BSON document to a history entry
+  let historyFromBson (doc : BsonValue) =
+    { asOf   = Ticks doc.["asOf"].AsInt64
+      status = RequestAction.fromString doc.["status"].AsString
+      text   = match doc.["text"].IsNull with true -> None | false -> Some doc.["text"].AsString
+      }
 
-  /// A sequence of all custom converters needed for myPrayerJournal
-  let all : JsonConverter seq =
-    seq {
-      yield RequestIdJsonConverter ()
-      yield UserIdJsonConverter ()
-      yield TicksJsonConverter ()
-      yield CompactUnionJsonConverter true
+  /// Map a note entry to BSON
+  let noteToBson (note : Note) : BsonValue =
+    let doc = BsonDocument ()
+    doc.["asOf"]  <- BsonValue (Ticks.toLong note.asOf)
+    doc.["notes"] <- BsonValue note.notes
+    upcast doc
+
+  /// Map a BSON document to a note entry
+  let noteFromBson (doc : BsonValue) =
+    { asOf  = Ticks doc.["asOf"].AsInt64
+      notes = doc.["notes"].AsString
+      }
+
+  /// Map a request to its BSON representation
+  let requestToBson req : BsonValue =
+    let doc = BsonDocument ()
+    doc.["_id"]          <- BsonValue (RequestId.toString req.id)
+    doc.["enteredOn"]    <- BsonValue (Ticks.toLong req.enteredOn)
+    doc.["userId"]       <- BsonValue (UserId.toString req.userId)
+    doc.["snoozedUntil"] <- BsonValue (Ticks.toLong req.snoozedUntil)
+    doc.["showAfter"]    <- BsonValue (Ticks.toLong req.showAfter)
+    doc.["recurType"]    <- BsonValue (Recurrence.toString req.recurType)
+    doc.["recurCount"]   <- BsonValue req.recurCount
+    doc.["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
+    doc.["notes"]        <- BsonValue (req.notes |> List.map noteToBson |> Seq.ofList)
+    upcast doc
+  
+  /// Map a BSON document to a request
+  let requestFromBson (doc : BsonValue) =
+    { id           = RequestId.ofString doc.["_id"].AsString
+      enteredOn    = Ticks doc.["enteredOn"].AsInt64
+      userId       = UserId doc.["userId"].AsString
+      snoozedUntil = Ticks doc.["snoozedUntil"].AsInt64
+      showAfter    = Ticks doc.["showAfter"].AsInt64
+      recurType    = Recurrence.fromString doc.["recurType"].AsString
+      recurCount   = int16 doc.["recurCount"].AsInt32
+      history      = doc.["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
+      notes        = doc.["notes"].AsArray |> Seq.map noteFromBson |> List.ofSeq
+      }
+  
+  /// Set up the mapping
+  let register () = 
+    BsonMapper.Global.RegisterType<Request>(
+      Func<Request, BsonValue> requestToBson, Func<BsonValue, Request> requestFromBson)
+
+/// Code to be run at startup
+module Startup =
+  
+  /// Ensure the database is set up
+  let ensureDb (db : LiteDatabase) =
+    db.requests.EnsureIndex (fun it -> it.userId) |> ignore
+    Mapping.register ()
+
+
+/// Async wrappers for LiteDB, and request -> journal mappings
+[<AutoOpen>]
+module private Helpers =
+
+  /// Async wrapper around a LiteDB query that returns multiple results
+  let doListQuery<'T> (q : ILiteQueryable<'T>) =
+    q.ToList () |> Task.FromResult
+
+  /// Async wrapper around a LiteDB query that returns 0 or 1 results
+  let doSingleQuery<'T> (q : ILiteQueryable<'T>) =
+    q.FirstOrDefault () |> Task.FromResult
+
+  /// Async wrapper around a request update
+  let doUpdate (db : LiteDatabase) (req : Request) =
+    db.requests.Update req |> ignore
+    Task.CompletedTask
+
+  /// Convert a request to the form used for the journal (precomputed values, no notes or history)
+  let toJournalLite (req : Request) =
+    let hist = req.history |> List.sortByDescending (fun it -> Ticks.toLong it.asOf) |> List.head
+    { requestId    = req.id
+      userId       = req.userId
+      text         = (req.history
+                       |> List.filter (fun it -> Option.isSome it.text)
+                       |> List.sortByDescending (fun it -> Ticks.toLong it.asOf)
+                       |> List.head).text
+                     |> Option.get
+      asOf         = hist.asOf
+      lastStatus   = hist.status
+      snoozedUntil = req.snoozedUntil
+      showAfter    = req.showAfter
+      recurType    = req.recurType
+      recurCount   = req.recurCount
+      history      = []
+      notes        = []
+      }
+
+  /// Same as above, but with notes and history
+  let toJournalFull req =
+    { toJournalLite req with 
+        history = req.history
+        notes   = req.notes
       }
 
 
-/// RavenDB index declarations
-module Indexes =
+/// Retrieve a request, including its history and notes, by its ID and user ID
+let tryFullRequestById reqId userId (db : LiteDatabase) = task {
+  let! req = doSingleQuery (db.requests.Query().Where (fun it -> it.id = reqId && it.userId = userId))
+  return match box req with null -> None | _ -> Some req
+  }
+
+/// Add a history entry
+let addHistory reqId userId hist db = task {
+  match! tryFullRequestById reqId userId db with
+  | Some req -> do! doUpdate db { req with history = hist :: req.history }
+  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  }
+
+/// Add a note
+let addNote reqId userId note db = task {
+  match! tryFullRequestById reqId userId db with
+  | Some req -> do! doUpdate db { req with notes = note :: req.notes }
+  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  }
+
+/// Add a request
+let addRequest (req : Request) (db : LiteDatabase) =
+  db.requests.Insert req |> ignore
+
+/// Retrieve all answered requests for the given user
+let answeredRequests userId (db : LiteDatabase) = task {
+  let! reqs = doListQuery (db.requests.Query().Where(fun req -> req.userId = userId))
+  return
+    reqs
+    |> Seq.map toJournalFull
+    |> Seq.filter (fun it -> it.lastStatus = Answered)
+    |> Seq.sortByDescending (fun it -> Ticks.toLong it.asOf)
+    |> List.ofSeq
+  }
   
-  open Raven.Client.Documents.Indexes
+/// Retrieve the user's current journal
+let journalByUserId userId (db : LiteDatabase) = task {
+  let! jrnl = doListQuery (db.requests.Query().Where(fun req -> req.userId = userId))
+  return
+    jrnl
+    |> Seq.map toJournalLite
+    |> Seq.filter (fun it -> it.lastStatus <> Answered)
+    |> Seq.sortBy (fun it -> Ticks.toLong it.asOf)
+    |> List.ofSeq
+  }
 
-  /// Index requests for a journal view
-  // fsharplint:disable-next-line TypeNames
-  type Requests_AsJournal () as this =
-    inherit AbstractJavaScriptIndexCreationTask ()
-    do
-      this.Maps <- HashSet<string> [
-        """docs.Requests.Select(req => new {
-            requestId = req.Id.Replace("Requests/", ""),
-            userId = req.userId,
-            text = req.history.Where(hist => hist.text != null).OrderByDescending(hist => hist.asOf).First().text,
-            asOf = req.history.OrderByDescending(hist => hist.asOf).First().asOf,
-            lastStatus = req.history.OrderByDescending(hist => hist.asOf).First().status,
-            snoozedUntil = req.snoozedUntil,
-            showAfter = req.showAfter,
-            recurType = req.recurType,
-            recurCount = req.recurCount
-        })"""
-        ]
-      this.Fields <-
-        [ "requestId",  IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
-          "text",       IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
-          "asOf",       IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
-          "lastStatus", IndexFieldOptions (Storage = Nullable FieldStorage.Yes)
-          ]
-        |> dict
-        |> Dictionary<string, IndexFieldOptions>
+/// Retrieve a request by its ID and user ID (without notes and history)
+let tryRequestById reqId userId db = task {
+  match! tryFullRequestById reqId userId db with
+  | Some r -> return Some { r with history = []; notes = [] }
+  | _ -> return None
+  }
 
-
-/// All data manipulations within myPrayerJournal
-module Data =
-  
-  open Indexes
-  open Microsoft.FSharpLu
-  open Raven.Client.Documents
-  open Raven.Client.Documents.Linq
-  open Raven.Client.Documents.Session
-
-  /// Add a history entry
-  let addHistory reqId (hist : History) (sess : IAsyncDocumentSession) =
-    sess.Advanced.Patch<Request, History> (
-      RequestId.toString reqId,
-      (fun r -> r.history :> IEnumerable<History>),
-      fun (h : JavaScriptArray<History>) -> h.Add (hist) :> obj)
-  
-  /// Add a note
-  let addNote reqId (note : Note) (sess : IAsyncDocumentSession) =
-    sess.Advanced.Patch<Request, Note> (
-      RequestId.toString reqId,
-      (fun r -> r.notes :> IEnumerable<Note>),
-      fun (h : JavaScriptArray<Note>) -> h.Add (note) :> obj)
-
-  /// Add a request
-  let addRequest req (sess : IAsyncDocumentSession) =
-    sess.StoreAsync (req, req.Id)
-
-  /// Retrieve all answered requests for the given user
-  let answeredRequests userId (sess : IAsyncDocumentSession) =
-    task {
-      let! reqs =
-        sess.Query<JournalRequest, Requests_AsJournal>()
-          .Where(fun r -> r.userId = userId && r.lastStatus = "Answered")
-          .OrderByDescending(fun r -> r.asOf)
-          .ProjectInto<JournalRequest>()
-          .ToListAsync ()
-      return List.ofSeq reqs
-      }
+/// Retrieve notes for a request by its ID and user ID
+let notesById reqId userId (db : LiteDatabase) = task {
+  match! tryFullRequestById reqId userId db with | Some req -> return req.notes | None -> return []
+  }
     
-  /// Retrieve the user's current journal
-  let journalByUserId userId (sess : IAsyncDocumentSession) =
-    task {
-      let! jrnl =
-        sess.Query<JournalRequest, Requests_AsJournal>()
-          .Where(fun r -> r.userId = userId && r.lastStatus <> "Answered")
-          .OrderBy(fun r -> r.asOf)
-          .ProjectInto<JournalRequest>()
-          .ToListAsync()
-      return
-        jrnl
-        |> Seq.map (fun r -> r.history <- []; r.notes <- []; r)
-        |> List.ofSeq
-      }
+/// Retrieve a journal request by its ID and user ID
+let tryJournalById reqId userId (db : LiteDatabase) = task {
+  match! tryFullRequestById reqId userId db with
+  | Some req -> return req |> (toJournalLite >> Some)
+  | None -> return None
+  }
+    
+/// Update the recurrence for a request
+let updateRecurrence reqId userId recurType recurCount db = task {
+  match! tryFullRequestById reqId userId db with
+  | Some req -> do! doUpdate db { req with recurType = recurType; recurCount = recurCount }
+  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  }
 
-  /// Save changes in the current document session
-  let saveChanges (sess : IAsyncDocumentSession) =
-    sess.SaveChangesAsync ()
+/// Update a snoozed request
+let updateSnoozed reqId userId until db = task {
+  match! tryFullRequestById reqId userId db with
+  | Some req -> do! doUpdate db { req with snoozedUntil = until; showAfter = until }
+  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  }
 
-  /// Retrieve a request, including its history and notes, by its ID and user ID
-  let tryFullRequestById reqId userId (sess : IAsyncDocumentSession) =
-    task {
-      let! req = RequestId.toString reqId |> sess.LoadAsync
-      return match Option.fromObject req with Some r when r.userId = userId -> Some r | _ -> None
-      }
-
-
-  /// Retrieve a request by its ID and user ID (without notes and history)
-  let tryRequestById reqId userId (sess : IAsyncDocumentSession) =
-    task {
-      match! tryFullRequestById reqId userId sess with
-      | Some r -> return Some { r with history = []; notes = [] }
-      | _ -> return None
-      }
-  
-  /// Retrieve notes for a request by its ID and user ID
-  let notesById reqId userId (sess : IAsyncDocumentSession) =
-    task {
-      match! tryFullRequestById reqId userId sess with
-      | Some req -> return req.notes
-      | None -> return []
-      }
-      
-  /// Retrieve a journal request by its ID and user ID
-  let tryJournalById reqId userId (sess : IAsyncDocumentSession) =
-    task {
-      let! req =
-        sess.Query<Request, Requests_AsJournal>()
-          .Where(fun x -> x.Id = (RequestId.toString reqId) && x.userId = userId)
-          .ProjectInto<JournalRequest>()
-          .FirstOrDefaultAsync ()
-      return
-        Option.fromObject req
-        |> Option.map (fun r -> r.history <- []; r.notes <- []; r)
-      }
-      
-  /// Update the recurrence for a request
-  let updateRecurrence reqId recurType recurCount (sess : IAsyncDocumentSession) =
-    sess.Advanced.Patch<Request, Recurrence> (RequestId.toString reqId, (fun r -> r.recurType),  recurType)
-    sess.Advanced.Patch<Request, int16>      (RequestId.toString reqId, (fun r -> r.recurCount), recurCount)
-
-  /// Update a snoozed request
-  let updateSnoozed reqId until (sess : IAsyncDocumentSession) =
-    sess.Advanced.Patch<Request, Ticks> (RequestId.toString reqId, (fun r -> r.snoozedUntil),  until)
-    sess.Advanced.Patch<Request, Ticks> (RequestId.toString reqId, (fun r -> r.showAfter),     until)
-
-  /// Update the "show after" timestamp for a request
-  let updateShowAfter reqId showAfter (sess : IAsyncDocumentSession) =
-    sess.Advanced.Patch<Request, Ticks> (RequestId.toString reqId, (fun r -> r.showAfter), showAfter)
+/// Update the "show after" timestamp for a request
+let updateShowAfter reqId userId showAfter db = task {
+  match! tryFullRequestById reqId userId db with
+  | Some req -> do! doUpdate db { req with showAfter = showAfter }
+  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  }
