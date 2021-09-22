@@ -31,14 +31,14 @@ module Mapping =
     let doc = BsonDocument ()
     doc.["asOf"]   <- BsonValue (Ticks.toLong hist.asOf)
     doc.["status"] <- BsonValue (RequestAction.toString hist.status)
-    doc.["text"]   <- BsonValue (Option.toObj hist.text)
+    doc.["text"]   <- BsonValue (match hist.text with Some t -> t | None -> "")
     upcast doc
 
   /// Map a BSON document to a history entry
   let historyFromBson (doc : BsonValue) =
     { asOf   = Ticks doc.["asOf"].AsInt64
       status = RequestAction.fromString doc.["status"].AsString
-      text   = match doc.["text"].IsNull with true -> None | false -> Some doc.["text"].AsString
+      text   = match doc.["text"].AsString with "" -> None | txt -> Some txt
       }
 
   /// Map a note entry to BSON
@@ -65,7 +65,7 @@ module Mapping =
     doc.["recurType"]    <- BsonValue (Recurrence.toString req.recurType)
     doc.["recurCount"]   <- BsonValue req.recurCount
     doc.["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
-    doc.["notes"]        <- BsonValue (req.notes |> List.map noteToBson |> Seq.ofList)
+    doc.["notes"]        <- BsonArray (req.notes |> List.map noteToBson |> Seq.ofList)
     upcast doc
   
   /// Map a BSON document to a request

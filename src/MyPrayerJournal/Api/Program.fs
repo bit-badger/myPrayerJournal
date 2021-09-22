@@ -76,14 +76,15 @@ module Configure =
         fun opts ->
           let jwtCfg = bldr.Configuration.GetSection "Auth0"
           opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
-          opts.Audience  <- jwtCfg.["Id"]
-          )
+          opts.Audience  <- jwtCfg.["Id"])
     |> ignore
     let jsonOptions = JsonSerializerOptions ()
     jsonOptions.Converters.Add (JsonFSharpConverter ())
+    let db = new LiteDatabase (bldr.Configuration.GetConnectionString "db")
+    Data.Startup.ensureDb db
     bldr.Services.AddSingleton(jsonOptions)
       .AddSingleton<Json.ISerializer, SystemTextJson.Serializer>()
-      .AddSingleton<LiteDatabase>(fun _ -> new LiteDatabase (bldr.Configuration.GetConnectionString "db"))
+      .AddSingleton<LiteDatabase>(db)
     |> ignore
     bldr.Build ()
   
