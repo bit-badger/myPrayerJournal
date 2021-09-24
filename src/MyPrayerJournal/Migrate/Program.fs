@@ -49,9 +49,7 @@ let migrated =
         history      = Subdocs.history r?history
         notes        = Subdocs.notes r?notes
       })
-  |> Seq.iter (fun req ->
-      printfn "%A" req
-      db.GetCollection<Request>("request").Insert req |> ignore)
+  |> db.GetCollection<Request>("request").Insert
 
 db.Checkpoint ()
 

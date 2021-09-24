@@ -18,8 +18,8 @@ module Configure =
   let appConfiguration (bldr : WebApplicationBuilder) =
     bldr.Configuration
       .SetBasePath(bldr.Environment.ContentRootPath)
-      .AddJsonFile("appsettings.json", optional = true, reloadOnChange = true)
-      .AddJsonFile($"appsettings.{bldr.Environment.EnvironmentName}.json")
+      .AddJsonFile("appsettings.json", optional = false, reloadOnChange = true)
+      .AddJsonFile($"appsettings.{bldr.Environment.EnvironmentName}.json", optional = true, reloadOnChange = true)
       .AddEnvironmentVariables ()
     |> ignore
     bldr

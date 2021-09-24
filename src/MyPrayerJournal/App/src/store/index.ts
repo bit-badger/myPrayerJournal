@@ -3,7 +3,7 @@ import { createStore, Store, useStore as baseUseStore } from "vuex"
 import { useTitle } from "@vueuse/core"
 
 import api, { JournalRequest } from "@/api"
-import auth from "@/auth"
+import { useAuth } from "@/plugins/auth"
 
 import * as Actions from "./actions"
 import * as Mutations from "./mutations"
@@ -58,12 +58,15 @@ const sortValue = (it : JournalRequest) => it.showAfter === 0 ? it.asOf : it.sho
  * Sort journal requests either by asOf or showAfter
  */
 const journalSort = (a : JournalRequest, b : JournalRequest) => sortValue(a) - sortValue(b)
- 
+
+/** The authentication service */
+const auth = useAuth()
+
 export default createStore({
   state: () : State => ({
     pageTitle: appName,
-    user: auth.session.profile,
-    isAuthenticated: auth.isAuthenticated(),
+    user: auth?.session.profile ?? {},
+    isAuthenticated: auth?.isAuthenticated() ?? false,
     journal: [],
     isLoadingJournal: false
   }),

@@ -10,7 +10,7 @@
     "lint": "vue-cli-service lint",
     "apistart": "cd ../Api && dotnet run",
     "publish": "vue-cli-service build --modern && cd ../Api && dotnet publish -c Release -r linux-x64 --self-contained false",
-    "vue": "vue-cli-service build --modern && cd ../Api && dotnet run"
+    "vue": "vue-cli-service build --development && cd ../Api && dotnet run"
   },
   "dependencies": {
     "@vueuse/core": "^6.4.1",

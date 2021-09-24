@@ -65,7 +65,7 @@ module Mapping =
     doc.["recurType"]    <- BsonValue (Recurrence.toString req.recurType)
     doc.["recurCount"]   <- BsonValue req.recurCount
     doc.["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
-    doc.["notes"]        <- BsonArray (req.notes |> List.map noteToBson |> Seq.ofList)
+    doc.["notes"]        <- BsonArray (req.notes   |> List.map noteToBson    |> Seq.ofList)
     upcast doc
   
   /// Map a BSON document to a request
@@ -78,7 +78,7 @@ module Mapping =
       recurType    = Recurrence.fromString doc.["recurType"].AsString
       recurCount   = int16 doc.["recurCount"].AsInt32
       history      = doc.["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
-      notes        = doc.["notes"].AsArray |> Seq.map noteFromBson |> List.ofSeq
+      notes        = doc.["notes"].AsArray   |> Seq.map noteFromBson    |> List.ofSeq
       }
   
   /// Set up the mapping
