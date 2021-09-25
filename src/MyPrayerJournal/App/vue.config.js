@@ -1,6 +1,6 @@
 module.exports = {
   lintOnSave: false,
-  outputDir: "../Api/wwwroot",
+  outputDir: "../Server/wwwroot",
   configureWebpack: {
     module: {
       rules: [{

@@ -8,9 +8,9 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "apistart": "cd ../Api && dotnet run",
-    "publish": "vue-cli-service build --modern && cd ../Api && dotnet publish -c Release -r linux-x64 --self-contained false",
-    "vue": "vue-cli-service build --development && cd ../Api && dotnet run"
+    "apistart": "cd ../Server && dotnet run",
+    "publish": "vue-cli-service build --modern && cd ../Server && dotnet publish -c Release -r linux-x64 -p:PublishSingleFile=true --self-contained false",
+    "vue": "vue-cli-service build --development && cd ../Server && dotnet run"
   },
   "dependencies": {
     "@vueuse/core": "^6.4.1",

@@ -1,0 +1,13 @@
+## LiteDB database file
+*.db
+
+## Web application compile output
+wwwroot/favicon.ico
+wwwroot/index.html
+wwwroot/*.js
+wwwroot/*.js.map
+wwwroot/css
+wwwroot/js
+
+## Development settings
+appsettings.Development.json
