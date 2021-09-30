@@ -17,12 +17,12 @@ const routes: Array<RouteRecordRaw> = [
     component: Home,
     meta: { title: "Welcome!" }
   },
-  // {
-  //   path: "/journal",
-  //   name: "Journal",
-  //   component: () => import(/* webpackChunkName: "journal" */ "@/views/Journal.vue"),
-  //   meta: { auth: true, title: "Loading Prayer Journal..." }
-  // },
+  {
+    path: "/journal",
+    name: "Journal",
+    component: () => import(/* webpackChunkName: "journal" */ "@/views/Journal.vue"),
+    meta: { auth: true, title: "Loading Prayer Journal..." }
+  },
   {
     path: "/legal/privacy-policy",
     name: "PrivacyPolicy",
@@ -35,12 +35,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import(/* webpackChunkName: "legal" */ "@/views/legal/TermsOfService.vue"),
     meta: { title: "Terms of Service" }
   },
-  // {
-  //   path: "/request/:id/edit",
-  //   name: "EditRequest",
-  //   component: () => import(/* webpackChunkName: "edit" */ "@/views/request/EditRequest.vue"),
-  //   meta: { auth: true, title: "Edit Prayer Request" }
-  // },
+  {
+    path: "/request/:id/edit",
+    name: "EditRequest",
+    component: () => import(/* webpackChunkName: "edit" */ "@/views/request/EditRequest.vue"),
+    meta: { auth: true, title: "Edit Prayer Request" }
+  },
   // {
   //   path: "/request/:id/full",
   //   name: "FullRequest",

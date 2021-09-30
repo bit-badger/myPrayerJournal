@@ -100,7 +100,9 @@ module Configure =
     app.UseAuthentication()
       .UseStaticFiles()
       .UseRouting()
-      .UseEndpoints (fun e -> e.MapGiraffeEndpoints Handlers.routes)
+      .UseEndpoints (fun e ->
+          e.MapGiraffeEndpoints Handlers.routes
+          e.MapFallbackToFile "index.html" |> ignore)
     |> ignore
     app
 

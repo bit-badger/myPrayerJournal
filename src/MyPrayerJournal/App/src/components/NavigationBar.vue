@@ -1,7 +1,10 @@
 <template lang="pug">
-nav.navbar
+nav.navbar.navbar-dark
   .container-fluid
-    router-link.navbar-brand(to="/") myPrayerJournal
+    router-link.navbar-brand(to="/")
+      span.m my
+      span.p Prayer
+      span.j Journal
     ul.navbar-nav.me-auto.d-flex.flex-row
       template(v-if="isAuthenticated")
         li.nav-item: router-link(to="/journal") Journal
@@ -43,3 +46,27 @@ const logOff = () => {
   router.push("/")
 }
 </script>
+
+<style lang="sass" scoped>
+nav
+  background-color: green
+.m
+  font-weight: 100
+.p
+  font-weight: 400
+.j
+  font-weight: 700
+.nav-item
+  a:link,
+  a:visited
+    padding: .5rem 1rem
+    margin: 0 .5rem
+    border-radius: .5rem
+    color: white
+    text-decoration: none
+  a:hover
+    cursor: pointer
+    background-color: rgba(255, 255, 255, .2)
+.navbar-nav .router-link-exact-active
+  background-color: rgba(255, 255, 255, .2)
+</style>

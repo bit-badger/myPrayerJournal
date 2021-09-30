@@ -1,14 +1,17 @@
-import { App, inject, InjectionKey } from "vue"
+import { App, InjectionKey } from "vue"
 import authService, { AuthService } from "@/auth"
 
 /** The symbol to use for dependency injection */
-const AuthSymbol : InjectionKey<AuthService> = Symbol("Auth service")
+export const key : InjectionKey<AuthService> = Symbol("Auth service")
+
+/** The auth service instance */
+const service = new AuthService()
 
 export default {
   install (app : App) {
-    Object.defineProperty(app, "authService", { get: () => authService })
+    Object.defineProperty(app, "authService", { get: () => service })
 
-    app.provide(AuthSymbol, authService)
+    app.provide(key, service)
     
     app.mixin({
       created () {
@@ -27,5 +30,5 @@ export default {
 
 /** Use the auth service */
 export function useAuth () : AuthService {
-  return inject(AuthSymbol)!
+  return service
 }

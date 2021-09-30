@@ -29,6 +29,9 @@ export function useStore () : Store<State> {
   return baseUseStore(key)
 }
 
+/** The authentication service */
+const auth = useAuth()
+
 /**
  * Set the "Bearer" authorization header with the current access token
  */
@@ -58,9 +61,6 @@ const sortValue = (it : JournalRequest) => it.showAfter === 0 ? it.asOf : it.sho
  * Sort journal requests either by asOf or showAfter
  */
 const journalSort = (a : JournalRequest, b : JournalRequest) => sortValue(a) - sortValue(b)
-
-/** The authentication service */
-const auth = useAuth()
 
 export default createStore({
   state: () : State => ({
@@ -123,23 +123,27 @@ export default createStore({
       } catch (_) {
         commit(Mutations.SetAuthentication, false)
       }
+    },
+    async [Actions.LoadJournal] ({ commit } /*, progress : ProgressProps */) {
+      commit(Mutations.LoadedJournal, [])
+      // progress.events.$emit("show", "query")
+      commit(Mutations.LoadingJournal, true)
+      await setBearer()
+      try {
+        const jrnl = await api.request.journal()
+        if (typeof jrnl === "string") {
+          throw new Error(`Unable to retrieve journal - ${jrnl}`)
+        }
+        if (typeof jrnl === "undefined") {
+          throw new Error(`HTTP 404 when retrieving journal`)
+        }
+        commit(Mutations.LoadedJournal, jrnl)
+      } finally {
+        // progress.events.$emit("done")
+        commit(Mutations.LoadingJournal, false)
+      }
     }
     // ,
-    // async [Actions.LoadJournal] ({ commit }, progress : ProgressProps) {
-    //   commit(Mutations.LoadedJournal, [])
-    //   progress.events.$emit("show", "query")
-    //   commit(Mutations.LoadingJournal, true)
-    //   await setBearer()
-    //   try {
-    //     const jrnl = await api.journal()
-    //     commit(Mutations.LoadedJournal, jrnl.data)
-    //   } catch (err) {
-    //     logError(err)
-    //   } finally {
-    //     progress.events.$emit("done")
-    //     commit(Mutations.LoadingJournal, false)
-    //   }
-    // },
     // async [Actions.UpdateRequest] ({ commit, state }, p : UpdateRequestAction) {
     //   const { progress, requestId, status, updateText, recurType, recurCount } = p
     //   progress.events.$emit("show", "indeterminate")

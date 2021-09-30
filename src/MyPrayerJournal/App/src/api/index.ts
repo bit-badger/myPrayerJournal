@@ -70,7 +70,10 @@ export default {
    * Set the bearer token for all future requests
    * @param token The token to use to identify the user to the server
    */
-  setBearer: (token: string) => { bearer = `Bearer ${token}` },
+  setBearer: (token: string) => {
+    console.info(`Setting bearer token to ${token}`)
+    bearer = `Bearer ${token}`
+  },
 
   /**
    * Remove the bearer token

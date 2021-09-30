@@ -5,13 +5,36 @@ module MyPrayerJournal.Handlers
 // fsharplint:disable RecordFieldNames
 
 open Giraffe
+open Giraffe.Htmx
 open MyPrayerJournal.Data.Extensions
+
+/// Send a partial result if this is not a full page load
+let partialIfNotRefresh content layout : HttpHandler =
+  fun next ctx -> task {
+    let hdrs = Headers.fromRequest ctx
+    let isHtmx =
+      hdrs
+      |> List.filter HtmxReqHeader.isRequest
+      |> List.tryHead
+      |> Option.isSome
+    let isRefresh = 
+      hdrs
+      |> List.filter HtmxReqHeader.isHistoryRestoreRequest
+      |> List.tryHead
+      |> function Some (HistoryRestoreRequest hist) -> hist | _ -> false
+    match isHtmx && not isRefresh with
+    | true -> return! ctx.WriteHtmlViewAsync content
+    | false -> return! layout content |> ctx.WriteHtmlViewAsync
+  }
 
 /// Handler to return Vue files
 module Vue =
   
   /// The application index page
-  let app : HttpHandler = htmlFile "wwwroot/index.html"
+  let app : HttpHandler = 
+    Headers.toResponse (Trigger "menu-refresh")
+    >=> partialIfNotRefresh (ViewEngine.HtmlElements.str "It works") Views.Layout.wide
+
 
 open System
 
@@ -132,6 +155,23 @@ module Models =
     until : int64
     }
 
+
+/// Handlers for less-than-full-page HTML requests
+module Components =
+
+  // GET /components/nav-items
+  let navItems : HttpHandler =
+    fun next ctx -> task {
+      let url =
+        Headers.fromRequest ctx
+        |> List.tryFind HtmxReqHeader.isCurrentUrl
+        |> function Some (CurrentUrl u) -> Some u | _ -> None
+      let view = Views.Navigation.currentNav false false url |> ViewEngine.RenderView.AsString.htmlNodes
+      return! ctx.WriteHtmlStringAsync view
+      }
+      
+
+
 /// /api/journal URLs
 module Journal =
   
@@ -142,6 +182,17 @@ module Journal =
       let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
       return! json jrnl next ctx
       }
+
+
+/// Legalese
+module Legal =
+  
+  // GET /legal/privacy-policy
+  let privacyPolicy : HttpHandler =
+    partialIfNotRefresh Views.Legal.privacyPolicy Views.Layout.standard
+  
+  let termsOfService : HttpHandler =
+    partialIfNotRefresh Views.Legal.termsOfService Views.Layout.standard
 
 
 /// /api/request URLs
@@ -312,6 +363,13 @@ open Giraffe.EndpointRouting
 /// The routes for myPrayerJournal
 let routes =
   [ route "/" Vue.app
+    subRoute "/components/" [
+      route "nav-items" Components.navItems
+      ]
+    subRoute "/legal/" [
+      route "privacy-policy"   Legal.privacyPolicy
+      route "terms-of-service" Legal.termsOfService
+      ]
     subRoute "/api/" [
       GET [
         route    "journal" Journal.journal
