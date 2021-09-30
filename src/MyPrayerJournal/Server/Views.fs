@@ -4,13 +4,33 @@ open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open System
 
+/// Target the `main` tag with boosted links
 let toMain = _hxTarget "main"
+
+/// View for home page
+module Home =
+  
+  /// The home page
+  let home = article [ _class "container mt-3" ] [
+    p [] [ rawText "&nbsp;" ]
+    p [] [
+      str "myPrayerJournal is a place where individuals can record their prayer requests, record that they prayed for "
+      str "them, update them as God moves in the situation, and record a final answer received on that request. It "
+      str "also allows individuals to review their answered prayers."
+      ]
+    p [] [
+      str "This site is open and available to the general public. To get started, simply click the "
+      rawText "&ldquo;Log On&rdquo; link above, and log on with either a Microsoft or Google account. You can also "
+      rawText "learn more about the site at the &ldquo;Docs&rdquo; link, also above."
+      ]
+    ]
+
 
 /// Views for legal pages
 module Legal =
   
   /// View for the "Privacy Policy" page
-  let privacyPolicy = article [] [
+  let privacyPolicy = article [ _class "container mt-3" ] [
     div [ _class "card" ] [
       h5 [ _class "card-header" ] [ str "Privacy Policy" ]
       div [ _class "card-body" ] [
@@ -92,7 +112,7 @@ module Legal =
     ]
   
   /// View for the "Terms of Service" page
-  let termsOfService = article [ _class "container" ] [
+  let termsOfService = article [ _class "container mt-3" ] [
     div [ _class "card" ] [
       h5 [ _class "card-header" ] [ str "Terms of Service" ]
       div [ _class "card-body" ] [
@@ -144,14 +164,15 @@ module Legal =
       ]
     ]
 
+
 /// Views for navigation support
 module Navigation =
   
   /// The default navigation bar, which will load the items on page load, and whenever a refresh event occurs
   let navBar =
-    nav [ _class "navbar navbar-dark"; _hxBoost; toMain ] [
+    nav [ _class "navbar navbar-dark" ] [
       div [ _class "container-fluid" ] [
-        a [ _href "/"; _class "navbar-brand" ] [
+        a [ _href "/"; _class "navbar-brand"; _hxBoost; toMain ] [
           span [ _class "m" ] [ str "my" ]
           span [ _class "p" ] [ str "Prayer" ]
           span [ _class "j" ] [ str "Journal" ]
@@ -171,21 +192,56 @@ module Navigation =
       match isAuthenticated with
       | true ->
           let currUrl = match url with Some u -> (u.PathAndQuery.Split '?').[0] | None -> ""
-          let deriveClass (matchUrl : string) css =
-            match currUrl.StartsWith matchUrl with
-            | true -> sprintf "%s is-active-route" css
-            | false -> css
-            |> _class
-          li [ deriveClass "/journal" "nav-item" ] [ a [ _href "/journal" ] [ str "Journal" ] ]
-          li [ deriveClass "/requests/active" "nav-item" ] [ a [ _href "/requests/active" ] [ str "Active" ] ]
-          if hasSnoozed then
-            li [ deriveClass "/requests/snoozed" "nav-item" ] [ a [ _href "/requests/snoozed" ] [ str "Snoozed" ] ]
-          li [ deriveClass "/requests/answered" "nav-item" ] [ a [ _href "/requests/answered" ] [ str "Answered" ] ]
-          li [ _class "nav-item" ] [ a [ _href "/user/log-off"; _onclick "logOff()" ] [ str "Log Off" ] ]
-      | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on"; _onclick "logOn()"] [ str "Log On" ] ]
+          let attrs (matchUrl : string) =
+            [ _href matchUrl
+              match currUrl.StartsWith matchUrl with
+              | true -> _class "is-active-route"
+              | false -> ()
+              _hxBoost; toMain
+              ]
+          li [ _class "nav-item" ] [ a (attrs "/journal") [ str "Journal" ] ]
+          li [ _class "nav-item" ] [ a (attrs "/requests/active") [ str "Active" ] ]
+          if hasSnoozed then li [ _class "nav-item" ] [ a (attrs "/requests/snoozed") [ str "Snoozed" ] ]
+          li [ _class "nav-item" ] [ a (attrs "/requests/answered") [ str "Answered" ] ]
+          li [ _class "nav-item" ] [ a [ _href "/user/log-off"; _onclick "mpj.logOff(event)" ] [ str "Log Off" ] ]
+      | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on"; _onclick "mpj.logOn(event)"] [ str "Log On" ] ]
       li [ _class "nav-item" ] [ a [ _href "https://docs.prayerjournal.me"; _target "_blank" ] [ str "Docs" ] ]
       }
     |> List.ofSeq
+
+
+/// Views for journal pages and components
+module Journal =
+
+  /// The journal loading page
+  let journal user = article [ _class "container-fluid mt-3" ] [
+    h2 [ _class "pb-3" ] [ str user; rawText "&rsquo;s Prayer Journal" ]
+    p [
+      _hxGet     "/components/journal-items"
+      _hxSwap    HxSwap.OuterHtml
+      _hxTrigger HxTrigger.Load
+      ] [ rawText "Loading your prayer journal&hellip;" ]
+    ]
+
+  /// The journal items
+  let journalItems items =
+    match items |> List.isEmpty with
+    | true ->
+        div [ _class "card no-requests" ] [
+          h5 [ _class "card-header"] [ str "No Active Requests" ]
+          div [ _class "card-body text-center" ] [
+            p [ _class "card-text" ] [
+              rawText "You have no requests to be shown; see the &ldquo;Active&rdquo; link above for snoozed or "
+              rawText "deferred requests, and the &ldquo;Answered&rdquo; link for answered requests"
+              ]
+            a [
+              _class "btn btn-primary"
+              _href  "/request/new/edit"
+              _hxBoost; toMain
+              ] [ str "Add a Request" ]
+            ]
+          ]
+    | false -> p [] [ str "There are requests" ]
 
 
 /// Layout views
@@ -199,7 +255,7 @@ module Layout =
         _integrity   "sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
         _crossorigin "anonymous"
         ]
-      link [ _href "/css/style.css"; _rel  "stylesheet" ]
+      link [ _href "/style/style.css"; _rel  "stylesheet" ]
       script [
         _src         "https://unpkg.com/htmx.org@1.5.0"
         _integrity   "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"
@@ -225,25 +281,23 @@ module Layout =
           ]
         ]
       script [
+        _async
         _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
         _integrity   "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
         _crossorigin "anonymous"
         ] []
+      script [ _src "https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js" ] []
+      script [ _src "/script/mpj.js" ] []
       ]
 
-  let full content =
+  /// Create the full view of the page
+  let view content =
     html [ _lang "en" ] [
       htmlHead
-      body [] [
+      body [ _hxHeaders "" ] [
         Navigation.navBar
-        content
+        main [] [ content ]
         htmlFoot
       ]
     ]
-  
-  let standard content =
-    main [ _class "container" ] [ content ] |> full
-
-  let wide content =
-    main [ _class "container-fluid" ] [ content ] |> full
 

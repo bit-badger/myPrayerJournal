@@ -1,6 +1,9 @@
 ## LiteDB database file
 *.db
 
+## Auth0 settings
+wwwroot/auth-config.json
+
 ## Web application compile output
 wwwroot/favicon.ico
 wwwroot/index.html

@@ -1,0 +1,37 @@
+
+nav {
+  background-color: green;
+}
+nav .m {
+  font-weight: 100;
+}
+nav .p {
+  font-weight: 400;
+}
+nav .j {
+  font-weight: 700;
+}
+.nav-item a:link,
+.nav-item a:visited {
+  padding: .5rem 1rem;
+  margin: 0 .5rem;
+  border-radius: .5rem;
+  color: white;
+  text-decoration: none;
+}
+.nav-item a:hover {
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, .2);
+}
+.navbar-nav .is-active-route {
+  background-color: rgba(255, 255, 255, .2);
+}
+
+footer {
+  border-top: solid 1px lightgray;
+  margin: 1rem -1rem 0;
+  padding: 0 1rem;
+}
+footer p {
+  margin: 0;
+}

@@ -76,7 +76,7 @@ module Configure =
         fun opts ->
           let jwtCfg = bldr.Configuration.GetSection "Auth0"
           opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
-          opts.Audience  <- jwtCfg.["Id"])
+          opts.Audience  <- jwtCfg.["Audience"])
     |> ignore
     let jsonOptions = JsonSerializerOptions ()
     jsonOptions.Converters.Add (JsonFSharpConverter ())

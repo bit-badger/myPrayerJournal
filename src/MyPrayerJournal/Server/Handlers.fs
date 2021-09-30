@@ -9,7 +9,7 @@ open Giraffe.Htmx
 open MyPrayerJournal.Data.Extensions
 
 /// Send a partial result if this is not a full page load
-let partialIfNotRefresh content layout : HttpHandler =
+let partialIfNotRefresh content : HttpHandler =
   fun next ctx -> task {
     let hdrs = Headers.fromRequest ctx
     let isHtmx =
@@ -24,7 +24,7 @@ let partialIfNotRefresh content layout : HttpHandler =
       |> function Some (HistoryRestoreRequest hist) -> hist | _ -> false
     match isHtmx && not isRefresh with
     | true -> return! ctx.WriteHtmlViewAsync content
-    | false -> return! layout content |> ctx.WriteHtmlViewAsync
+    | false -> return! Views.Layout.view content |> ctx.WriteHtmlViewAsync
   }
 
 /// Handler to return Vue files
@@ -33,7 +33,7 @@ module Vue =
   /// The application index page
   let app : HttpHandler = 
     Headers.toResponse (Trigger "menu-refresh")
-    >=> partialIfNotRefresh (ViewEngine.HtmlElements.str "It works") Views.Layout.wide
+    >=> partialIfNotRefresh (ViewEngine.HtmlElements.str "It works")
 
 
 open System
@@ -60,6 +60,8 @@ module Error =
 
 open Cuid
 open LiteDB
+open System.Security.Claims
+open Microsoft.Extensions.Logging
 
 /// Handler helpers
 [<AutoOpen>]
@@ -67,7 +69,6 @@ module private Helpers =
   
   open Microsoft.AspNetCore.Http
   open System.Threading.Tasks
-  open System.Security.Claims
 
   /// Get the LiteDB database
   let db (ctx : HttpContext) = ctx.GetService<LiteDatabase>()
@@ -107,6 +108,18 @@ module private Helpers =
   /// Flip JSON result so we can pipe into it
   let asJson<'T> next ctx (o : 'T) =
     json o next ctx
+  
+  /// Trigger a menu item refresh
+  let withMenuRefresh : HttpHandler =
+    // let trigger = //string ctx.Request.Path |> sprintf "{ \"menu-refresh\": \"%s\" }" :> obj |> TriggerAfterSwap
+    Headers.toResponse (TriggerAfterSettle "menu-refresh")
+
+  /// Render a component result
+  let renderComponent nodes : HttpHandler =
+    fun next ctx -> task {
+      return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
+      }
+
 
 
 /// Strongly-typed models for post requests
@@ -166,13 +179,29 @@ module Components =
         Headers.fromRequest ctx
         |> List.tryFind HtmxReqHeader.isCurrentUrl
         |> function Some (CurrentUrl u) -> Some u | _ -> None
-      let view = Views.Navigation.currentNav false false url |> ViewEngine.RenderView.AsString.htmlNodes
-      return! ctx.WriteHtmlStringAsync view
+      let isAuthorized = ctx |> (user >> Option.isSome)
+      return! renderComponent (Views.Navigation.currentNav isAuthorized false url) next ctx
       }
-      
+  
+  // GET /components/journal-items
+  let journalItems : HttpHandler =
+    authorize
+    >=> fun next ctx -> task {
+      let! jrnl = Data.journalByUserId (userId ctx) (db ctx)
+      do! System.Threading.Tasks.Task.Delay (TimeSpan.FromSeconds 5.)
+      return! renderComponent [ Views.Journal.journalItems jrnl ] next ctx
+      }
 
 
-/// /api/journal URLs
+/// / URL    
+module Home =
+  
+  // GET /
+  let home : HttpHandler =
+    withMenuRefresh >=> partialIfNotRefresh Views.Home.home
+
+
+/// /api/journal and /journal URLs
 module Journal =
   
   /// GET /api/journal
@@ -182,6 +211,15 @@ module Journal =
       let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
       return! json jrnl next ctx
       }
+  
+  // GET /journal
+  let journalPage : HttpHandler =
+    authorize
+    >=> withMenuRefresh
+    >=> fun next ctx -> task {
+      let usr = ctx.Request.Headers.["X-Given-Name"].[0]
+      return! partialIfNotRefresh (Views.Journal.journal usr) next ctx
+    }
 
 
 /// Legalese
@@ -189,10 +227,10 @@ module Legal =
   
   // GET /legal/privacy-policy
   let privacyPolicy : HttpHandler =
-    partialIfNotRefresh Views.Legal.privacyPolicy Views.Layout.standard
+    withMenuRefresh >=> partialIfNotRefresh Views.Legal.privacyPolicy
   
   let termsOfService : HttpHandler =
-    partialIfNotRefresh Views.Legal.termsOfService Views.Layout.standard
+    withMenuRefresh >=> partialIfNotRefresh Views.Legal.termsOfService
 
 
 /// /api/request URLs
@@ -362,10 +400,12 @@ open Giraffe.EndpointRouting
 
 /// The routes for myPrayerJournal
 let routes =
-  [ route "/" Vue.app
+  [ route "/" Home.home
     subRoute "/components/" [
-      route "nav-items" Components.navItems
+      route "journal-items" Components.journalItems
+      route "nav-items"     Components.navItems
       ]
+    route "/journal" Journal.journalPage
     subRoute "/legal/" [
       route "privacy-policy"   Legal.privacyPolicy
       route "terms-of-service" Legal.termsOfService
