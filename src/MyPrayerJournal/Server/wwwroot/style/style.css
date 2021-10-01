@@ -26,6 +26,9 @@ nav .j {
 .navbar-nav .is-active-route {
   background-color: rgba(255, 255, 255, .2);
 }
+.action-cell .material-icons {
+  font-size: 1.1rem ;
+}
 
 footer {
   border-top: solid 1px lightgray;

@@ -99,12 +99,14 @@ module Startup =
 [<AutoOpen>]
 module private Helpers =
 
-  /// Async wrapper around a LiteDB query that returns multiple results
-  let doListQuery<'T> (q : ILiteQueryable<'T>) =
-    q.ToList () |> Task.FromResult
+  open System.Linq
 
-  /// Async wrapper around a LiteDB query that returns 0 or 1 results
-  let doSingleQuery<'T> (q : ILiteQueryable<'T>) =
+  /// Convert a sequence to a list asynchronously (used for LiteDB IO)
+  let toListAsync<'T> (q : 'T seq) =
+    (q.ToList >> Task.FromResult) ()
+
+  /// Convert a sequence to a list asynchronously (used for LiteDB IO)
+  let firstAsync<'T> (q : 'T seq) =
     q.FirstOrDefault () |> Task.FromResult
 
   /// Async wrapper around a request update
@@ -142,8 +144,8 @@ module private Helpers =
 
 /// Retrieve a request, including its history and notes, by its ID and user ID
 let tryFullRequestById reqId userId (db : LiteDatabase) = task {
-  let! req = doSingleQuery (db.requests.Query().Where (fun it -> it.id = reqId && it.userId = userId))
-  return match box req with null -> None | _ -> Some req
+  let! req = db.requests.Find (Query.EQ ("_id", RequestId.toString reqId |> BsonValue)) |> firstAsync
+  return match box req with null -> None | _ when req.userId = userId -> Some req | _ -> None
   }
 
 /// Add a history entry
@@ -166,7 +168,7 @@ let addRequest (req : Request) (db : LiteDatabase) =
 
 /// Retrieve all answered requests for the given user
 let answeredRequests userId (db : LiteDatabase) = task {
-  let! reqs = doListQuery (db.requests.Query().Where(fun req -> req.userId = userId))
+  let! reqs = db.requests.Find (Query.EQ ("userId", UserId.toString userId |> BsonValue)) |> toListAsync
   return
     reqs
     |> Seq.map toJournalFull
@@ -177,7 +179,7 @@ let answeredRequests userId (db : LiteDatabase) = task {
   
 /// Retrieve the user's current journal
 let journalByUserId userId (db : LiteDatabase) = task {
-  let! jrnl = doListQuery (db.requests.Query().Where(fun req -> req.userId = userId))
+  let! jrnl = db.requests.Find (Query.EQ ("userId", UserId.toString userId |> BsonValue)) |> toListAsync
   return
     jrnl
     |> Seq.map toJournalLite

@@ -4,8 +4,24 @@ open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open System
 
-/// Target the `main` tag with boosted links
-let toMain = _hxTarget "main"
+[<AutoOpen>]
+module Helpers =
+  /// Target the `main` tag with boosted links
+  let toMain = _hxTarget "main"
+
+  /// Create a Material icon
+  let icon name = span [ _class "material-icons" ] [ str name ]
+
+  /// Create a card when there are no results found
+  let noResults heading link buttonText text =
+    div [ _class "card" ] [
+      h5 [ _class "card-header"] [ str heading ]
+      div [ _class "card-body text-center" ] [
+        p [ _class "card-text" ] text
+        a [ _class "btn btn-primary"; _href link; _hxBoost; toMain ] [ str buttonText ]
+        ]
+      ]
+
 
 /// View for home page
 module Home =
@@ -227,21 +243,95 @@ module Journal =
   let journalItems items =
     match items |> List.isEmpty with
     | true ->
-        div [ _class "card no-requests" ] [
-          h5 [ _class "card-header"] [ str "No Active Requests" ]
-          div [ _class "card-body text-center" ] [
-            p [ _class "card-text" ] [
-              rawText "You have no requests to be shown; see the &ldquo;Active&rdquo; link above for snoozed or "
-              rawText "deferred requests, and the &ldquo;Answered&rdquo; link for answered requests"
-              ]
-            a [
-              _class "btn btn-primary"
-              _href  "/request/new/edit"
-              _hxBoost; toMain
-              ] [ str "Add a Request" ]
-            ]
+        noResults "No Active Requests" "/request/new/edit" "Add a Request" [
+          rawText "You have no requests to be shown; see the &ldquo;Active&rdquo; link above for snoozed or "
+          rawText "deferred requests, and the &ldquo;Answered&rdquo; link for answered requests"
           ]
     | false -> p [] [ str "There are requests" ]
+
+
+/// Views for request pages and components
+module Request =
+
+  /// Create a request within the list
+  let reqListItem req =
+    let jsNow      = int64 (DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds
+    let reqId      = RequestId.toString req.requestId
+    let isAnswered = req.lastStatus = Answered
+    let isSnoozed  = Ticks.toLong req.snoozedUntil > jsNow
+    let isPending  = (not isSnoozed) && Ticks.toLong req.showAfter > jsNow
+    let btnClass   = _class "btn btn-light"
+    tr [] [
+      td [ _class "action-cell" ] [
+        div [ _class "btn-group btn-group-sm"; Accessibility._roleGroup ] [
+          a [ btnClass; _href $"/request/{reqId}/full"; _title "View Full Request" ] [ icon "description" ]
+          if not isAnswered then
+            a [ btnClass; _href $"/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
+          // TODO: these next two should use hx-patch, targeting replacement of this tr when complete
+          if isSnoozed then
+            a [ btnClass; _href $"/request/{reqId}/cancel-snooze"; _title "Cancel Snooze" ] [ icon "restore" ]
+          if isPending then
+            a [ btnClass; _href $"/request/{reqId}/show-now"; _title "Show Now" ] [ icon "restore" ]
+          ]
+        ]
+      td [] [
+        p [ _class "mpj-request-text mb-0" ] [
+          str req.text
+          if isSnoozed || isPending || isAnswered then
+            br []
+            small [ _class "text-muted" ] [
+              em [] [
+                if isSnoozed then str "Snooze expires date-from-now(value='request.snoozedUntil')"
+                if isPending then str "Request appears next date-from-now(:value='request.showAfter')"
+                if isAnswered then str "Answered date-from-now(:value='request.asOf')"
+                ]
+              ]
+          ]
+        ]
+      ]
+  
+  /// Create a list of requests
+  let reqList reqs =
+    table [ _class "table table-hover table-sm align-top" ] [
+      thead [] [
+        tr [] [
+          th [ _scope "col" ] [ str "Actions" ]
+          th [ _scope "col" ] [ str "Request" ]
+          ]
+        ]
+      reqs
+      |> List.map reqListItem
+      |> tbody []
+    ]
+  
+  /// View for Active Requests page
+  let active reqs = article [] [
+    h2 [] [ str "Active Requests" ]
+    match reqs |> List.isEmpty with
+    | true ->
+        noResults "No Active Requests" "/journal" "Return to your journal"
+          [ str "Your prayer journal has no active requests" ]
+    | false -> reqList reqs
+    ]
+
+  /// View for Answered Requests page
+  let answered reqs = article [] [
+    h2 [] [ str "Answered Requests" ]
+    match reqs |> List.isEmpty with
+    | true ->
+        noResults "No Active Requests" "/journal" "Return to your journal" [
+          rawText "Your prayer journal has no answered requests; once you have marked one as &ldquo;Answered&rdquo;, "
+          str "it will appear here"
+          ]
+    | false -> reqList reqs
+    ]
+
+  /// View for Snoozed Requests page
+  let snoozed reqs = article [] [
+    h2 [] [ str "Snoozed Requests" ]
+    reqList reqs
+    ]
+
 
 
 /// Layout views
@@ -255,7 +345,8 @@ module Layout =
         _integrity   "sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
         _crossorigin "anonymous"
         ]
-      link [ _href "/style/style.css"; _rel  "stylesheet" ]
+      link [ _href "https://fonts.googleapis.com/icon?family=Material+Icons"; _rel "stylesheet" ]
+      link [ _href "/style/style.css"; _rel "stylesheet" ]
       script [
         _src         "https://unpkg.com/htmx.org@1.5.0"
         _integrity   "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"

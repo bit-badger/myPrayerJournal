@@ -61,7 +61,6 @@ module Error =
 open Cuid
 open LiteDB
 open System.Security.Claims
-open Microsoft.Extensions.Logging
 
 /// Handler helpers
 [<AutoOpen>]
@@ -188,7 +187,6 @@ module Components =
     authorize
     >=> fun next ctx -> task {
       let! jrnl = Data.journalByUserId (userId ctx) (db ctx)
-      do! System.Threading.Tasks.Task.Delay (TimeSpan.FromSeconds 5.)
       return! renderComponent [ Views.Journal.journalItems jrnl ] next ctx
       }
 
@@ -201,19 +199,11 @@ module Home =
     withMenuRefresh >=> partialIfNotRefresh Views.Home.home
 
 
-/// /api/journal and /journal URLs
+/// /journal URL
 module Journal =
   
-  /// GET /api/journal
-  let journal : HttpHandler =
-    authorize
-    >=> fun next ctx -> task {
-      let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
-      return! json jrnl next ctx
-      }
-  
   // GET /journal
-  let journalPage : HttpHandler =
+  let journal : HttpHandler =
     authorize
     >=> withMenuRefresh
     >=> fun next ctx -> task {
@@ -222,18 +212,19 @@ module Journal =
     }
 
 
-/// Legalese
+/// /legal URLs
 module Legal =
   
   // GET /legal/privacy-policy
   let privacyPolicy : HttpHandler =
     withMenuRefresh >=> partialIfNotRefresh Views.Legal.privacyPolicy
   
+  // GET /legal/terms-of-service
   let termsOfService : HttpHandler =
     withMenuRefresh >=> partialIfNotRefresh Views.Legal.termsOfService
 
 
-/// /api/request URLs
+/// /api/request and /request(s) URLs
 module Request =
   
   /// POST /api/request
@@ -311,12 +302,22 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
           
-  /// GET /api/requests/answered
+  /// GET /requests/active
+  let active : HttpHandler =
+    authorize
+    >=> withMenuRefresh
+    >=> fun next ctx -> task {
+      let! reqs = Data.journalByUserId (userId ctx) (db ctx)
+      return! partialIfNotRefresh (Views.Request.active reqs) next ctx
+      }
+  
+  /// GET /requests/answered
   let answered : HttpHandler =
     authorize
+    >=> withMenuRefresh
     >=> fun next ctx -> task {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
-      return! json reqs next ctx
+      return! partialIfNotRefresh (Views.Request.answered reqs) next ctx
       }
   
   /// GET /api/request/[req-id]
@@ -396,6 +397,7 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
 
+
 open Giraffe.EndpointRouting
 
 /// The routes for myPrayerJournal
@@ -405,16 +407,18 @@ let routes =
       route "journal-items" Components.journalItems
       route "nav-items"     Components.navItems
       ]
-    route "/journal" Journal.journalPage
+    route "/journal" Journal.journal
     subRoute "/legal/" [
       route "privacy-policy"   Legal.privacyPolicy
       route "terms-of-service" Legal.termsOfService
       ]
+    subRoute "/request" [
+      route "s/active"   Request.active
+      route "s/answered" Request.answered
+      ]
     subRoute "/api/" [
       GET [
-        route    "journal" Journal.journal
         subRoute "request" [
-          route  "s/answered" Request.answered
           routef "/%s/full"   Request.getFull
           routef "/%s/notes"  Request.getNotes
           routef "/%s"        Request.get
