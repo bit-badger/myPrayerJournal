@@ -81,24 +81,6 @@ type RequestAction =
   | Updated
   | Answered
 
-/// Functions to manipulate request actions
-module RequestAction =
-  /// Create a string representation of an action
-  let toString =
-    function
-    | Created  -> "Created"
-    | Prayed   -> "Prayed"
-    | Updated  -> "Updated"
-    | Answered -> "Answered"
-  /// Create a RequestAction from a string
-  let fromString =
-    function
-    | "Created"  -> Created
-    | "Prayed"   -> Prayed
-    | "Updated"  -> Updated
-    | "Answered" -> Answered
-    | it         -> invalidOp $"Bad request action {it}"
-
 
 /// History is a record of action taken on a prayer request, including updates to its text
 [<CLIMutable; NoComparison; NoEquality>]
@@ -183,3 +165,28 @@ type JournalRequest =
     /// Note entries for the request
     notes        : Note list
   }
+
+
+/// Functions to manipulate request actions
+module RequestAction =
+  /// Create a string representation of an action
+  let toString =
+    function
+    | Created  -> "Created"
+    | Prayed   -> "Prayed"
+    | Updated  -> "Updated"
+    | Answered -> "Answered"
+  /// Create a RequestAction from a string
+  let fromString =
+    function
+    | "Created"  -> Created
+    | "Prayed"   -> Prayed
+    | "Updated"  -> Updated
+    | "Answered" -> Answered
+    | it         -> invalidOp $"Bad request action {it}"
+  /// Determine if a history's status is `Created`
+  let isCreated hist = hist.status = Created
+  /// Determine if a history's status is `Prayed`
+  let isPrayed hist = hist.status = Prayed
+  /// Determine if a history's status is `Answered`
+  let isAnswered hist = hist.status = Answered

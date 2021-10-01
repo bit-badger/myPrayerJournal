@@ -112,7 +112,7 @@ module HtmxAttrs =
   /// Shows a prompt before submitting a request
   let _hxPrompt     = attr "hx-prompt"
   /// Pushes the URL into the location bar, creating a new history entry
-  let _hxPushUrl    = attr "hx-push-url"
+  let _hxPushUrl    = flag "hx-push-url"
   /// Issues a PUT to the specified URL
   let _hxPut        = attr "hx-put"
   /// Configures various aspects of the request

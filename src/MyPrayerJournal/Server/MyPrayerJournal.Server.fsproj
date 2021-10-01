@@ -8,6 +8,7 @@
     <Compile Include="Htmx.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Data.fs" />
+    <Compile Include="Dates.fs" />
     <Compile Include="Views.fs" />
     <Compile Include="Handlers.fs" />
     <Compile Include="Program.fs" />

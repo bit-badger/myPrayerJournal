@@ -329,12 +329,13 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
   
-  /// GET /api/request/[req-id]/full
+  /// GET /request/[req-id]/full
   let getFull requestId : HttpHandler =
     authorize
+    >=> withMenuRefresh
     >=> fun next ctx -> task {
       match! Data.tryFullRequestById (toReqId requestId) (userId ctx) (db ctx) with
-      | Some req -> return! json req next ctx
+      | Some req -> return! partialIfNotRefresh (Views.Request.full req) next ctx
       | None -> return! Error.notFound next ctx
       }
   
@@ -415,11 +416,11 @@ let routes =
     subRoute "/request" [
       route "s/active"   Request.active
       route "s/answered" Request.answered
+      routef "/%s/full"  Request.getFull
       ]
     subRoute "/api/" [
       GET [
         subRoute "request" [
-          routef "/%s/full"   Request.getFull
           routef "/%s/notes"  Request.getNotes
           routef "/%s"        Request.get
           ]

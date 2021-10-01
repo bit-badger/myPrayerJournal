@@ -6,8 +6,9 @@ open System
 
 [<AutoOpen>]
 module Helpers =
-  /// Target the `main` tag with boosted links
-  let toMain = _hxTarget "main"
+  
+  /// Create a link that targets the `main` element and pushes a URL to history
+  let pageLink href attrs = a (attrs |> List.append [ _href href; _hxBoost; _hxTarget "main"; _hxPushUrl ])
 
   /// Create a Material icon
   let icon name = span [ _class "material-icons" ] [ str name ]
@@ -18,9 +19,17 @@ module Helpers =
       h5 [ _class "card-header"] [ str heading ]
       div [ _class "card-body text-center" ] [
         p [ _class "card-text" ] text
-        a [ _class "btn btn-primary"; _href link; _hxBoost; toMain ] [ str buttonText ]
+        pageLink link [ _class "btn btn-primary" ] [ str buttonText ]
         ]
       ]
+  
+  /// Convert `Ticks` to `DateTime`
+  let fromJs = Ticks.toLong >> Dates.fromJs
+
+  /// Create a date with a span tag, displaying the relative date with the full date/time in the tooltip
+  let relativeDate jsDate =
+    let date = fromJs jsDate
+    span [ _title (date.ToString "f") ] [ Dates.formatDistance DateTime.Now date |> str ]
 
 
 /// View for home page
@@ -144,7 +153,7 @@ module Legal =
           str "myPrayerJournal is a service that allows individuals to enter and amend their prayer requests. It "
           str "requires no registration by itself, but access is granted based on a successful login with an external "
           str "identity provider. See "
-          a [ _href "/legal/privacy-policy"; _hxBoost; toMain ] [ str "our privacy policy" ]
+          pageLink "/legal/privacy-policy" [] [ str "our privacy policy" ]
           str " for details on how that information is accessed and stored."
           ]
         h3 [] [ str "3. Third Party Services" ]
@@ -173,7 +182,7 @@ module Legal =
         hr []
         p [ _class "card-text" ] [
           str "You may also wish to review our "
-          a [ _href "/legal/privacy-policy"; _hxBoost; toMain ] [ str "privacy policy" ]
+          pageLink "/legal/privacy-policy" [] [ str "privacy policy" ]
           str " to learn how we handle your data."
           ]
         ]
@@ -188,7 +197,7 @@ module Navigation =
   let navBar =
     nav [ _class "navbar navbar-dark" ] [
       div [ _class "container-fluid" ] [
-        a [ _href "/"; _class "navbar-brand"; _hxBoost; toMain ] [
+        pageLink "/" [ _class "navbar-brand" ] [
           span [ _class "m" ] [ str "my" ]
           span [ _class "p" ] [ str "Prayer" ]
           span [ _class "j" ] [ str "Journal" ]
@@ -208,17 +217,13 @@ module Navigation =
       match isAuthenticated with
       | true ->
           let currUrl = match url with Some u -> (u.PathAndQuery.Split '?').[0] | None -> ""
-          let attrs (matchUrl : string) =
-            [ _href matchUrl
-              match currUrl.StartsWith matchUrl with
-              | true -> _class "is-active-route"
-              | false -> ()
-              _hxBoost; toMain
-              ]
-          li [ _class "nav-item" ] [ a (attrs "/journal") [ str "Journal" ] ]
-          li [ _class "nav-item" ] [ a (attrs "/requests/active") [ str "Active" ] ]
-          if hasSnoozed then li [ _class "nav-item" ] [ a (attrs "/requests/snoozed") [ str "Snoozed" ] ]
-          li [ _class "nav-item" ] [ a (attrs "/requests/answered") [ str "Answered" ] ]
+          let navLink (matchUrl : string) =
+            match currUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
+            |> pageLink matchUrl
+          li [ _class "nav-item" ] [ navLink "/journal" [ str "Journal" ] ]
+          li [ _class "nav-item" ] [ navLink "/requests/active" [ str "Active" ] ]
+          if hasSnoozed then li [ _class "nav-item" ] [ navLink "/requests/snoozed" [ str "Snoozed" ] ]
+          li [ _class "nav-item" ] [ navLink "/requests/answered" [ str "Answered" ] ]
           li [ _class "nav-item" ] [ a [ _href "/user/log-off"; _onclick "mpj.logOff(event)" ] [ str "Log Off" ] ]
       | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on"; _onclick "mpj.logOn(event)"] [ str "Log On" ] ]
       li [ _class "nav-item" ] [ a [ _href "https://docs.prayerjournal.me"; _target "_blank" ] [ str "Docs" ] ]
@@ -264,14 +269,14 @@ module Request =
     tr [] [
       td [ _class "action-cell" ] [
         div [ _class "btn-group btn-group-sm"; Accessibility._roleGroup ] [
-          a [ btnClass; _href $"/request/{reqId}/full"; _title "View Full Request" ] [ icon "description" ]
+          pageLink $"/request/{reqId}/full" [ btnClass; _title "View Full Request" ] [ icon "description" ]
           if not isAnswered then
-            a [ btnClass; _href $"/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
+            pageLink $"/request/{reqId}/edit" [ btnClass; _title "Edit Request" ] [ icon "edit" ]
           // TODO: these next two should use hx-patch, targeting replacement of this tr when complete
           if isSnoozed then
-            a [ btnClass; _href $"/request/{reqId}/cancel-snooze"; _title "Cancel Snooze" ] [ icon "restore" ]
+            pageLink $"/request/{reqId}/cancel-snooze" [ btnClass; _title "Cancel Snooze" ] [ icon "restore" ]
           if isPending then
-            a [ btnClass; _href $"/request/{reqId}/show-now"; _title "Show Now" ] [ icon "restore" ]
+            pageLink $"/request/{reqId}/show-now" [ btnClass; _title "Show Now" ] [ icon "restore" ]
           ]
         ]
       td [] [
@@ -281,9 +286,15 @@ module Request =
             br []
             small [ _class "text-muted" ] [
               em [] [
-                if isSnoozed then str "Snooze expires date-from-now(value='request.snoozedUntil')"
-                if isPending then str "Request appears next date-from-now(:value='request.showAfter')"
-                if isAnswered then str "Answered date-from-now(:value='request.asOf')"
+                if isSnoozed then
+                  str "Snooze expires "
+                  relativeDate req.snoozedUntil
+                if isPending then
+                  str "Request appears next "
+                  relativeDate req.showAfter
+                if isAnswered then
+                  str "Answered "
+                  relativeDate req.asOf
                 ]
               ]
           ]
@@ -305,7 +316,7 @@ module Request =
     ]
   
   /// View for Active Requests page
-  let active reqs = article [] [
+  let active reqs = article [ _class "container mt-3" ] [
     h2 [] [ str "Active Requests" ]
     match reqs |> List.isEmpty with
     | true ->
@@ -315,7 +326,7 @@ module Request =
     ]
 
   /// View for Answered Requests page
-  let answered reqs = article [] [
+  let answered reqs = article [ _class "container mt-3" ] [
     h2 [] [ str "Answered Requests" ]
     match reqs |> List.isEmpty with
     | true ->
@@ -327,11 +338,69 @@ module Request =
     ]
 
   /// View for Snoozed Requests page
-  let snoozed reqs = article [] [
+  let snoozed reqs = article [ _class "container mt-3" ] [
     h2 [] [ str "Snoozed Requests" ]
     reqList reqs
     ]
 
+  /// View for Full Request page
+  let full (req : Request) =
+    let answered =
+      req.history
+      |> List.filter RequestAction.isAnswered
+      |> List.tryHead
+      |> Option.map (fun x -> x.asOf)
+    let prayed = req.history |> List.filter RequestAction.isPrayed |> List.length
+    let daysOpen =
+      let asOf = answered |> Option.map fromJs |> Option.defaultValue DateTime.Now
+      (asOf - fromJs (req.history |> List.filter RequestAction.isCreated |> List.head).asOf).TotalDays |> int
+    let lastText =
+      req.history
+      |> List.filter (fun h -> Option.isSome h.text)
+      |> List.sortByDescending (fun h -> Ticks.toLong h.asOf)
+      |> List.map (fun h -> Option.get h.text)
+      |> List.head
+    // The history log including notes (and excluding the final entry for answered requests)
+    let log =
+      let toDisp (h : History) = {| asOf = fromJs h.asOf; text = h.text; status = RequestAction.toString h.status |}
+      let all =
+        req.notes
+        |> List.map (fun n -> {| asOf = fromJs n.asOf; text = Some n.notes; status = "Notes" |})
+        |> List.append (req.history |> List.map toDisp)
+        |> List.sortByDescending (fun it -> it.asOf)
+      // Skip the first entry for answered requests; that info is already displayed
+      match answered with Some _ -> all |> List.skip 1 | None -> all
+    article [ _class "container mt-3" ] [
+      div [_class "card" ] [
+        h5 [ _class "card-header" ] [ str "Full Prayer Request" ]
+        div [ _class "card-body" ] [
+          h6 [ _class "card-subtitle text-muted mb-2"] [
+            match answered with
+            | Some ticks ->
+                str "Answered "
+                (fromJs ticks).ToString "D" |> str
+                str " ("
+                relativeDate ticks
+                rawText ") &bull; "
+            | None -> ()
+            sprintf "Prayed %i times &bull; Open %i days" prayed daysOpen |> rawText
+            ]
+          p [ _class "card-text" ] [ str lastText ]
+          ]
+        log
+        |> List.map (fun it -> li [ _class "list-group-item" ] [
+          p [ _class "m-0" ] [
+            str it.status
+            rawText "&nbsp; "
+            small [] [ em [] [ it.asOf.ToString "D" |> str ] ]
+            ]
+          match it.text with
+          | Some txt -> p [ _class "mt-2 mb-0" ] [ str txt ]
+          | None -> ()
+        ])
+        |> ul [ _class "list-group list-group-flush" ]
+        ]
+      ]
 
 
 /// Layout views
@@ -355,15 +424,15 @@ module Layout =
       ]
 
   let htmlFoot =
-    footer [ _class "container-fluid"; _hxBoost; toMain ] [
+    footer [ _class "container-fluid" ] [
       p [ _class "text-muted text-end" ] [
         str "myPrayerJournal v3"
         br []
         em [] [
           small [] [
-            a [ _href "/legal/privacy-policy" ] [ str "Privacy Policy" ]
+            pageLink "/legal/privacy-policy" [] [ str "Privacy Policy" ]
             rawText " &bull; "
-            a [ _href "/legal/terms-of-service" ] [ str "Terms of Service" ]
+            pageLink "/legal/terms-of-service" [] [ str "Terms of Service" ]
             rawText " &bull; "
             a [ _href "https://github.com/bit-badger/myprayerjournal"; _target "_blank" ] [ str "Developed" ]
             str " and hosted by "
