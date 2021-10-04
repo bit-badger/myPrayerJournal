@@ -4,8 +4,6 @@
     <Version>3.0.0.0</Version>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ViewEngine.Htmx.fs" />
-    <Compile Include="Htmx.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Data.fs" />
     <Compile Include="Dates.fs" />
@@ -19,6 +17,10 @@
     <PackageReference Include="Giraffe" Version="5.0.0" />
     <PackageReference Include="LiteDB" Version="5.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../Giraffe.Htmx/src/Htmx/Giraffe.Htmx.fsproj" />
+    <ProjectReference Include="../../../../Giraffe.Htmx/src/ViewEngine.Htmx/Giraffe.ViewEngine.Htmx.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="wwwroot\" />

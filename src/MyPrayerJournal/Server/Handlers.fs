@@ -11,18 +11,7 @@ open MyPrayerJournal.Data.Extensions
 /// Send a partial result if this is not a full page load
 let partialIfNotRefresh content : HttpHandler =
   fun next ctx -> task {
-    let hdrs = Headers.fromRequest ctx
-    let isHtmx =
-      hdrs
-      |> List.filter HtmxReqHeader.isRequest
-      |> List.tryHead
-      |> Option.isSome
-    let isRefresh = 
-      hdrs
-      |> List.filter HtmxReqHeader.isHistoryRestoreRequest
-      |> List.tryHead
-      |> function Some (HistoryRestoreRequest hist) -> hist | _ -> false
-    match isHtmx && not isRefresh with
+    match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
     | true -> return! ctx.WriteHtmlViewAsync content
     | false -> return! Views.Layout.view content |> ctx.WriteHtmlViewAsync
   }
@@ -32,7 +21,7 @@ module Vue =
   
   /// The application index page
   let app : HttpHandler = 
-    Headers.toResponse (Trigger "menu-refresh")
+    withHxTrigger "menu-refresh"
     >=> partialIfNotRefresh (ViewEngine.HtmlElements.str "It works")
 
 
@@ -110,15 +99,13 @@ module private Helpers =
   
   /// Trigger a menu item refresh
   let withMenuRefresh : HttpHandler =
-    // let trigger = //string ctx.Request.Path |> sprintf "{ \"menu-refresh\": \"%s\" }" :> obj |> TriggerAfterSwap
-    Headers.toResponse (TriggerAfterSettle "menu-refresh")
+    withHxTriggerAfterSettle "menu-refresh"
 
   /// Render a component result
   let renderComponent nodes : HttpHandler =
     fun next ctx -> task {
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
-
 
 
 /// Strongly-typed models for post requests
@@ -174,10 +161,7 @@ module Components =
   // GET /components/nav-items
   let navItems : HttpHandler =
     fun next ctx -> task {
-      let url =
-        Headers.fromRequest ctx
-        |> List.tryFind HtmxReqHeader.isCurrentUrl
-        |> function Some (CurrentUrl u) -> Some u | _ -> None
+      let url          = ctx.Request.Headers.HxCurrentUrl
       let isAuthorized = ctx |> (user >> Option.isSome)
       return! renderComponent (Views.Navigation.currentNav isAuthorized false url) next ctx
       }
