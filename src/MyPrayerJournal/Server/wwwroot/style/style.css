@@ -20,11 +20,16 @@ nav .j {
   text-decoration: none;
 }
 .nav-item a:hover {
-    cursor: pointer;
-    background-color: rgba(255, 255, 255, .2);
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, .2);
 }
 .navbar-nav .is-active-route {
   background-color: rgba(255, 255, 255, .2);
+}
+
+form {
+  max-width: 60rem;
+  margin: auto;
 }
 .action-cell .material-icons {
   font-size: 1.1rem ;

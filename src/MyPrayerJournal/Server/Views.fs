@@ -409,6 +409,106 @@ module Request =
         ]
       ]
 
+  let edit (req : JournalRequest) isNew = article [ _class "container mt-3" ] [
+    form [ _hxPost "/request" ] [
+      input [
+        _type  "hidden"
+        _name  "requestId"
+        _value (match isNew with true -> "new" | false -> RequestId.toString req.requestId)
+        ]
+      div [ _class "form-floating mb-3" ] [
+        textarea [
+          _id          "request_text"
+          _name        "request_text"
+          _class       "form-control"
+          _style       "min-height: 4rem;"
+          _placeholder "Enter the text of the request"
+          _autofocus;  _required
+          ] [ str req.text ]
+        label [ _for "request_text" ] [ str "Prayer Request" ]
+        ]
+      br []
+      match isNew with
+      | true ->
+          label [] [ str "Also Mark As" ]
+          br []
+          div [ _class "form-check form-check-inline" ] [
+            input [ _type "radio"; _class "form-check-input"; _id "sU"; _name "status"; _value "Updated"; _checked ]
+            label [ _for "sU" ] [ str "Updated" ]
+            ]
+          div [ _class "form-check form-check-inline" ] [
+            input [ _type "radio"; _class "form-check-input"; _id "sP"; _name "status"; _value "Prayed" ]
+            label [ _for "sP" ] [ str "Prayed" ]
+            ]
+          div [ _class "form-check form-check-inline" ] [
+            input [ _type "radio"; _class "form-check-input"; _id "sA"; _name "status"; _value "Answered" ]
+            label [ _for "sA" ] [ str "Answered" ]
+            ]
+          br []
+      | false -> ()
+      label [] [
+        rawText "Recurrence &nbsp; &nbsp; "
+        em [ _class "text-muted" ] [ rawText "After prayer, request reappears&hellip;" ]
+        ]
+      br []
+      div [ _class "row" ] [
+        div [ _class "col-4 form-check" ] [
+          input [
+            _type    "radio"
+            _class   "form-check-input"
+            _id      "rI"
+            _name    "recurType"
+            _value   "Immediate"
+            _onclick "toggleRecurrence"
+            match req.recurType with Immediate -> _checked | _ -> ()
+            ]
+          label [ _for "rI" ] [ str "Immediately" ]
+          ]
+        div [ _class "col-3 form-check"] [
+          input [
+            _type    "radio"
+            _class   "form-check-input"
+            _id      "rO"
+            _name    "recurType"
+            _value   "Other"
+            _onclick "toggleRecurrence"
+            match req.recurType with Immediate -> () | _ -> _checked
+            ]
+          label [ _for "rO" ] [ rawText "Every&hellip;" ]
+          ]
+        div [ _class "col-2 form-floating"] [
+          input [
+            _type        "number"
+            _class       "form-control"
+            _id          "recurCount"
+            _name        "recurCount"
+            _placeholder "0"
+            _value       (string req.recurCount)
+            _required
+            ]
+          label [ _for "recurCount" ] [ str "Count" ]
+          ]
+        div [ _class "col-3 form-floating" ] [
+          select [ _class "form-control"; _id "recurInterval"; _name "recurInterval"; _required ] [
+            option [ _value "Hours"; match req.recurType with Hours -> _selected | _ -> () ] [ str "hours" ]
+            option [ _value "Days";  match req.recurType with Days  -> _selected | _ -> () ] [ str "days" ]
+            option [ _value "Weeks"; match req.recurType with Weeks -> _selected | _ -> () ] [ str "weeks" ]
+            ]
+          label [ _form "recurInterval" ] [ str "Interval" ]
+          ]
+        ]
+      div [ _class "text-right" ] [
+        button [ _class "btn btn-primary"; _type "submit" ] [ icon "save"; str " Save" ]
+        a [ _class "btn btn-secondary"; _href "#"; _onclick "history.go(-1)" ] [icon "arrow_back"; str " Cancel"]
+        ]
+      ]
+    script [] [
+      rawText """toggleRecurrence ({ target }) {
+                const isDisabled = target.value === "Immediate"
+                ;["recurCount","recurInterval"].forEach(it => document.getElementById(it).disabled = isDisabled)
+              }"""
+      ]
+    ]
 
 /// Layout views
 module Layout =
