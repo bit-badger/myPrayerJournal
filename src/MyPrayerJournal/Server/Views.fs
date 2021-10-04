@@ -32,7 +32,7 @@ module Helpers =
     span [ _title (date.ToString "f") ] [ Dates.formatDistance DateTime.Now date |> str ]
 
 
-/// View for home page
+/// Views for home and log on pages
 module Home =
   
   /// The home page
@@ -47,6 +47,13 @@ module Home =
       str "This site is open and available to the general public. To get started, simply click the "
       rawText "&ldquo;Log On&rdquo; link above, and log on with either a Microsoft or Google account. You can also "
       rawText "learn more about the site at the &ldquo;Docs&rdquo; link, also above."
+      ]
+    ]
+  
+  /// The log on page
+  let logOn = article [ _class "container mt-3" ] [
+    p [] [
+      em [] [ str "Verifying..." ]
       ]
     ]
 
@@ -406,8 +413,9 @@ module Request =
 /// Layout views
 module Layout =
   
-  let htmlHead =
+  let htmlHead pageTitle =
     head [] [
+      title [] [ str pageTitle; rawText " &#xab; myPrayerJournal" ]
       link [
         _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
         _rel         "stylesheet"
@@ -451,12 +459,12 @@ module Layout =
       ]
 
   /// Create the full view of the page
-  let view content =
+  let view pageTitle content =
     html [ _lang "en" ] [
-      htmlHead
+      htmlHead pageTitle
       body [ _hxHeaders "" ] [
         Navigation.navBar
-        main [] [ content ]
+        main [ _hxTrigger "setTitle from:body" ] [ content ]
         htmlFoot
       ]
     ]

@@ -8,13 +8,20 @@ open Giraffe
 open Giraffe.Htmx
 open MyPrayerJournal.Data.Extensions
 
-/// Send a partial result if this is not a full page load
-let partialIfNotRefresh content : HttpHandler =
+let writeView view : HttpHandler =
   fun next ctx -> task {
-    match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
-    | true -> return! ctx.WriteHtmlViewAsync content
-    | false -> return! Views.Layout.view content |> ctx.WriteHtmlViewAsync
-  }
+    return! ctx.WriteHtmlViewAsync view
+    }
+
+/// Send a partial result if this is not a full page load
+let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
+  fun next ctx ->
+    (next, ctx)
+    ||> match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
+        | true ->
+            ctx.Response.Headers.["X-Page-Title"] <- Microsoft.Extensions.Primitives.StringValues pageTitle
+            withHxTriggerAfterSettle "menu-refresh" >=> writeView content
+        | false -> writeView (Views.Layout.view pageTitle content)
 
 /// Handler to return Vue files
 module Vue =
@@ -22,7 +29,7 @@ module Vue =
   /// The application index page
   let app : HttpHandler = 
     withHxTrigger "menu-refresh"
-    >=> partialIfNotRefresh (ViewEngine.HtmlElements.str "It works")
+    >=> partialIfNotRefresh "" (ViewEngine.HtmlElements.str "It works")
 
 
 open System
@@ -180,7 +187,11 @@ module Home =
   
   // GET /
   let home : HttpHandler =
-    withMenuRefresh >=> partialIfNotRefresh Views.Home.home
+    withMenuRefresh >=> partialIfNotRefresh "Welcome!" Views.Home.home
+  
+  // GET /user/log-on
+  let logOn : HttpHandler =
+    partialIfNotRefresh "Logging on..." Views.Home.logOn
 
 
 /// /journal URL
@@ -192,7 +203,7 @@ module Journal =
     >=> withMenuRefresh
     >=> fun next ctx -> task {
       let usr = ctx.Request.Headers.["X-Given-Name"].[0]
-      return! partialIfNotRefresh (Views.Journal.journal usr) next ctx
+      return! partialIfNotRefresh "Your Prayer Journal" (Views.Journal.journal usr) next ctx
     }
 
 
@@ -201,11 +212,11 @@ module Legal =
   
   // GET /legal/privacy-policy
   let privacyPolicy : HttpHandler =
-    withMenuRefresh >=> partialIfNotRefresh Views.Legal.privacyPolicy
+    withMenuRefresh >=> partialIfNotRefresh "Privacy Policy" Views.Legal.privacyPolicy
   
   // GET /legal/terms-of-service
   let termsOfService : HttpHandler =
-    withMenuRefresh >=> partialIfNotRefresh Views.Legal.termsOfService
+    withMenuRefresh >=> partialIfNotRefresh "Terms of Service" Views.Legal.termsOfService
 
 
 /// /api/request and /request(s) URLs
@@ -292,7 +303,7 @@ module Request =
     >=> withMenuRefresh
     >=> fun next ctx -> task {
       let! reqs = Data.journalByUserId (userId ctx) (db ctx)
-      return! partialIfNotRefresh (Views.Request.active reqs) next ctx
+      return! partialIfNotRefresh "Active Requests" (Views.Request.active reqs) next ctx
       }
   
   /// GET /requests/answered
@@ -301,7 +312,7 @@ module Request =
     >=> withMenuRefresh
     >=> fun next ctx -> task {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
-      return! partialIfNotRefresh (Views.Request.answered reqs) next ctx
+      return! partialIfNotRefresh "Answered Requests" (Views.Request.answered reqs) next ctx
       }
   
   /// GET /api/request/[req-id]
@@ -319,7 +330,7 @@ module Request =
     >=> withMenuRefresh
     >=> fun next ctx -> task {
       match! Data.tryFullRequestById (toReqId requestId) (userId ctx) (db ctx) with
-      | Some req -> return! partialIfNotRefresh (Views.Request.full req) next ctx
+      | Some req -> return! partialIfNotRefresh "Full Prayer Request" (Views.Request.full req) next ctx
       | None -> return! Error.notFound next ctx
       }
   
@@ -402,6 +413,7 @@ let routes =
       route "s/answered" Request.answered
       routef "/%s/full"  Request.getFull
       ]
+    route "/user/log-on" Home.logOn
     subRoute "/api/" [
       GET [
         subRoute "request" [
