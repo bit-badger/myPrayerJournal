@@ -6,32 +6,6 @@ module MyPrayerJournal.Handlers
 
 open Giraffe
 open Giraffe.Htmx
-open MyPrayerJournal.Data.Extensions
-
-let writeView view : HttpHandler =
-  fun next ctx -> task {
-    return! ctx.WriteHtmlViewAsync view
-    }
-
-/// Send a partial result if this is not a full page load
-let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
-  fun next ctx ->
-    (next, ctx)
-    ||> match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
-        | true ->
-            ctx.Response.Headers.["X-Page-Title"] <- Microsoft.Extensions.Primitives.StringValues pageTitle
-            withHxTriggerAfterSettle "menu-refresh" >=> writeView content
-        | false -> writeView (Views.Layout.view pageTitle content)
-
-/// Handler to return Vue files
-module Vue =
-  
-  /// The application index page
-  let app : HttpHandler = 
-    withHxTrigger "menu-refresh"
-    >=> partialIfNotRefresh "" (ViewEngine.HtmlElements.str "It works")
-
-
 open System
 
 /// Handlers for error conditions
@@ -46,25 +20,25 @@ module Error =
 
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
-    fun next ctx ->
-      [ "/journal"; "/legal"; "/request"; "/user" ]
-      |> List.filter ctx.Request.Path.Value.StartsWith
-      |> List.length
-      |> function
-      | 0 -> (setStatusCode 404 >=> json ([ "error", "not found" ] |> dict)) next ctx
-      | _ -> Vue.app next ctx
+    setStatusCode 404 >=> text "Not found"
 
-open Cuid
-open LiteDB
-open System.Security.Claims
-open Microsoft.Net.Http.Headers
 
 /// Handler helpers
 [<AutoOpen>]
 module private Helpers =
   
+  open Cuid
+  open LiteDB
   open Microsoft.AspNetCore.Http
+  open Microsoft.Extensions.Logging
+  open Microsoft.Net.Http.Headers
+  open System.Security.Claims
   open System.Threading.Tasks
+
+  let debug (ctx : HttpContext) message =
+    let fac = ctx.GetService<ILoggerFactory>()
+    let log = fac.CreateLogger "Debug"
+    log.LogInformation message
 
   /// Get the LiteDB database
   let db (ctx : HttpContext) = ctx.GetService<LiteDatabase>()
@@ -107,20 +81,31 @@ module private Helpers =
   let authorize : HttpHandler =
     fun next ctx -> match user ctx with Some _ -> next ctx | None -> notAuthorized next ctx
   
-  /// Flip JSON result so we can pipe into it
-  let asJson<'T> next ctx (o : 'T) =
-    json o next ctx
-  
-  /// Trigger a menu item refresh
-  let withMenuRefresh : HttpHandler =
-    withHxTriggerAfterSettle "menu-refresh"
-
   /// Render a component result
   let renderComponent nodes : HttpHandler =
     fun next ctx -> task {
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
 
+  /// Composable handler to write a view to the output
+  let writeView view : HttpHandler =
+    fun next ctx -> task {
+      return! ctx.WriteHtmlViewAsync view
+      }
+
+  /// Send a partial result if this is not a full page load
+  let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
+    fun next ctx ->
+      (next, ctx)
+      ||> match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
+          | true ->
+              ctx.Response.Headers.["X-Page-Title"] <- Microsoft.Extensions.Primitives.StringValues pageTitle
+              withHxTriggerAfterSettle "menu-refresh" >=> writeView content
+          | false -> writeView (Views.Layout.view pageTitle content)
+
+  /// Add a success message header to the response
+  let withSuccessMessage : string -> HttpHandler =
+    sprintf "success|||%s" >> setHttpHeader "X-Toast"
 
 /// Strongly-typed models for post requests
 module Models =
@@ -131,7 +116,7 @@ module Models =
     /// The status of the history update
     status     : string
     /// The text of the update
-    updateText : string
+    updateText : string option
     }
   
   /// An additional note
@@ -154,15 +139,15 @@ module Models =
   [<CLIMutable>]
   type Request = {
     /// The ID of the request
-    id          : string
+    requestId     : string
     /// The text of the request
-    requestText : string
+    requestText   : string
     /// The additional status to record
-    status      : string option
+    status        : string option
     /// The recurrence type
-    recurType   : string
+    recurType     : string
     /// The recurrence count
-    recurCount  : int16 option
+    recurCount    : int16 option
     /// The recurrence interval
     recurInterval : string option
     }
@@ -174,6 +159,8 @@ module Models =
     until : int64
     }
 
+
+open MyPrayerJournal.Data.Extensions
 
 /// Handlers for less-than-full-page HTML requests
 module Components =
@@ -193,6 +180,34 @@ module Components =
       let! jrnl = Data.journalByUserId (userId ctx) (db ctx)
       return! renderComponent [ Views.Journal.journalItems jrnl ] next ctx
       }
+  
+  // GET /components/request/[req-id]/edit  
+  let requestEdit requestId : HttpHandler =
+    authorize
+    >=> fun next ctx -> task {
+      match requestId with
+      | "new" ->
+          return! partialIfNotRefresh "Add Prayer Request"
+                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) false) next ctx
+      | _ ->
+          match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
+          | Some req ->
+              return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req false) next ctx
+          | None -> return! Error.notFound next ctx
+      }
+
+  // GET /components/request-item/[req-id]
+  let requestItem reqId : HttpHandler =
+    authorize
+    >=> fun next ctx -> task {
+      match! Data.tryJournalById (RequestId.ofString reqId) (userId ctx) (db ctx) with
+      | Some req -> 
+          debug ctx "Found the item"
+          return! renderComponent [ Views.Request.reqListItem req ] next ctx
+      | None ->
+          debug ctx "Did not find the item"
+          return! Error.notFound next ctx
+      }
 
 
 /// / URL    
@@ -200,7 +215,7 @@ module Home =
   
   // GET /
   let home : HttpHandler =
-    withMenuRefresh >=> partialIfNotRefresh "Welcome!" Views.Home.home
+    partialIfNotRefresh "Welcome!" Views.Home.home
   
   // GET /user/log-on
   let logOn : HttpHandler =
@@ -213,7 +228,6 @@ module Journal =
   // GET /journal
   let journal : HttpHandler =
     authorize
-    >=> withMenuRefresh
     >=> fun next ctx -> task {
       let usr = ctx.Request.Headers.["X-Given-Name"].[0]
       return! partialIfNotRefresh "Your Prayer Journal" (Views.Journal.journal usr) next ctx
@@ -225,11 +239,11 @@ module Legal =
   
   // GET /legal/privacy-policy
   let privacyPolicy : HttpHandler =
-    withMenuRefresh >=> partialIfNotRefresh "Privacy Policy" Views.Legal.privacyPolicy
+    partialIfNotRefresh "Privacy Policy" Views.Legal.privacyPolicy
   
   // GET /legal/terms-of-service
   let termsOfService : HttpHandler =
-    withMenuRefresh >=> partialIfNotRefresh "Terms of Service" Views.Legal.termsOfService
+    partialIfNotRefresh "Terms of Service" Views.Legal.termsOfService
 
 
 /// Alias for the Ply task module (The F# "task" CE can't handle differing types well within the same CE)
@@ -238,72 +252,6 @@ module Ply = FSharp.Control.Tasks.Affine
 
 /// /api/request and /request(s) URLs
 module Request =
-
-  // GET /request/[req-id]/edit  
-  let edit requestId : HttpHandler =
-    authorize
-    >=> fun next ctx -> task {
-      match requestId with
-      | "new" ->
-          return! partialIfNotRefresh "Add Prayer Request"
-                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) false) next ctx
-      | _ ->
-          match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-          | Some req -> return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req false) next ctx
-          | None -> return! Error.notFound next ctx
-      }
-
-  /// Add a new prayer request
-  let private addRequest (form : Models.Request) : HttpHandler =
-    fun next ctx -> task {
-      let  db    = db ctx
-      let  usrId = userId ctx
-      let  now   = jsNow ()
-      let  req   =
-        { Request.empty with
-            userId     = usrId
-            enteredOn  = now
-            showAfter  = Ticks 0L
-            recurType  = Recurrence.fromString (match form.recurInterval with Some x -> x | _ -> "Immediate")
-            recurCount = defaultArg form.recurCount (int16 0)
-            history    = [
-              { asOf   = now
-                status = Created
-                text   = Some form.requestText
-                }      
-              ]
-          }
-      Data.addRequest req db
-      do! db.saveChanges ()
-      return! (withHxRedirect "/journal" >=> createdAt (RequestId.toString req.id |> sprintf "/request/%s")) next ctx
-      }
-  
-  /// Update a prayer request
-  let private updateRequest (form : Models.Request) : HttpHandler =
-    fun next ctx -> Ply.task {
-      let  db    = db ctx
-      let  usrId = userId ctx
-      match! Data.tryJournalById (RequestId.ofString form.id) usrId db with
-      | Some req ->
-          // TODO: Update recurrence if changed
-          let text =
-            match form.requestText.Trim () = req.text with
-            | true -> None
-            | false -> form.requestText.Trim () |> Some
-          do! Data.addHistory req.requestId usrId
-                { asOf = jsNow (); status = (Option.get >> RequestAction.fromString) form.status; text = text } db
-          return! setStatusCode 200 next ctx
-      | None -> return! Error.notFound next ctx
-      }
-
-  /// POST /request
-  let save : HttpHandler =
-    authorize
-    >=> fun next ctx -> task {
-      let! form = ctx.BindModelAsync<Models.Request> ()
-      let  func = match form.id with "new" -> addRequest | _ -> updateRequest
-      return! func form next ctx
-      }
 
   /// POST /api/request/[req-id]/history
   let addHistory requestId : HttpHandler =
@@ -320,7 +268,7 @@ module Request =
           do! Data.addHistory reqId usrId
                 { asOf   = now
                   status = act
-                  text   = match hist.updateText with null | "" -> None | x -> Some x
+                  text   = match hist.updateText with None | Some "" -> None | x -> x
                   } db
           match act with
           | Prayed ->
@@ -338,7 +286,6 @@ module Request =
   /// POST /api/request/[req-id]/note
   let addNote requestId : HttpHandler =
     authorize
-    // >=> allowSyncIO
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
@@ -355,7 +302,6 @@ module Request =
   /// GET /requests/active
   let active : HttpHandler =
     authorize
-    >=> withMenuRefresh
     >=> fun next ctx -> task {
       let! reqs = Data.journalByUserId (userId ctx) (db ctx)
       return! partialIfNotRefresh "Active Requests" (Views.Request.active reqs) next ctx
@@ -364,7 +310,6 @@ module Request =
   /// GET /requests/answered
   let answered : HttpHandler =
     authorize
-    >=> withMenuRefresh
     >=> fun next ctx -> task {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
       return! partialIfNotRefresh "Answered Requests" (Views.Request.answered reqs) next ctx
@@ -382,7 +327,6 @@ module Request =
   /// GET /request/[req-id]/full
   let getFull requestId : HttpHandler =
     authorize
-    >=> withMenuRefresh
     >=> fun next ctx -> task {
       match! Data.tryFullRequestById (toReqId requestId) (userId ctx) (db ctx) with
       | Some req -> return! partialIfNotRefresh "Full Prayer Request" (Views.Request.full req) next ctx
@@ -448,6 +392,69 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
 
+  /// Derive a recurrence and interval from its primitive representation in the form
+  let private parseRecurrence (form : Models.Request) =
+    (Recurrence.fromString (match form.recurInterval with Some x -> x | _ -> "Immediate"),
+     defaultArg form.recurCount (int16 0))
+
+  // POST /request
+  let add : HttpHandler =
+    fun next ctx -> task {
+      let! form             = ctx.BindModelAsync<Models.Request> ()
+      let  db               = db ctx
+      let  usrId            = userId ctx
+      let  now              = jsNow ()
+      let (recur, interval) = parseRecurrence form
+      let  req   =
+        { Request.empty with
+            userId     = usrId
+            enteredOn  = now
+            showAfter  = Ticks 0L
+            recurType  = recur
+            recurCount = interval
+            history    = [
+              { asOf   = now
+                status = Created
+                text   = Some form.requestText
+                }      
+              ]
+          }
+      Data.addRequest req db
+      do! db.saveChanges ()
+      // TODO: this is not right
+      return! (withHxRedirect "/journal" >=> createdAt (RequestId.toString req.id |> sprintf "/request/%s")) next ctx
+      }
+  
+  // PATCH /request
+  let update : HttpHandler =
+    fun next ctx -> Ply.task {
+      let! form  = ctx.BindModelAsync<Models.Request> ()
+      let  db    = db ctx
+      let  usrId = userId ctx
+      match! Data.tryJournalById (RequestId.ofString form.requestId) usrId db with
+      | Some req ->
+          // step 1 - update recurrence if changed
+          let (recur, interval) = parseRecurrence form
+          match recur = req.recurType && interval = req.recurCount with
+          | true -> ()
+          | false ->
+              do! Data.updateRecurrence req.requestId usrId recur interval db
+              match recur with
+              | Immediate -> do! Data.updateShowAfter req.requestId usrId (Ticks 0L) db
+              | _ -> ()
+          // step 2 - append history
+          let upd8Text = form.requestText.Trim ()
+          let text     = match upd8Text = req.text with true -> None | false -> Some upd8Text
+          do! Data.addHistory req.requestId usrId
+                { asOf = jsNow (); status = (Option.get >> RequestAction.fromString) form.status; text = text } db
+          do! db.saveChanges ()
+          // step 3 - return updated view
+          return! (withSuccessMessage "Prayer request updated successfully"
+                   >=> Components.requestItem (RequestId.toString req.requestId)) next ctx
+      | None -> return! Error.notFound next ctx
+      }
+
+
 
 open Giraffe.EndpointRouting
 
@@ -456,8 +463,10 @@ let routes =
   [ GET_HEAD [ route "/" Home.home ]
     subRoute "/components/" [
       GET_HEAD [
-        route "journal-items" Components.journalItems
-        route "nav-items"     Components.navItems
+        route  "journal-items"   Components.journalItems
+        route  "nav-items"       Components.navItems
+        routef "request/%s/edit" Components.requestEdit
+        routef "request/%s/item" Components.requestItem
         ]
       ]
     GET_HEAD [ route "/journal" Journal.journal ]
@@ -472,10 +481,12 @@ let routes =
         route  "s/active"   Request.active
         route  "s/answered" Request.answered
         routef "/%s/full"   Request.getFull
-        routef "/%s/edit"   Request.edit
+        ]
+      PATCH [
+        route "" Request.update
         ]
       POST [
-        route  "/request" Request.save
+        route "" Request.add
         ]
       ]
     GET_HEAD [ route "/user/log-on" Home.logOn ]

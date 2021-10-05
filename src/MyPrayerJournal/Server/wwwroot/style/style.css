@@ -34,6 +34,13 @@ form {
 .action-cell .material-icons {
   font-size: 1.1rem ;
 }
+.material-icons {
+  vertical-align: bottom;
+}
+#toastHost {
+  position: sticky;
+  bottom: 0;
+}
 
 footer {
   border-top: solid 1px lightgray;
