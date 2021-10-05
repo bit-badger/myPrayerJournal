@@ -418,14 +418,14 @@ module Request =
         ]
       div [ _class "form-floating mb-3" ] [
         textarea [
-          _id          "request_text"
-          _name        "request_text"
+          _id          "requestText"
+          _name        "requestText"
           _class       "form-control"
           _style       "min-height: 4rem;"
           _placeholder "Enter the text of the request"
           _autofocus;  _required
           ] [ str req.text ]
-        label [ _for "request_text" ] [ str "Prayer Request" ]
+        label [ _for "requestText" ] [ str "Prayer Request" ]
         ]
       br []
       match isNew with

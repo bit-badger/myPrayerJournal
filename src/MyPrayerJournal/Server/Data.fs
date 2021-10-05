@@ -114,33 +114,6 @@ module private Helpers =
     db.requests.Update req |> ignore
     Task.CompletedTask
 
-  /// Convert a request to the form used for the journal (precomputed values, no notes or history)
-  let toJournalLite (req : Request) =
-    let hist = req.history |> List.sortByDescending (fun it -> Ticks.toLong it.asOf) |> List.head
-    { requestId    = req.id
-      userId       = req.userId
-      text         = (req.history
-                       |> List.filter (fun it -> Option.isSome it.text)
-                       |> List.sortByDescending (fun it -> Ticks.toLong it.asOf)
-                       |> List.head).text
-                     |> Option.get
-      asOf         = hist.asOf
-      lastStatus   = hist.status
-      snoozedUntil = req.snoozedUntil
-      showAfter    = req.showAfter
-      recurType    = req.recurType
-      recurCount   = req.recurCount
-      history      = []
-      notes        = []
-      }
-
-  /// Same as above, but with notes and history
-  let toJournalFull req =
-    { toJournalLite req with 
-        history = req.history
-        notes   = req.notes
-      }
-
 
 /// Retrieve a request, including its history and notes, by its ID and user ID
 let tryFullRequestById reqId userId (db : LiteDatabase) = task {
@@ -171,7 +144,7 @@ let answeredRequests userId (db : LiteDatabase) = task {
   let! reqs = db.requests.Find (Query.EQ ("userId", UserId.toString userId |> BsonValue)) |> toListAsync
   return
     reqs
-    |> Seq.map toJournalFull
+    |> Seq.map JournalRequest.ofRequestFull
     |> Seq.filter (fun it -> it.lastStatus = Answered)
     |> Seq.sortByDescending (fun it -> Ticks.toLong it.asOf)
     |> List.ofSeq
@@ -182,7 +155,7 @@ let journalByUserId userId (db : LiteDatabase) = task {
   let! jrnl = db.requests.Find (Query.EQ ("userId", UserId.toString userId |> BsonValue)) |> toListAsync
   return
     jrnl
-    |> Seq.map toJournalLite
+    |> Seq.map JournalRequest.ofRequestLite
     |> Seq.filter (fun it -> it.lastStatus <> Answered)
     |> Seq.sortBy (fun it -> Ticks.toLong it.asOf)
     |> List.ofSeq
@@ -203,7 +176,7 @@ let notesById reqId userId (db : LiteDatabase) = task {
 /// Retrieve a journal request by its ID and user ID
 let tryJournalById reqId userId (db : LiteDatabase) = task {
   match! tryFullRequestById reqId userId db with
-  | Some req -> return req |> (toJournalLite >> Some)
+  | Some req -> return req |> (JournalRequest.ofRequestLite >> Some)
   | None -> return None
   }
     

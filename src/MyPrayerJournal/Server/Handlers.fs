@@ -57,6 +57,7 @@ module Error =
 open Cuid
 open LiteDB
 open System.Security.Claims
+open Microsoft.Net.Http.Headers
 
 /// Handler helpers
 [<AutoOpen>]
@@ -85,8 +86,14 @@ module private Helpers =
     |> RequestId
 
   /// Return a 201 CREATED response
-  let created next ctx =
-    setStatusCode 201 next ctx
+  let created =
+    setStatusCode 201
+
+  /// Return a 201 CREATED response with the location header set for the created resource
+  let createdAt url : HttpHandler =
+    fun next ctx ->
+      (sprintf "%s://%s%s" ctx.Request.Scheme ctx.Request.Host.Value url |> setHttpHeader HeaderNames.Location
+       >=> created) next ctx
 
   /// The "now" time in JavaScript as Ticks
   let jsNow () =
@@ -146,12 +153,18 @@ module Models =
   /// A prayer request
   [<CLIMutable>]
   type Request = {
+    /// The ID of the request
+    id          : string
     /// The text of the request
     requestText : string
+    /// The additional status to record
+    status      : string option
     /// The recurrence type
     recurType   : string
     /// The recurrence count
-    recurCount  : int16
+    recurCount  : int16 option
+    /// The recurrence interval
+    recurInterval : string option
     }
   
   /// The time until which a request should not appear in the journal
@@ -219,35 +232,77 @@ module Legal =
     withMenuRefresh >=> partialIfNotRefresh "Terms of Service" Views.Legal.termsOfService
 
 
+/// Alias for the Ply task module (The F# "task" CE can't handle differing types well within the same CE)
+module Ply = FSharp.Control.Tasks.Affine
+
+
 /// /api/request and /request(s) URLs
 module Request =
-  
-  /// POST /api/request
-  let add : HttpHandler =
+
+  // GET /request/[req-id]/edit  
+  let edit requestId : HttpHandler =
     authorize
     >=> fun next ctx -> task {
-      let! r     = ctx.BindJsonAsync<Models.Request> ()
+      match requestId with
+      | "new" ->
+          return! partialIfNotRefresh "Add Prayer Request"
+                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) false) next ctx
+      | _ ->
+          match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
+          | Some req -> return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req false) next ctx
+          | None -> return! Error.notFound next ctx
+      }
+
+  /// Add a new prayer request
+  let private addRequest (form : Models.Request) : HttpHandler =
+    fun next ctx -> task {
       let  db    = db ctx
       let  usrId = userId ctx
       let  now   = jsNow ()
-      let  req   = { Request.empty with
-                       userId     = usrId
-                       enteredOn  = now
-                       showAfter  = Ticks 0L
-                       recurType  = Recurrence.fromString r.recurType
-                       recurCount = r.recurCount
-                       history    = [
-                         { asOf   = now
-                           status = Created
-                           text   = Some r.requestText
-                           }      
-                         ]
-                     }
+      let  req   =
+        { Request.empty with
+            userId     = usrId
+            enteredOn  = now
+            showAfter  = Ticks 0L
+            recurType  = Recurrence.fromString (match form.recurInterval with Some x -> x | _ -> "Immediate")
+            recurCount = defaultArg form.recurCount (int16 0)
+            history    = [
+              { asOf   = now
+                status = Created
+                text   = Some form.requestText
+                }      
+              ]
+          }
       Data.addRequest req db
       do! db.saveChanges ()
-      match! Data.tryJournalById req.id usrId db with
-      | Some req -> return! (setStatusCode 201 >=> json req) next ctx
+      return! (withHxRedirect "/journal" >=> createdAt (RequestId.toString req.id |> sprintf "/request/%s")) next ctx
+      }
+  
+  /// Update a prayer request
+  let private updateRequest (form : Models.Request) : HttpHandler =
+    fun next ctx -> Ply.task {
+      let  db    = db ctx
+      let  usrId = userId ctx
+      match! Data.tryJournalById (RequestId.ofString form.id) usrId db with
+      | Some req ->
+          // TODO: Update recurrence if changed
+          let text =
+            match form.requestText.Trim () = req.text with
+            | true -> None
+            | false -> form.requestText.Trim () |> Some
+          do! Data.addHistory req.requestId usrId
+                { asOf = jsNow (); status = (Option.get >> RequestAction.fromString) form.status; text = text } db
+          return! setStatusCode 200 next ctx
       | None -> return! Error.notFound next ctx
+      }
+
+  /// POST /request
+  let save : HttpHandler =
+    authorize
+    >=> fun next ctx -> task {
+      let! form = ctx.BindModelAsync<Models.Request> ()
+      let  func = match form.id with "new" -> addRequest | _ -> updateRequest
+      return! func form next ctx
       }
 
   /// POST /api/request/[req-id]/history
@@ -398,22 +453,32 @@ open Giraffe.EndpointRouting
 
 /// The routes for myPrayerJournal
 let routes =
-  [ route "/" Home.home
+  [ GET_HEAD [ route "/" Home.home ]
     subRoute "/components/" [
-      route "journal-items" Components.journalItems
-      route "nav-items"     Components.navItems
+      GET_HEAD [
+        route "journal-items" Components.journalItems
+        route "nav-items"     Components.navItems
+        ]
       ]
-    route "/journal" Journal.journal
+    GET_HEAD [ route "/journal" Journal.journal ]
     subRoute "/legal/" [
-      route "privacy-policy"   Legal.privacyPolicy
-      route "terms-of-service" Legal.termsOfService
+      GET_HEAD [
+        route "privacy-policy"   Legal.privacyPolicy
+        route "terms-of-service" Legal.termsOfService
+        ]
       ]
     subRoute "/request" [
-      route "s/active"   Request.active
-      route "s/answered" Request.answered
-      routef "/%s/full"  Request.getFull
+      GET_HEAD [
+        route  "s/active"   Request.active
+        route  "s/answered" Request.answered
+        routef "/%s/full"   Request.getFull
+        routef "/%s/edit"   Request.edit
+        ]
+      POST [
+        route  "/request" Request.save
+        ]
       ]
-    route "/user/log-on" Home.logOn
+    GET_HEAD [ route "/user/log-on" Home.logOn ]
     subRoute "/api/" [
       GET [
         subRoute "request" [
@@ -430,7 +495,6 @@ let routes =
         ]
       POST [
         subRoute "request" [
-          route  ""            Request.add
           routef "/%s/history" Request.addHistory
           routef "/%s/note"    Request.addNote
           ]

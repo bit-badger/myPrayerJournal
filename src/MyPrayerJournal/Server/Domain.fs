@@ -166,6 +166,36 @@ type JournalRequest =
     notes        : Note list
   }
 
+/// Functions to manipulate journal requests
+module JournalRequest =
+
+  /// Convert a request to the form used for the journal (precomputed values, no notes or history)
+  let ofRequestLite (req : Request) =
+    let hist = req.history |> List.sortByDescending (fun it -> Ticks.toLong it.asOf) |> List.head
+    { requestId    = req.id
+      userId       = req.userId
+      text         = (req.history
+                       |> List.filter (fun it -> Option.isSome it.text)
+                       |> List.sortByDescending (fun it -> Ticks.toLong it.asOf)
+                       |> List.head).text
+                     |> Option.get
+      asOf         = hist.asOf
+      lastStatus   = hist.status
+      snoozedUntil = req.snoozedUntil
+      showAfter    = req.showAfter
+      recurType    = req.recurType
+      recurCount   = req.recurCount
+      history      = []
+      notes        = []
+      }
+
+  /// Same as `ofRequestLite`, but with notes and history
+  let ofRequestFull req =
+    { ofRequestLite req with 
+        history = req.history
+        notes   = req.notes
+      }
+
 
 /// Functions to manipulate request actions
 module RequestAction =
