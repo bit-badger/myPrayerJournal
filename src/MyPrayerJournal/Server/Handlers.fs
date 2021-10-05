@@ -27,7 +27,6 @@ module Error =
 [<AutoOpen>]
 module private Helpers =
   
-  open Cuid
   open LiteDB
   open Microsoft.AspNetCore.Http
   open Microsoft.Extensions.Logging
@@ -51,13 +50,6 @@ module private Helpers =
   //  NOTE: this may raise if you don't run the request through the authorize handler first
   let userId ctx =
     ((user >> Option.get) ctx).Value |> UserId
-
-  /// Create a request ID from a string
-  let toReqId x =
-    match Cuid.ofString x with
-    | Ok cuid -> cuid
-    | Error msg -> invalidOp msg
-    |> RequestId
 
   /// Return a 201 CREATED response
   let created =
@@ -107,17 +99,9 @@ module private Helpers =
   let withSuccessMessage : string -> HttpHandler =
     sprintf "success|||%s" >> setHttpHeader "X-Toast"
 
+
 /// Strongly-typed models for post requests
 module Models =
-  
-  /// A history entry addition (AKA request update)
-  [<CLIMutable>]
-  type HistoryEntry = {
-    /// The status of the history update
-    status     : string
-    /// The text of the update
-    updateText : string option
-    }
   
   /// An additional note
   [<CLIMutable>]
@@ -126,15 +110,6 @@ module Models =
     notes : string
     }
   
-  /// Recurrence update
-  [<CLIMutable>]
-  type Recurrence = {
-    /// The recurrence type
-    recurType  : string
-    /// The recurrence cound
-    recurCount : int16
-    }
-
   /// A prayer request
   [<CLIMutable>]
   type Request = {
@@ -177,8 +152,10 @@ module Components =
   let journalItems : HttpHandler =
     authorize
     >=> fun next ctx -> task {
-      let! jrnl = Data.journalByUserId (userId ctx) (db ctx)
-      return! renderComponent [ Views.Journal.journalItems jrnl ] next ctx
+      let  shouldShow now r = now > Ticks.toLong r.snoozedUntil && now > Ticks.toLong r.showAfter
+      let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
+      let  shown = jrnl |> List.filter (shouldShow ((jsNow >> Ticks.toLong) ()))
+      return! renderComponent [ Views.Journal.journalItems shown ] next ctx
       }
   
   // GET /components/request/[req-id]/edit  
@@ -253,33 +230,24 @@ module Ply = FSharp.Control.Tasks.Affine
 /// /api/request and /request(s) URLs
 module Request =
 
-  /// POST /api/request/[req-id]/history
-  let addHistory requestId : HttpHandler =
+  // PATCH /request/[req-id]/prayed
+  let prayed requestId : HttpHandler =
     authorize
-    >=> fun next ctx -> FSharp.Control.Tasks.Affine.task {
+    >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
-      let reqId = toReqId requestId
+      let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some req ->
-          let! hist = ctx.BindJsonAsync<Models.HistoryEntry> ()
-          let  now  = jsNow ()
-          let  act  = RequestAction.fromString hist.status
-          do! Data.addHistory reqId usrId
-                { asOf   = now
-                  status = act
-                  text   = match hist.updateText with None | Some "" -> None | x -> x
-                  } db
-          match act with
-          | Prayed ->
-              let nextShow =
-                match Recurrence.duration req.recurType with
-                | 0L -> 0L
-                | duration -> (Ticks.toLong now) + (duration * int64 req.recurCount)
-              do! Data.updateShowAfter reqId usrId (Ticks nextShow) db
-          | _ -> ()
+          let now  = jsNow ()
+          do! Data.addHistory reqId usrId { asOf = now; status = Prayed; text = None } db
+          let nextShow =
+            match Recurrence.duration req.recurType with
+            | 0L -> 0L
+            | duration -> (Ticks.toLong now) + (duration * int64 req.recurCount)
+          do! Data.updateShowAfter reqId usrId (Ticks nextShow) db
           do! db.saveChanges ()
-          return! created next ctx
+          return! (withSuccessMessage "Request marked as prayed" >=> Components.journalItems) next ctx
       | None -> return! Error.notFound next ctx
       }
   
@@ -289,7 +257,7 @@ module Request =
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
-      let reqId = toReqId requestId
+      let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
           let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
@@ -307,6 +275,16 @@ module Request =
       return! partialIfNotRefresh "Active Requests" (Views.Request.active reqs) next ctx
       }
   
+  /// GET /requests/snoozed
+  let snoozed : HttpHandler =
+    authorize
+    >=> fun next ctx -> task {
+      let! reqs    = Data.journalByUserId (userId ctx) (db ctx)
+      let  now     = (jsNow >> Ticks.toLong) ()
+      let  snoozed = reqs |> List.filter (fun r -> Ticks.toLong r.snoozedUntil > now)
+      return! partialIfNotRefresh "Active Requests" (Views.Request.snoozed snoozed) next ctx
+      }
+
   /// GET /requests/answered
   let answered : HttpHandler =
     authorize
@@ -319,17 +297,17 @@ module Request =
   let get requestId : HttpHandler =
     authorize
     >=> fun next ctx -> task {
-      match! Data.tryJournalById (toReqId requestId) (userId ctx) (db ctx) with
+      match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
       | Some req -> return! json req next ctx
       | None -> return! Error.notFound next ctx
       }
   
-  /// GET /request/[req-id]/full
+  // GET /request/[req-id]/full
   let getFull requestId : HttpHandler =
     authorize
     >=> fun next ctx -> task {
-      match! Data.tryFullRequestById (toReqId requestId) (userId ctx) (db ctx) with
-      | Some req -> return! partialIfNotRefresh "Full Prayer Request" (Views.Request.full req) next ctx
+      match! Data.tryFullRequestById (RequestId.ofString requestId) (userId ctx) (db ctx) with
+      | Some req -> return! partialIfNotRefresh "Prayer Request" (Views.Request.full req) next ctx
       | None -> return! Error.notFound next ctx
       }
   
@@ -337,22 +315,22 @@ module Request =
   let getNotes requestId : HttpHandler =
     authorize
     >=> fun next ctx -> task {
-      let! notes = Data.notesById (toReqId requestId) (userId ctx) (db ctx)
+      let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
       return! json notes next ctx
       }
   
-  /// PATCH /api/request/[req-id]/show
+  // PATCH /request/[req-id]/show
   let show requestId : HttpHandler =
     authorize
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
-      let reqId = toReqId requestId
+      let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
           do! Data.updateShowAfter reqId usrId (Ticks 0L) db
           do! db.saveChanges ()
-          return! setStatusCode 204 next ctx
+          return! (withSuccessMessage "Request now shown" >=> Components.requestItem requestId) next ctx
       | None -> return! Error.notFound next ctx
       }
   
@@ -362,7 +340,7 @@ module Request =
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
-      let reqId = toReqId requestId
+      let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
           let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
@@ -371,30 +349,25 @@ module Request =
           return! setStatusCode 204 next ctx
       | None -> return! Error.notFound next ctx
       }
-
-  /// PATCH /api/request/[req-id]/recurrence
-  let updateRecurrence requestId : HttpHandler =
+  
+  // PATCH /request/[req-id]/cancel-snooze
+  let cancelSnooze requestId : HttpHandler =
     authorize
-    >=> fun next ctx -> FSharp.Control.Tasks.Affine.task {
+    >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
-      let reqId = toReqId requestId
+      let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
-          let! recur      = ctx.BindJsonAsync<Models.Recurrence> ()
-          let  recurrence = Recurrence.fromString recur.recurType
-          do! Data.updateRecurrence reqId usrId recurrence recur.recurCount db
-          match recurrence with
-          | Immediate -> do! Data.updateShowAfter reqId usrId (Ticks 0L) db
-          | _ -> ()
+          do! Data.updateSnoozed reqId usrId (Ticks 0L) db
           do! db.saveChanges ()
-          return! setStatusCode 204 next ctx
+          return! (withSuccessMessage "Request unsnoozed" >=> Components.requestItem requestId) next ctx
       | None -> return! Error.notFound next ctx
       }
 
   /// Derive a recurrence and interval from its primitive representation in the form
   let private parseRecurrence (form : Models.Request) =
-    (Recurrence.fromString (match form.recurInterval with Some x -> x | _ -> "Immediate"),
+    (Recurrence.ofString (match form.recurInterval with Some x -> x | _ -> "Immediate"),
      defaultArg form.recurCount (int16 0))
 
   // POST /request
@@ -433,7 +406,7 @@ module Request =
       let  usrId = userId ctx
       match! Data.tryJournalById (RequestId.ofString form.requestId) usrId db with
       | Some req ->
-          // step 1 - update recurrence if changed
+          // update recurrence if changed
           let (recur, interval) = parseRecurrence form
           match recur = req.recurType && interval = req.recurCount with
           | true -> ()
@@ -442,18 +415,16 @@ module Request =
               match recur with
               | Immediate -> do! Data.updateShowAfter req.requestId usrId (Ticks 0L) db
               | _ -> ()
-          // step 2 - append history
+          // append history
           let upd8Text = form.requestText.Trim ()
           let text     = match upd8Text = req.text with true -> None | false -> Some upd8Text
           do! Data.addHistory req.requestId usrId
-                { asOf = jsNow (); status = (Option.get >> RequestAction.fromString) form.status; text = text } db
+                { asOf = jsNow (); status = (Option.get >> RequestAction.ofString) form.status; text = text } db
           do! db.saveChanges ()
-          // step 3 - return updated view
           return! (withSuccessMessage "Prayer request updated successfully"
                    >=> Components.requestItem (RequestId.toString req.requestId)) next ctx
       | None -> return! Error.notFound next ctx
       }
-
 
 
 open Giraffe.EndpointRouting
@@ -478,12 +449,16 @@ let routes =
       ]
     subRoute "/request" [
       GET_HEAD [
+        routef "/%s/full"   Request.getFull
         route  "s/active"   Request.active
         route  "s/answered" Request.answered
-        routef "/%s/full"   Request.getFull
+        route  "s/snoozed"  Request.snoozed
         ]
       PATCH [
-        route "" Request.update
+        route  ""                  Request.update
+        routef "/%s/cancel-snooze" Request.cancelSnooze
+        routef "/%s/prayed"        Request.prayed
+        routef "/%s/show"          Request.show
         ]
       POST [
         route "" Request.add
@@ -499,14 +474,11 @@ let routes =
         ]
       PATCH [
         subRoute "request" [
-          routef "/%s/recurrence" Request.updateRecurrence
-          routef "/%s/show"       Request.show
           routef "/%s/snooze"     Request.snooze
           ]
         ]
       POST [
         subRoute "request" [
-          routef "/%s/history" Request.addHistory
           routef "/%s/note"    Request.addNote
           ]
         ]

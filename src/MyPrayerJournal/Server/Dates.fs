@@ -24,8 +24,8 @@ let internal locales =
     "en-US", Map.ofList [
       LessThanXMinutes, ("less than a minute", format "less than %i minutes")
       XMinutes,         ("a minute",           format "%i minutes")
-      AboutXHours,      ("about an hour",       format "about %i hours")
-      XHours,           ("an hour",             format "%i hours")
+      AboutXHours,      ("about an hour",      format "about %i hours")
+      XHours,           ("an hour",            format "%i hours")
       XDays,            ("a day",              format "%i days")
       AboutXWeeks,      ("about a week",       format "about %i weeks")
       XWeeks,           ("a week",             format "%i weeks")
@@ -55,18 +55,19 @@ let formatDistance (startDate : DateTime) (endDate : DateTime) =
   let round (it : float) = Math.Round it |> int
 
   let diff        = startDate - endDate
+  let minutes     = Math.Abs diff.TotalMinutes
   let formatToken =
-    let months = diff.TotalMinutes / aMonth |> round
+    let months = minutes / aMonth |> round
     let years  = months / 12
     match true with
-    | _ when diff.TotalMinutes = 0. -> LessThanXMinutes, 1
-    | _ when diff.TotalMinutes < 45. -> XMinutes, round diff.TotalMinutes
-    | _ when diff.TotalMinutes < 90. -> AboutXHours, 1
-    | _ when diff.TotalMinutes < aDay -> AboutXHours, round (diff.TotalMinutes / 60.)
-    | _ when diff.TotalMinutes < almostTwoDays -> XDays, 1
-    | _ when diff.TotalMinutes < aMonth -> XDays, round (diff.TotalMinutes / aDay)
-    | _ when diff.TotalMinutes < twoMonths -> AboutXMonths, round (diff.TotalMinutes / aMonth)
-    | _ when months < 12 -> XMonths, round (diff.TotalMinutes / aMonth)
+    | _ when minutes < 1. -> LessThanXMinutes, 1
+    | _ when minutes < 45. -> XMinutes, round minutes
+    | _ when minutes < 90. -> AboutXHours, 1
+    | _ when minutes < aDay -> AboutXHours, round (minutes / 60.)
+    | _ when minutes < almostTwoDays -> XDays, 1
+    | _ when minutes < aMonth -> XDays, round (minutes / aDay)
+    | _ when minutes < twoMonths -> AboutXMonths, round (minutes / aMonth)
+    | _ when months < 12 -> XMonths, round (minutes / aMonth)
     | _ when months % 12 < 3 -> AboutXYears, years
     | _ when months % 12 < 9 -> OverXYears, years
     | _ -> AlmostXYears, years + 1

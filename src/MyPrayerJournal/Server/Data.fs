@@ -37,7 +37,7 @@ module Mapping =
   /// Map a BSON document to a history entry
   let historyFromBson (doc : BsonValue) =
     { asOf   = Ticks doc.["asOf"].AsInt64
-      status = RequestAction.fromString doc.["status"].AsString
+      status = RequestAction.ofString doc.["status"].AsString
       text   = match doc.["text"].AsString with "" -> None | txt -> Some txt
       }
 
@@ -75,7 +75,7 @@ module Mapping =
       userId       = UserId doc.["userId"].AsString
       snoozedUntil = Ticks doc.["snoozedUntil"].AsInt64
       showAfter    = Ticks doc.["showAfter"].AsInt64
-      recurType    = Recurrence.fromString doc.["recurType"].AsString
+      recurType    = Recurrence.ofString doc.["recurType"].AsString
       recurCount   = int16 doc.["recurCount"].AsInt32
       history      = doc.["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
       notes        = doc.["notes"].AsArray   |> Seq.map noteFromBson    |> List.ofSeq

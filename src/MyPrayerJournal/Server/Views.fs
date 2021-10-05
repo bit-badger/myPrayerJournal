@@ -1,6 +1,7 @@
 module MyPrayerJournal.Views
 
 open Giraffe.ViewEngine
+open Giraffe.ViewEngine.Accessibility
 open Giraffe.ViewEngine.Htmx
 open System
 
@@ -29,7 +30,7 @@ module Helpers =
   /// Create a date with a span tag, displaying the relative date with the full date/time in the tooltip
   let relativeDate jsDate =
     let date = fromJs jsDate
-    span [ _title (date.ToString "f") ] [ Dates.formatDistance DateTime.Now date |> str ]
+    span [ _title (date.ToString "f") ] [ Dates.formatDistance DateTime.UtcNow date |> str ]
 
 
 /// Views for home and log on pages
@@ -254,6 +255,39 @@ module Navigation =
 /// Views for journal pages and components
 module Journal =
 
+  /// Display a card for this prayer request
+  let journalCard req =
+    div [ _class "col" ] [
+      div [ _class "card h-100" ] [
+        div [ _class "card-header p-0 text-end"; _roleToolBar ] [
+          button [
+            _class    "btn btn-success"
+            _hxPatch  $"/request/{RequestId.toString req.requestId}/prayed"
+            _title    "Mark as Prayed"
+            ] [ icon "done" ]
+          // span
+          //   md-button(@click.stop='showEdit()').md-icon-button.md-raised
+          //     md-icon edit
+          //     md-tooltip(md-direction='top'
+          //                md-delay=1000) Edit Request
+          //   md-button(@click.stop='showNotes()').md-icon-button.md-raised
+          //     md-icon comment
+          //     md-tooltip(md-direction='top'
+          //                md-delay=1000) Add Notes
+          //   md-button(@click.stop='snooze()').md-icon-button.md-raised
+          //     md-icon schedule
+          //     md-tooltip(md-direction='top'
+          //                md-delay=1000) Snooze Request
+          ]
+        div [ _class "card-body" ] [
+          p [ _class "request-text" ] [ str req.text ]
+          ]
+        div [ _class "card-footer text-end text-muted px-1 py-0" ] [
+          em [] [ str "last activity "; relativeDate req.asOf ]
+          ]
+        ]
+      ]
+  
   /// The journal loading page
   let journal user = article [ _class "container-fluid mt-3" ] [
     h2 [ _class "pb-3" ] [ str user; rawText "&rsquo;s Prayer Journal" ]
@@ -272,7 +306,15 @@ module Journal =
           rawText "You have no requests to be shown; see the &ldquo;Active&rdquo; link above for snoozed or "
           rawText "deferred requests, and the &ldquo;Answered&rdquo; link for answered requests"
           ]
-    | false -> p [] [ str "There are requests" ]
+    | false ->
+        items
+        |> List.map journalCard
+        |> section [
+            _class    "row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3"
+            _hxTarget "this"
+            _hxSwap   HxSwap.OuterHtml
+            ]
+
 
 
 /// Views for request pages and components
@@ -292,30 +334,29 @@ module Request =
       _hxSwap   HxSwap.OuterHtml
       ] [
       pageLink $"/request/{reqId}/full" [ btnClass; _title "View Full Request" ] [ icon "description" ]
-      if not isAnswered then
-        button [ btnClass; _hxGet $"/components/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
-      // TODO: these next two should use hx-patch, targeting replacement of this tr when complete
-      if isSnoozed then
-        pageLink $"/request/{reqId}/cancel-snooze" [ btnClass; _title "Cancel Snooze" ] [ icon "restore" ]
-      if isPending then
-        pageLink $"/request/{reqId}/show-now" [ btnClass; _title "Show Now" ] [ icon "restore" ]
-      p [ _class "mpj-request-text mb-0" ] [
+      match isAnswered with
+      | true -> ()
+      | false ->
+          button [ btnClass; _hxGet $"/components/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
+      match () with
+      | _ when isSnoozed ->
+          button [ btnClass; _hxPatch $"/request/{reqId}/cancel-snooze"; _title "Cancel Snooze" ] [ icon "restore" ]
+      | _ when isPending ->
+          button [ btnClass; _hxPatch $"/request/{reqId}/show"; _title "Show Now" ] [ icon "restore" ]
+      | _ -> ()
+      p [ _class "request-text mb-0" ] [
         str req.text
-        if isSnoozed || isPending || isAnswered then
-          br []
-          small [ _class "text-muted" ] [
-            em [] [
-              if isSnoozed then
-                str "Snooze expires "
-                relativeDate req.snoozedUntil
-              if isPending then
-                str "Request appears next "
-                relativeDate req.showAfter
-              if isAnswered then
-                str "Answered "
-                relativeDate req.asOf
+        match isSnoozed || isPending || isAnswered with
+        | true ->
+            br []
+            small [ _class "text-muted" ] [
+              match () with
+              | _ when isSnoozed   -> [ str "Snooze expires "; relativeDate req.snoozedUntil ]
+              | _ when isPending   -> [ str "Request appears next "; relativeDate req.showAfter ]
+              | _ (* isAnswered *) -> [ str "Answered "; relativeDate req.asOf ]
+              |> em []
               ]
-            ]
+        | false -> ()
         ]
       ]
   
@@ -524,10 +565,9 @@ module Request =
         ]
       ]
 
+
 /// Layout views
 module Layout =
-
-  open Giraffe.ViewEngine.Accessibility
 
   /// The HTML `head` element
   let htmlHead pageTitle =

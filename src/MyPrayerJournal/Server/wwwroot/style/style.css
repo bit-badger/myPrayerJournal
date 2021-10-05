@@ -41,6 +41,9 @@ form {
   position: sticky;
   bottom: 0;
 }
+.request-text {
+  white-space: pre-line
+}
 
 footer {
   border-top: solid 1px lightgray;

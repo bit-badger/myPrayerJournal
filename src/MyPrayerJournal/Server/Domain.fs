@@ -55,7 +55,7 @@ module Recurrence =
     | Days      -> "Days"
     | Weeks     -> "Weeks"
   /// Create a recurrence value from a string
-  let fromString =
+  let ofString =
     function
     | "Immediate" -> Immediate
     | "Hours"     -> Hours
@@ -207,7 +207,7 @@ module RequestAction =
     | Updated  -> "Updated"
     | Answered -> "Answered"
   /// Create a RequestAction from a string
-  let fromString =
+  let ofString =
     function
     | "Created"  -> Created
     | "Prayed"   -> Prayed
