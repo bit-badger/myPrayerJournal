@@ -28,7 +28,9 @@ module Error =
 module private Helpers =
   
   open LiteDB
+  open Microsoft.AspNetCore.Authentication
   open Microsoft.AspNetCore.Http
+  open Microsoft.AspNetCore.Http.Features.Authentication
   open Microsoft.Extensions.Logging
   open Microsoft.Net.Http.Headers
   open System.Security.Claims
@@ -39,12 +41,32 @@ module private Helpers =
     let log = fac.CreateLogger "Debug"
     log.LogInformation message
 
+  /// This type is internal in ASP.NET Core. :(
+  type AuthFeatures (result : AuthenticateResult) =
+    let mutable _user   : ClaimsPrincipal    = match result with null -> null | r -> r.Principal
+    let mutable _result : AuthenticateResult = result
+    interface IAuthenticateResultFeature with
+      member __.AuthenticateResult
+        with get () = _result
+         and set v  =
+            _result <- v
+            _user   <- match _result with null -> null | rslt -> rslt.Principal
+    interface IHttpAuthenticationFeature with
+      member __.User 
+        with get () = _user
+         and set v  =
+            _user   <- v
+            _result <- null
+
   /// Get the LiteDB database
   let db (ctx : HttpContext) = ctx.GetService<LiteDatabase>()
 
   /// Get the user's "sub" claim
   let user (ctx : HttpContext) =
-    ctx.User.Claims |> Seq.tryFind (fun u -> u.Type = ClaimTypes.NameIdentifier)
+    ctx.User
+    |> Option.ofObj
+    |> Option.map (fun user -> user.Claims |> Seq.tryFind (fun u -> u.Type = ClaimTypes.NameIdentifier))
+    |> Option.flatten
 
   /// Get the current user's ID
   //  NOTE: this may raise if you don't run the request through the authorize handler first
@@ -65,13 +87,53 @@ module private Helpers =
   let jsNow () =
     DateTime.UtcNow.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> (int64 >> ( * ) 1_000L >> Ticks)
   
-  /// Handler to return a 403 Not Authorized reponse
+  /// Handler to return a 401 Not Authorized reponse
   let notAuthorized : HttpHandler =
-    setStatusCode 403 >=> fun _ _ -> Task.FromResult<HttpContext option> None
+    setStatusCode 401 >=> fun _ _ -> Task.FromResult<HttpContext option> None
 
   /// Handler to require authorization
+  //  NOTE: This is cribbed from ASP.NET Core's `AuthenticationMiddleware#Invoke`
+  //  https://github.com/dotnet/aspnetcore/blob/main/src/Security/Authentication/Core/src/AuthenticationMiddleware.cs
   let authorize : HttpHandler =
-    fun next ctx -> match user ctx with Some _ -> next ctx | None -> notAuthorized next ctx
+    fun next ctx -> task {
+      let schemes = ctx.GetService<IAuthenticationSchemeProvider> ()
+      ctx.Features.Set<IAuthenticationFeature>
+        (AuthenticationFeature (OriginalPath = ctx.Request.Path, OriginalPathBase = ctx.Request.PathBase))
+
+      // Give any IAuthenticationRequestHandler schemes a chance to handle the request
+      let  handlers        = ctx.GetService<IAuthenticationHandlerProvider> ()
+      let! schms           = schemes.GetRequestHandlerSchemesAsync ()
+      let  mutable handled = false
+      
+      for schm in schms do
+        match handled with
+        | true -> ()
+        | false ->
+            match! handlers.GetHandlerAsync (ctx, schm.Name) with
+            | null -> ()
+            | :? IAuthenticationRequestHandler as handler ->
+                match! handler.HandleRequestAsync () with true -> handled <- true | _ -> ()
+            | _ -> ()
+      
+      match handled with
+      | true -> return None
+      | false ->
+          match! schemes.GetDefaultAuthenticateSchemeAsync () with
+          | null -> ()
+          | auth ->
+              match! ctx.AuthenticateAsync auth.Name with
+              | null -> ()
+              | result ->
+                  match result.Principal with null -> () | _ -> ctx.User <- result.Principal
+                  match result.Succeeded with
+                  | true ->
+                      let authFeatures = AuthFeatures result
+                      ctx.Features.Set<IHttpAuthenticationFeature> authFeatures
+                      ctx.Features.Set<IAuthenticateResultFeature> authFeatures
+                  | false -> ()
+          
+          return! match user ctx with Some _ -> next ctx | None -> notAuthorized next ctx
+      }
   
   /// Render a component result
   let renderComponent nodes : HttpHandler =
