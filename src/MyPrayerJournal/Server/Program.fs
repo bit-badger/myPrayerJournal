@@ -56,27 +56,75 @@ module Configure =
 
   open Giraffe
   open LiteDB
-  open Microsoft.AspNetCore.Authentication.JwtBearer
+  open Microsoft.AspNetCore.Authentication.Cookies
+  open Microsoft.AspNetCore.Authentication.OpenIdConnect
+  open Microsoft.AspNetCore.Http
   open Microsoft.Extensions.DependencyInjection
+  open Microsoft.IdentityModel.Protocols.OpenIdConnect
+  open System
   open System.Text.Json
   open System.Text.Json.Serialization
+  open System.Threading.Tasks
 
   /// Configure dependency injection
   let services (bldr : WebApplicationBuilder) =
+    let sameSite (opts : CookieOptions) =
+      match opts.SameSite, opts.Secure with
+      | SameSiteMode.None, false -> opts.SameSite <- SameSiteMode.Unspecified
+      | _, _ -> ()
+
     bldr.Services
       .AddRouting()
       .AddGiraffe()
+      .Configure<CookiePolicyOptions>(
+        fun (opts : CookiePolicyOptions) ->
+          opts.MinimumSameSitePolicy <- SameSiteMode.Unspecified
+          opts.OnAppendCookie        <- fun ctx -> sameSite ctx.CookieOptions
+          opts.OnDeleteCookie        <- fun ctx -> sameSite ctx.CookieOptions)
       .AddAuthentication(
         /// Use HTTP "Bearer" authentication with JWTs
         fun opts ->
-          opts.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
-          opts.DefaultChallengeScheme    <- JwtBearerDefaults.AuthenticationScheme)
-      .AddJwtBearer(
-        /// Configure JWT options with Auth0 options from configuration
+          opts.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+          opts.DefaultSignInScheme       <- CookieAuthenticationDefaults.AuthenticationScheme
+          opts.DefaultChallengeScheme    <- CookieAuthenticationDefaults.AuthenticationScheme)
+      .AddCookie()
+      .AddOpenIdConnect("Auth0",
+        /// Configure OIDC with Auth0 options from configuration
         fun opts ->
-          let jwtCfg = bldr.Configuration.GetSection "Auth0"
-          opts.Authority <- sprintf "https://%s/" jwtCfg.["Domain"]
-          opts.Audience  <- jwtCfg.["Audience"])
+          let cfg = bldr.Configuration.GetSection "Auth0"
+          opts.Authority    <- sprintf "https://%s/" cfg.["Domain"]
+          opts.ClientId     <- cfg.["Id"]
+          opts.ClientSecret <- cfg.["Secret"]
+          opts.ResponseType <- OpenIdConnectResponseType.Code
+          
+          opts.Scope.Clear ()
+          opts.Scope.Add "openid"
+          opts.Scope.Add "profile"
+
+          opts.CallbackPath <- PathString "/user/log-on/success"
+          opts.ClaimsIssuer <- "Auth0"
+          opts.SaveTokens   <- true
+
+          opts.Events <- OpenIdConnectEvents ()
+          opts.Events.OnRedirectToIdentityProviderForSignOut <- fun ctx ->
+            let returnTo =
+              match ctx.Properties.RedirectUri with
+              | it when isNull it || it = "" -> ""
+              | redirUri ->
+                  let finalRedirUri =
+                    match redirUri.StartsWith "/" with
+                    | true ->
+                        // transform to absolute
+                        let request = ctx.Request
+                        sprintf "%s://%s%s%s" request.Scheme request.Host.Value request.PathBase.Value redirUri
+                    | false -> redirUri
+                  Uri.EscapeDataString finalRedirUri |> sprintf "&returnTo=%s"
+            sprintf "https://%s/v2/logout?client_id=%s%s" cfg.["Domain"] cfg.["Id"] returnTo
+            |> ctx.Response.Redirect
+            ctx.HandleResponse ()
+
+            Task.CompletedTask
+          )
     |> ignore
     let jsonOptions = JsonSerializerOptions ()
     jsonOptions.Converters.Add (JsonFSharpConverter ())
@@ -97,11 +145,14 @@ module Configure =
     | true -> app.UseDeveloperExceptionPage ()
     | false -> app.UseGiraffeErrorHandler Handlers.Error.error
     |> ignore
-    app.UseAuthentication()
-      .UseStaticFiles()
+    app.UseStaticFiles()
+      .UseCookiePolicy()
       .UseRouting()
+      .UseAuthentication()
+      // .UseAuthorization()
       .UseEndpoints (fun e ->
           e.MapGiraffeEndpoints Handlers.routes
+          // TODO: fallback to 404
           e.MapFallbackToFile "index.html" |> ignore)
     |> ignore
     app

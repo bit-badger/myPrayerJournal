@@ -6,17 +6,43 @@ module MyPrayerJournal.Handlers
 
 open Giraffe
 open Giraffe.Htmx
+open Microsoft.AspNetCore.Authentication
+open Microsoft.AspNetCore.Http
 open System
+open System.Security.Claims
+
+/// Helper function to be able to split out log on
+[<AutoOpen>]
+module private LogOnHelpers =
+
+  /// Log on, optionally specifying a redirected URL once authentication is complete
+  let logOn url : HttpHandler =
+    fun next ctx -> task {
+      match url with
+      | Some it ->
+          do! ctx.ChallengeAsync ("Auth0", AuthenticationProperties (RedirectUri = it))
+          return! next ctx
+      | None -> return! challenge "Auth0" next ctx
+      }
 
 /// Handlers for error conditions
 module Error =
 
   open Microsoft.Extensions.Logging
+  open System.Threading.Tasks
 
   /// Handle errors
   let error (ex : Exception) (log : ILogger) =
     log.LogError (EventId(), ex, "An unhandled exception has occurred while executing the request.")
     clearResponse >=> setStatusCode 500 >=> json ex.Message
+
+  /// Handle unauthorized actions, redirecting to log on for GETs, otherwise returning a 401 Not Authorized reponse
+  let notAuthorized : HttpHandler =
+    fun next ctx ->
+      (next, ctx)
+      ||> match ctx.Request.Method with
+          | "GET" -> logOn None
+          | _ -> setStatusCode 401 >=> fun _ _ -> Task.FromResult<HttpContext option> None
 
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
@@ -28,35 +54,13 @@ module Error =
 module private Helpers =
   
   open LiteDB
-  open Microsoft.AspNetCore.Authentication
-  open Microsoft.AspNetCore.Http
-  open Microsoft.AspNetCore.Http.Features.Authentication
   open Microsoft.Extensions.Logging
   open Microsoft.Net.Http.Headers
-  open System.Security.Claims
-  open System.Threading.Tasks
 
   let debug (ctx : HttpContext) message =
     let fac = ctx.GetService<ILoggerFactory>()
     let log = fac.CreateLogger "Debug"
     log.LogInformation message
-
-  /// This type is internal in ASP.NET Core. :(
-  type AuthFeatures (result : AuthenticateResult) =
-    let mutable _user   : ClaimsPrincipal    = match result with null -> null | r -> r.Principal
-    let mutable _result : AuthenticateResult = result
-    interface IAuthenticateResultFeature with
-      member __.AuthenticateResult
-        with get () = _result
-         and set v  =
-            _result <- v
-            _user   <- match _result with null -> null | rslt -> rslt.Principal
-    interface IHttpAuthenticationFeature with
-      member __.User 
-        with get () = _user
-         and set v  =
-            _user   <- v
-            _result <- null
 
   /// Get the LiteDB database
   let db (ctx : HttpContext) = ctx.GetService<LiteDatabase>()
@@ -67,11 +71,12 @@ module private Helpers =
     |> Option.ofObj
     |> Option.map (fun user -> user.Claims |> Seq.tryFind (fun u -> u.Type = ClaimTypes.NameIdentifier))
     |> Option.flatten
+    |> Option.map (fun claim -> claim.Value)
 
   /// Get the current user's ID
-  //  NOTE: this may raise if you don't run the request through the authorize handler first
+  //  NOTE: this may raise if you don't run the request through the requiresAuthentication handler first
   let userId ctx =
-    ((user >> Option.get) ctx).Value |> UserId
+    (user >> Option.get) ctx |> UserId
 
   /// Return a 201 CREATED response
   let created =
@@ -86,54 +91,6 @@ module private Helpers =
   /// The "now" time in JavaScript as Ticks
   let jsNow () =
     DateTime.UtcNow.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> (int64 >> ( * ) 1_000L >> Ticks)
-  
-  /// Handler to return a 401 Not Authorized reponse
-  let notAuthorized : HttpHandler =
-    setStatusCode 401 >=> fun _ _ -> Task.FromResult<HttpContext option> None
-
-  /// Handler to require authorization
-  //  NOTE: This is cribbed from ASP.NET Core's `AuthenticationMiddleware#Invoke`
-  //  https://github.com/dotnet/aspnetcore/blob/main/src/Security/Authentication/Core/src/AuthenticationMiddleware.cs
-  let authorize : HttpHandler =
-    fun next ctx -> task {
-      let schemes = ctx.GetService<IAuthenticationSchemeProvider> ()
-      ctx.Features.Set<IAuthenticationFeature>
-        (AuthenticationFeature (OriginalPath = ctx.Request.Path, OriginalPathBase = ctx.Request.PathBase))
-
-      // Give any IAuthenticationRequestHandler schemes a chance to handle the request
-      let  handlers        = ctx.GetService<IAuthenticationHandlerProvider> ()
-      let! schms           = schemes.GetRequestHandlerSchemesAsync ()
-      let  mutable handled = false
-      
-      for schm in schms do
-        match handled with
-        | true -> ()
-        | false ->
-            match! handlers.GetHandlerAsync (ctx, schm.Name) with
-            | null -> ()
-            | :? IAuthenticationRequestHandler as handler ->
-                match! handler.HandleRequestAsync () with true -> handled <- true | _ -> ()
-            | _ -> ()
-      
-      match handled with
-      | true -> return None
-      | false ->
-          match! schemes.GetDefaultAuthenticateSchemeAsync () with
-          | null -> ()
-          | auth ->
-              match! ctx.AuthenticateAsync auth.Name with
-              | null -> ()
-              | result ->
-                  match result.Principal with null -> () | _ -> ctx.User <- result.Principal
-                  match result.Succeeded with
-                  | true ->
-                      let authFeatures = AuthFeatures result
-                      ctx.Features.Set<IHttpAuthenticationFeature> authFeatures
-                      ctx.Features.Set<IAuthenticateResultFeature> authFeatures
-                  | false -> ()
-          
-          return! match user ctx with Some _ -> next ctx | None -> notAuthorized next ctx
-      }
   
   /// Render a component result
   let renderComponent nodes : HttpHandler =
@@ -212,7 +169,7 @@ module Components =
   
   // GET /components/journal-items
   let journalItems : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let  shouldShow now r = now > Ticks.toLong r.snoozedUntil && now > Ticks.toLong r.showAfter
       let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
@@ -222,7 +179,7 @@ module Components =
   
   // GET /components/request/[req-id]/edit  
   let requestEdit requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       match requestId with
       | "new" ->
@@ -230,22 +187,17 @@ module Components =
                     (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) false) next ctx
       | _ ->
           match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-          | Some req ->
-              return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req false) next ctx
+          | Some req -> return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req false) next ctx
           | None -> return! Error.notFound next ctx
       }
 
   // GET /components/request-item/[req-id]
   let requestItem reqId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       match! Data.tryJournalById (RequestId.ofString reqId) (userId ctx) (db ctx) with
-      | Some req -> 
-          debug ctx "Found the item"
-          return! renderComponent [ Views.Request.reqListItem req ] next ctx
-      | None ->
-          debug ctx "Did not find the item"
-          return! Error.notFound next ctx
+      | Some req -> return! renderComponent [ Views.Request.reqListItem req ] next ctx
+      | None -> return! Error.notFound next ctx
       }
 
 
@@ -256,20 +208,20 @@ module Home =
   let home : HttpHandler =
     partialIfNotRefresh "Welcome!" Views.Home.home
   
-  // GET /user/log-on
-  let logOn : HttpHandler =
-    partialIfNotRefresh "Logging on..." Views.Home.logOn
-
 
 /// /journal URL
 module Journal =
   
   // GET /journal
   let journal : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
-      let usr = ctx.Request.Headers.["X-Given-Name"].[0]
-      return! partialIfNotRefresh "Your Prayer Journal" (Views.Journal.journal usr) next ctx
+      let usr =
+        ctx.User.Claims
+        |> Seq.tryFind (fun c -> c.Type = ClaimTypes.GivenName)
+        |> Option.map (fun c -> c.Value)
+        |> Option.defaultValue "Your"
+      return! partialIfNotRefresh (sprintf "%s Prayer Journal" usr) (Views.Journal.journal usr) next ctx
     }
 
 
@@ -294,7 +246,7 @@ module Request =
 
   // PATCH /request/[req-id]/prayed
   let prayed requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
@@ -315,7 +267,7 @@ module Request =
   
   /// POST /api/request/[req-id]/note
   let addNote requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
@@ -329,17 +281,17 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
           
-  /// GET /requests/active
+  // GET /requests/active
   let active : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let! reqs = Data.journalByUserId (userId ctx) (db ctx)
       return! partialIfNotRefresh "Active Requests" (Views.Request.active reqs) next ctx
       }
   
-  /// GET /requests/snoozed
+  // GET /requests/snoozed
   let snoozed : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let! reqs    = Data.journalByUserId (userId ctx) (db ctx)
       let  now     = (jsNow >> Ticks.toLong) ()
@@ -347,9 +299,9 @@ module Request =
       return! partialIfNotRefresh "Active Requests" (Views.Request.snoozed snoozed) next ctx
       }
 
-  /// GET /requests/answered
+  // GET /requests/answered
   let answered : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
       return! partialIfNotRefresh "Answered Requests" (Views.Request.answered reqs) next ctx
@@ -357,7 +309,7 @@ module Request =
   
   /// GET /api/request/[req-id]
   let get requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
       | Some req -> return! json req next ctx
@@ -366,7 +318,7 @@ module Request =
   
   // GET /request/[req-id]/full
   let getFull requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       match! Data.tryFullRequestById (RequestId.ofString requestId) (userId ctx) (db ctx) with
       | Some req -> return! partialIfNotRefresh "Prayer Request" (Views.Request.full req) next ctx
@@ -375,7 +327,7 @@ module Request =
   
   /// GET /api/request/[req-id]/notes
   let getNotes requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
       return! json notes next ctx
@@ -383,7 +335,7 @@ module Request =
   
   // PATCH /request/[req-id]/show
   let show requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
@@ -398,7 +350,7 @@ module Request =
   
   /// PATCH /api/request/[req-id]/snooze
   let snooze requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
@@ -414,7 +366,7 @@ module Request =
   
   // PATCH /request/[req-id]/cancel-snooze
   let cancelSnooze requestId : HttpHandler =
-    authorize
+    requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let db    = db     ctx
       let usrId = userId ctx
@@ -434,7 +386,8 @@ module Request =
 
   // POST /request
   let add : HttpHandler =
-    fun next ctx -> task {
+    requiresAuthentication Error.notAuthorized
+    >=> fun next ctx -> task {
       let! form             = ctx.BindModelAsync<Models.Request> ()
       let  db               = db ctx
       let  usrId            = userId ctx
@@ -462,7 +415,8 @@ module Request =
   
   // PATCH /request
   let update : HttpHandler =
-    fun next ctx -> Ply.task {
+    requiresAuthentication Error.notAuthorized
+    >=> fun next ctx -> Ply.task {
       let! form  = ctx.BindModelAsync<Models.Request> ()
       let  db    = db ctx
       let  usrId = userId ctx
@@ -487,6 +441,25 @@ module Request =
                    >=> Components.requestItem (RequestId.toString req.requestId)) next ctx
       | None -> return! Error.notFound next ctx
       }
+
+
+/// Handlers for /user URLs
+module User =
+
+  open Microsoft.AspNetCore.Authentication.Cookies
+
+  // GET /user/log-on
+  let logOn : HttpHandler =
+    logOn (Some "/journal")
+  
+  // GET /user/log-off
+  let logOff : HttpHandler =
+    requiresAuthentication Error.notAuthorized
+    >=> fun next ctx -> task {
+      do! ctx.SignOutAsync ("Auth0", AuthenticationProperties (RedirectUri = "/"))
+      do! ctx.SignOutAsync CookieAuthenticationDefaults.AuthenticationScheme
+      return! next ctx
+    }
 
 
 open Giraffe.EndpointRouting
@@ -526,7 +499,12 @@ let routes =
         route "" Request.add
         ]
       ]
-    GET_HEAD [ route "/user/log-on" Home.logOn ]
+    subRoute "/user/" [
+      GET_HEAD [
+        route "log-off" User.logOff
+        route "log-on"  User.logOn
+        ]
+      ]
     subRoute "/api/" [
       GET [
         subRoute "request" [

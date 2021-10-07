@@ -16,7 +16,7 @@
     <PackageReference Include="FunctionalCuid" Version="1.0.0" />
     <PackageReference Include="Giraffe" Version="5.0.0" />
     <PackageReference Include="LiteDB" Version="5.0.11" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="5.0.10" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../../Giraffe.Htmx/src/Htmx/Giraffe.Htmx.fsproj" />

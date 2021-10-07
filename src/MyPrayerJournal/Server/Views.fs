@@ -9,7 +9,10 @@ open System
 module Helpers =
   
   /// Create a link that targets the `main` element and pushes a URL to history
-  let pageLink href attrs = a (attrs |> List.append [ _href href; _hxBoost; _hxTarget "main"; _hxPushUrl ])
+  let pageLink href attrs =
+    attrs
+    |> List.append [ _href href; _hxBoost; _hxTarget "main"; _hxPushUrl ]
+    |> a
 
   /// Create a Material icon
   let icon name = span [ _class "material-icons" ] [ str name ]
@@ -235,18 +238,18 @@ module Navigation =
   /// Generate the navigation items based on the current state
   let currentNav isAuthenticated hasSnoozed (url : Uri option) =
     seq {
+      let currUrl = match url with Some u -> (u.PathAndQuery.Split '?').[0] | None -> ""
+      let navLink (matchUrl : string) =
+        match currUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
+        |> pageLink matchUrl
       match isAuthenticated with
       | true ->
-          let currUrl = match url with Some u -> (u.PathAndQuery.Split '?').[0] | None -> ""
-          let navLink (matchUrl : string) =
-            match currUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
-            |> pageLink matchUrl
           li [ _class "nav-item" ] [ navLink "/journal" [ str "Journal" ] ]
           li [ _class "nav-item" ] [ navLink "/requests/active" [ str "Active" ] ]
           if hasSnoozed then li [ _class "nav-item" ] [ navLink "/requests/snoozed" [ str "Snoozed" ] ]
           li [ _class "nav-item" ] [ navLink "/requests/answered" [ str "Answered" ] ]
-          li [ _class "nav-item" ] [ a [ _href "/user/log-off"; _onclick "mpj.logOff(event)" ] [ str "Log Off" ] ]
-      | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on"; _onclick "mpj.logOn(event)"] [ str "Log On" ] ]
+          li [ _class "nav-item" ] [ a [ _href "/user/log-off" ] [ str "Log Off" ] ]
+      | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on" ] [ str "Log On" ] ]
       li [ _class "nav-item" ] [ a [ _href "https://docs.prayerjournal.me"; _target "_blank" ] [ str "Docs" ] ]
       }
     |> List.ofSeq
@@ -290,7 +293,13 @@ module Journal =
   
   /// The journal loading page
   let journal user = article [ _class "container-fluid mt-3" ] [
-    h2 [ _class "pb-3" ] [ str user; rawText "&rsquo;s Prayer Journal" ]
+    h2 [ _class "pb-3" ] [
+      str user
+      match user with
+      | "Your" -> ()
+      | _ -> rawText "&rsquo;s"
+      str " Prayer Journal"
+      ]
     p [
       _hxGet     "/components/journal-items"
       _hxSwap    HxSwap.OuterHtml
@@ -571,7 +580,8 @@ module Layout =
 
   /// The HTML `head` element
   let htmlHead pageTitle =
-    head [] [
+    head [ _lang "en" ] [
+      meta [ _name "viewport"; _content "width=device-width, initial-scale=1" ]
       title [] [ str pageTitle; rawText " &#xab; myPrayerJournal" ]
       link [
         _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
@@ -581,11 +591,6 @@ module Layout =
         ]
       link [ _href "https://fonts.googleapis.com/icon?family=Material+Icons"; _rel "stylesheet" ]
       link [ _href "/style/style.css"; _rel "stylesheet" ]
-      script [
-        _src         "https://unpkg.com/htmx.org@1.5.0"
-        _integrity   "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"
-        _crossorigin "anonymous"
-        ] []
       ]
 
   /// Element used to display toasts
@@ -613,12 +618,16 @@ module Layout =
           ]
         ]
       script [
+        _src         "https://unpkg.com/htmx.org@1.5.0"
+        _integrity   "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"
+        _crossorigin "anonymous"
+        ] []
+      script [
         _async
         _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
         _integrity   "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
         _crossorigin "anonymous"
         ] []
-      script [ _src "https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js" ] []
       script [ _src "/script/mpj.js" ] []
       ]
 
