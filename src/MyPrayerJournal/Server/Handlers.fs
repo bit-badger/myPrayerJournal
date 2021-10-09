@@ -98,6 +98,15 @@ module private Helpers =
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
 
+  /// Create a page rendering context
+  let pageContext (ctx : HttpContext) pageTitle content : Views.PageRenderContext =
+    { isAuthenticated = (user >> Option.isSome) ctx
+      hasSnoozed      = false
+      currentUrl      = ctx.Request.Path.Value
+      pageTitle       = pageTitle
+      content         = content
+    }
+
   /// Composable handler to write a view to the output
   let writeView view : HttpHandler =
     fun next ctx -> task {
@@ -107,12 +116,12 @@ module private Helpers =
   /// Send a partial result if this is not a full page load
   let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
     fun next ctx ->
-      (next, ctx)
-      ||> match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
-          | true ->
-              ctx.Response.Headers.["X-Page-Title"] <- Microsoft.Extensions.Primitives.StringValues pageTitle
-              withHxTriggerAfterSettle "menu-refresh" >=> writeView content
-          | false -> writeView (Views.Layout.view pageTitle content)
+      let view =
+        pageContext ctx pageTitle content
+        |> match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
+           | true -> Views.Layout.partial
+           | false -> Views.Layout.view
+      writeView view next ctx
 
   /// Add a success message header to the response
   let withSuccessMessage : string -> HttpHandler =
@@ -159,14 +168,6 @@ open MyPrayerJournal.Data.Extensions
 /// Handlers for less-than-full-page HTML requests
 module Components =
 
-  // GET /components/nav-items
-  let navItems : HttpHandler =
-    fun next ctx -> task {
-      let url          = ctx.Request.Headers.HxCurrentUrl
-      let isAuthorized = ctx |> (user >> Option.isSome)
-      return! renderComponent (Views.Navigation.currentNav isAuthorized false url) next ctx
-      }
-  
   // GET /components/journal-items
   let journalItems : HttpHandler =
     requiresAuthentication Error.notAuthorized
@@ -470,7 +471,6 @@ let routes =
     subRoute "/components/" [
       GET_HEAD [
         route  "journal-items"   Components.journalItems
-        route  "nav-items"       Components.navItems
         routef "request/%s/edit" Components.requestEdit
         routef "request/%s/item" Components.requestItem
         ]

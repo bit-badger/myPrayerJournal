@@ -56,12 +56,6 @@ const mpj = {
 
 htmx.on("htmx:afterOnLoad", function (evt) {
   const hdrs = evt.detail.xhr.getAllResponseHeaders()
-  // Set the page title if a header was in the response
-  if (hdrs.indexOf("x-page-title") >= 0) {
-    const title = document.querySelector("title")
-    title.innerText = evt.detail.xhr.getResponseHeader("x-page-title")
-    title.innerHTML += " &#xab; myPrayerJournal"
-  }
   // Show a message if there was one in the response
   if (hdrs.indexOf("x-toast") >= 0) {
     mpj.showToast(evt.detail.xhr.getResponseHeader("x-toast"))

@@ -5,13 +5,31 @@ open Giraffe.ViewEngine.Accessibility
 open Giraffe.ViewEngine.Htmx
 open System
 
+// fsharplint:disable RecordFieldNames
+
+/// The data needed to render a page-level view
+type PageRenderContext =
+  { /// Whether the user is authenticated
+    isAuthenticated : bool
+    /// Whether the user has snoozed requests
+    hasSnoozed      : bool
+    /// The current URL
+    currentUrl      : string
+    /// The title for the page to be rendered
+    pageTitle       : string
+    /// The content of the page
+    content         : XmlNode
+    }
+
+
+/// Internal partial views
 [<AutoOpen>]
-module Helpers =
+module private Helpers =
   
-  /// Create a link that targets the `main` element and pushes a URL to history
+  /// Create a link that targets the `#top` element and pushes a URL to history
   let pageLink href attrs =
     attrs
-    |> List.append [ _href href; _hxBoost; _hxTarget "main"; _hxPushUrl ]
+    |> List.append [ _href href; _hxBoost; _hxTarget "#top"; _hxPushUrl ]
     |> a
 
   /// Create a Material icon
@@ -218,41 +236,32 @@ module Legal =
 module Navigation =
   
   /// The default navigation bar, which will load the items on page load, and whenever a refresh event occurs
-  let navBar =
-    nav [ _class "navbar navbar-dark" ] [
+  let navBar ctx =
+    nav [ _class "navbar navbar-dark"; _roleNavigation ] [
       div [ _class "container-fluid" ] [
         pageLink "/" [ _class "navbar-brand" ] [
           span [ _class "m" ] [ str "my" ]
           span [ _class "p" ] [ str "Prayer" ]
           span [ _class "j" ] [ str "Journal" ]
         ]
-        ul [
-          _class     "navbar-nav me-auto d-flex flex-row"
-          _hxGet     "/components/nav-items"
-          _hxTarget  ".navbar-nav"
-          _hxTrigger (sprintf "%s, menu-refresh from:body" HxTrigger.Load)
-          ] [ ]
+        seq {
+          let navLink (matchUrl : string) =
+            match ctx.currentUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
+            |> pageLink matchUrl
+          match ctx.isAuthenticated with
+          | true ->
+              li [ _class "nav-item" ] [ navLink "/journal" [ str "Journal" ] ]
+              li [ _class "nav-item" ] [ navLink "/requests/active" [ str "Active" ] ]
+              if ctx.hasSnoozed then li [ _class "nav-item" ] [ navLink "/requests/snoozed" [ str "Snoozed" ] ]
+              li [ _class "nav-item" ] [ navLink "/requests/answered" [ str "Answered" ] ]
+              li [ _class "nav-item" ] [ a [ _href "/user/log-off" ] [ str "Log Off" ] ]
+          | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on" ] [ str "Log On" ] ]
+          li [ _class "nav-item" ] [ a [ _href "https://docs.prayerjournal.me"; _target "_blank" ] [ str "Docs" ] ]
+          }
+        |> List.ofSeq
+        |> ul [ _class "navbar-nav me-auto d-flex flex-row" ]
         ]
       ]
-
-  /// Generate the navigation items based on the current state
-  let currentNav isAuthenticated hasSnoozed (url : Uri option) =
-    seq {
-      let currUrl = match url with Some u -> (u.PathAndQuery.Split '?').[0] | None -> ""
-      let navLink (matchUrl : string) =
-        match currUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
-        |> pageLink matchUrl
-      match isAuthenticated with
-      | true ->
-          li [ _class "nav-item" ] [ navLink "/journal" [ str "Journal" ] ]
-          li [ _class "nav-item" ] [ navLink "/requests/active" [ str "Active" ] ]
-          if hasSnoozed then li [ _class "nav-item" ] [ navLink "/requests/snoozed" [ str "Snoozed" ] ]
-          li [ _class "nav-item" ] [ navLink "/requests/answered" [ str "Answered" ] ]
-          li [ _class "nav-item" ] [ a [ _href "/user/log-off" ] [ str "Log Off" ] ]
-      | false -> li [ _class "nav-item"] [ a [ _href "/user/log-on" ] [ str "Log On" ] ]
-      li [ _class "nav-item" ] [ a [ _href "https://docs.prayerjournal.me"; _target "_blank" ] [ str "Docs" ] ]
-      }
-    |> List.ofSeq
 
 
 /// Views for journal pages and components
@@ -578,11 +587,14 @@ module Request =
 /// Layout views
 module Layout =
 
+  /// The title tag with the application name appended
+  let titleTag ctx = title [] [ str ctx.pageTitle; rawText " &#xab; myPrayerJournal" ]
+
   /// The HTML `head` element
-  let htmlHead pageTitle =
+  let htmlHead ctx =
     head [ _lang "en" ] [
       meta [ _name "viewport"; _content "width=device-width, initial-scale=1" ]
-      title [] [ str pageTitle; rawText " &#xab; myPrayerJournal" ]
+      titleTag ctx
       link [
         _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
         _rel         "stylesheet"
@@ -632,14 +644,25 @@ module Layout =
       ]
 
   /// Create the full view of the page
-  let view pageTitle content =
+  let view ctx =
     html [ _lang "en" ] [
-      htmlHead pageTitle
-      body [ _hxHeaders "" ] [
-        Navigation.navBar
-        main [] [ content ]
+      htmlHead ctx
+      body [] [
+        section [ _id "top" ] [
+          Navigation.navBar ctx
+          main [ _roleMain ] [ ctx.content ]
+          ]
         toaster
         htmlFoot
+        ]
       ]
-    ]
-
+  
+  /// Create a partial view
+  let partial ctx =
+    html [ _lang "en" ] [
+      head [] [ titleTag ctx ]
+      body [] [
+        Navigation.navBar ctx
+        main [ _roleMain ] [ ctx.content ]
+        ]
+      ]
