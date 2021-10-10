@@ -309,6 +309,9 @@ module Journal =
       | _ -> rawText "&rsquo;s"
       str " Prayer Journal"
       ]
+    p [ _class "pb-3 text-center" ] [
+      pageLink "/request/new/edit" [ _class "btn btn-primary "] [ icon "add_box"; str " Add a Prayer Request" ]
+      ]
     p [
       _hxGet     "/components/journal-items"
       _hxSwap    HxSwap.OuterHtml
@@ -472,16 +475,26 @@ module Request =
       ]
 
   /// View for the edit request component
-  let edit (req : JournalRequest) isNew =
-    let cancelUrl = req.requestId |> (RequestId.toString >> sprintf "/components/request/%s/item")
-    section [ _class "container list-group-item"; _hxTarget "this"; _hxSwap HxSwap.OuterHtml ] [
+  let edit (req : JournalRequest) returnTo isNew =
+    let cancelLink =
+      match returnTo with
+      | "active"          -> "/requests/active"
+      | "snoozed"         -> "/requests/snoozed"
+      | _ (* "journal" *) -> "/journal"
+    article [ _class "container" ] [
       h5 [ _class "pb-3" ] [ (match isNew with true -> "Add" | false -> "Edit") |> strf "%s Prayer Request" ]
-      form [ "/request" |> match isNew with true -> _hxPost | false -> _hxPatch ] [
+      form [
+        _hxBoost
+        _hxTarget "#top"
+        _hxPushUrl
+        "/request" |> match isNew with true -> _hxPost | false -> _hxPatch
+        ] [
         input [
           _type  "hidden"
           _name  "requestId"
           _value (match isNew with true -> "new" | false -> RequestId.toString req.requestId)
           ]
+        input [ _type "hidden"; _name "returnTo"; _value returnTo ]
         div [ _class "form-floating pb-3" ] [
           textarea [
             _id          "requestText"
@@ -578,7 +591,7 @@ module Request =
           ]
         div [ _class "text-end pt-3" ] [
           button [ _class "btn btn-primary me-2"; _type "submit" ] [ icon "save"; str " Save" ]
-          a [ _class "btn btn-secondary ms-2"; _href cancelUrl; _hxGet cancelUrl ] [icon "arrow_back"; str " Cancel"]
+          pageLink cancelLink [ _class "btn btn-secondary ms-2" ] [ icon "arrow_back"; str " Cancel" ]
           ]
         ]
       ]

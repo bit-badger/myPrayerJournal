@@ -34,7 +34,10 @@ module Error =
   /// Handle errors
   let error (ex : Exception) (log : ILogger) =
     log.LogError (EventId(), ex, "An unhandled exception has occurred while executing the request.")
-    clearResponse >=> setStatusCode 500 >=> json ex.Message
+    clearResponse
+    >=> setStatusCode 500
+    >=> setHttpHeader (sprintf "error|||%s: %s" (ex.GetType().Name) ex.Message) "X-Toast"
+    >=> text ex.Message
 
   /// Handle unauthorized actions, redirecting to log on for GETs, otherwise returning a 401 Not Authorized reponse
   let notAuthorized : HttpHandler =
@@ -47,6 +50,30 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     setStatusCode 404 >=> text "Not found"
+
+
+/// Hold messages across redirects
+module Messages =
+
+  /// The messages being held
+  let mutable private messages : Map<string, (string * string)> = Map.empty
+
+  /// Locked update to prevent updates by multiple threads
+  let private upd8 = obj ()
+
+  /// Push a new message into the list
+  let push userId message url = lock upd8 (fun () ->
+    messages <- messages.Add (userId, (message, url)))
+
+  /// Add a success message header to the response
+  let pushSuccess userId message url =
+    push userId (sprintf "success|||%s" message) url
+  
+  /// Pop the messages for the given user
+  let pop userId = lock upd8 (fun () ->
+    let msg = messages.TryFind userId
+    msg |> Option.iter (fun _ -> messages <- messages.Remove userId)
+    msg)
 
 
 /// Handler helpers
@@ -116,12 +143,18 @@ module private Helpers =
   /// Send a partial result if this is not a full page load
   let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
     fun next ctx ->
+      let isPartial = ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh
       let view =
         pageContext ctx pageTitle content
-        |> match ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh with
-           | true -> Views.Layout.partial
-           | false -> Views.Layout.view
-      writeView view next ctx
+        |> match isPartial with true -> Views.Layout.partial | false -> Views.Layout.view
+      (next, ctx)
+      ||> match user ctx with
+          | Some u ->
+              match Messages.pop u with
+              | Some (msg, url) -> setHttpHeader "X-Toast" msg >=> withHxPush url >=> writeView view
+              | None -> writeView view
+          | None -> writeView view
+
 
   /// Add a success message header to the response
   let withSuccessMessage : string -> HttpHandler =
@@ -143,6 +176,8 @@ module Models =
   type Request = {
     /// The ID of the request
     requestId     : string
+    /// Where to redirect after saving
+    returnTo      : string
     /// The text of the request
     requestText   : string
     /// The additional status to record
@@ -185,10 +220,10 @@ module Components =
       match requestId with
       | "new" ->
           return! partialIfNotRefresh "Add Prayer Request"
-                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) false) next ctx
+                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) "" false) next ctx
       | _ ->
           match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-          | Some req -> return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req false) next ctx
+          | Some req -> return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req "" false) next ctx
           | None -> return! Error.notFound next ctx
       }
 
@@ -244,6 +279,26 @@ module Ply = FSharp.Control.Tasks.Affine
 
 /// /api/request and /request(s) URLs
 module Request =
+
+  // GET /request/[req-id]/edit  
+  let edit requestId : HttpHandler =
+    requiresAuthentication Error.notAuthorized
+    >=> fun next ctx -> task {
+      let returnTo =
+        match ctx.Request.Headers.Referer.[0] with
+        | it when it.EndsWith "/active" -> "active"
+        | it when it.EndsWith "/snoozed" -> "snoozed"
+        | _ -> "journal"
+      match requestId with
+      | "new" ->
+          return! partialIfNotRefresh "Add Prayer Request"
+                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) returnTo true) next ctx
+      | _ ->
+          match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
+          | Some req ->
+              return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req returnTo false) next ctx
+          | None -> return! Error.notFound next ctx
+      }
 
   // PATCH /request/[req-id]/prayed
   let prayed requestId : HttpHandler =
@@ -410,8 +465,12 @@ module Request =
           }
       Data.addRequest req db
       do! db.saveChanges ()
+      Messages.pushSuccess (ctx |> (user >> Option.get)) "Added prayer request" "/journal"
       // TODO: this is not right
-      return! (withHxRedirect "/journal" >=> createdAt (RequestId.toString req.id |> sprintf "/request/%s")) next ctx
+      return! (
+        redirectTo false "/journal"
+        // >=> createdAt (RequestId.toString req.id |> sprintf "/request/%s")
+        ) next ctx
       }
   
   // PATCH /request
@@ -484,6 +543,7 @@ let routes =
       ]
     subRoute "/request" [
       GET_HEAD [
+        routef "/%s/edit"   Request.edit
         routef "/%s/full"   Request.getFull
         route  "s/active"   Request.active
         route  "s/answered" Request.answered

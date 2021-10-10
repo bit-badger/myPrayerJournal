@@ -171,16 +171,17 @@ module JournalRequest =
 
   /// Convert a request to the form used for the journal (precomputed values, no notes or history)
   let ofRequestLite (req : Request) =
-    let hist = req.history |> List.sortByDescending (fun it -> Ticks.toLong it.asOf) |> List.head
+    let hist = req.history |> List.sortByDescending (fun it -> Ticks.toLong it.asOf) |> List.tryHead
     { requestId    = req.id
       userId       = req.userId
-      text         = (req.history
-                       |> List.filter (fun it -> Option.isSome it.text)
-                       |> List.sortByDescending (fun it -> Ticks.toLong it.asOf)
-                       |> List.head).text
-                     |> Option.get
-      asOf         = hist.asOf
-      lastStatus   = hist.status
+      text         = req.history
+                      |> List.filter (fun it -> Option.isSome it.text)
+                      |> List.sortByDescending (fun it -> Ticks.toLong it.asOf)
+                      |> List.tryHead
+                      |> Option.map (fun h -> Option.get h.text)
+                      |> Option.defaultValue ""
+      asOf         = match hist with Some h -> h.asOf | None -> Ticks 0L
+      lastStatus   = match hist with Some h -> h.status | None -> Created
       snoozedUntil = req.snoozedUntil
       showAfter    = req.showAfter
       recurType    = req.recurType

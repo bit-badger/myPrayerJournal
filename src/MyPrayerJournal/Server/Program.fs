@@ -141,14 +141,16 @@ module Configure =
 
   /// Configure the web application
   let application (app : WebApplication) =
-    match app.Environment.IsDevelopment () with
-    | true -> app.UseDeveloperExceptionPage ()
-    | false -> app.UseGiraffeErrorHandler Handlers.Error.error
-    |> ignore
-    app.UseStaticFiles()
+    // match app.Environment.IsDevelopment () with
+    // | true -> app.UseDeveloperExceptionPage ()
+    // | false -> app.UseGiraffeErrorHandler Handlers.Error.error
+    // |> ignore
+    app
+      .UseStaticFiles()
       .UseCookiePolicy()
       .UseRouting()
       .UseAuthentication()
+      .UseGiraffeErrorHandler(Handlers.Error.error)
       // .UseAuthorization()
       .UseEndpoints (fun e ->
           e.MapGiraffeEndpoints Handlers.routes
