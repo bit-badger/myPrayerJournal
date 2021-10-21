@@ -49,9 +49,22 @@ const mpj = {
      */
     toggleRecurrence ({ target }) {
       const isDisabled = target.value === "Immediate"
-      ;["recurCount","recurInterval"].forEach(it => document.getElementById(it).disabled = isDisabled)
+      ;["recurCount", "recurInterval"].forEach(it => document.getElementById(it).disabled = isDisabled)
     }
   },
+  /** Script for the journal page */
+  journal: {
+    /**
+     * Set up the journal page modals
+     */
+    setUp () {
+      document.getElementById("notesModal").addEventListener("show.bs.modal", function (event) {
+        const reqId = event.relatedTarget.getAttribute("data-request-id")
+        document.getElementById("notesForm").setAttribute("action", `/request/${reqId}/note`)
+        document.getElementById("notesLoad").setAttribute("hx-get", `/components/request/${reqId}/notes`)
+      })
+    }
+  }
 }
 
 htmx.on("htmx:afterOnLoad", function (evt) {

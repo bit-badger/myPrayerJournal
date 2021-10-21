@@ -36,7 +36,7 @@ module Error =
     log.LogError (EventId(), ex, "An unhandled exception has occurred while executing the request.")
     clearResponse
     >=> setStatusCode 500
-    >=> setHttpHeader (sprintf "error|||%s: %s" (ex.GetType().Name) ex.Message) "X-Toast"
+    >=> setHttpHeader "X-Toast" (sprintf "error|||%s: %s" (ex.GetType().Name) ex.Message)
     >=> text ex.Message
 
   /// Handle unauthorized actions, redirecting to log on for GETs, otherwise returning a 401 Not Authorized reponse
@@ -50,30 +50,6 @@ module Error =
   /// Handle 404s from the API, sending known URL paths to the Vue app so that they can be handled there
   let notFound : HttpHandler =
     setStatusCode 404 >=> text "Not found"
-
-
-/// Hold messages across redirects
-module Messages =
-
-  /// The messages being held
-  let mutable private messages : Map<string, (string * string)> = Map.empty
-
-  /// Locked update to prevent updates by multiple threads
-  let private upd8 = obj ()
-
-  /// Push a new message into the list
-  let push userId message url = lock upd8 (fun () ->
-    messages <- messages.Add (userId, (message, url)))
-
-  /// Add a success message header to the response
-  let pushSuccess userId message url =
-    push userId (sprintf "success|||%s" message) url
-  
-  /// Pop the messages for the given user
-  let pop userId = lock upd8 (fun () ->
-    let msg = messages.TryFind userId
-    msg |> Option.iter (fun _ -> messages <- messages.Remove userId)
-    msg)
 
 
 /// Handler helpers
@@ -114,6 +90,10 @@ module private Helpers =
     fun next ctx ->
       (sprintf "%s://%s%s" ctx.Request.Scheme ctx.Request.Host.Value url |> setHttpHeader HeaderNames.Location
        >=> created) next ctx
+  
+  /// Return a 303 SEE OTHER response (forces a GET on the redirected URL)
+  let seeOther (url : string) =
+    setStatusCode 303 >=> setHttpHeader "Location" url
 
   /// The "now" time in JavaScript as Ticks
   let jsNow () =
@@ -140,6 +120,29 @@ module private Helpers =
       return! ctx.WriteHtmlViewAsync view
       }
 
+  /// Hold messages across redirects
+  module Messages =
+
+    /// The messages being held
+    let mutable private messages : Map<string, (string * string)> = Map.empty
+
+    /// Locked update to prevent updates by multiple threads
+    let private upd8 = obj ()
+
+    /// Push a new message into the list
+    let push ctx message url = lock upd8 (fun () ->
+      messages <- messages.Add (ctx |> (user >> Option.get), (message, url)))
+
+    /// Add a success message header to the response
+    let pushSuccess ctx message url =
+      push ctx (sprintf "success|||%s" message) url
+    
+    /// Pop the messages for the given user
+    let pop userId = lock upd8 (fun () ->
+      let msg = messages.TryFind userId
+      msg |> Option.iter (fun _ -> messages <- messages.Remove userId)
+      msg)
+
   /// Send a partial result if this is not a full page load
   let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
     fun next ctx ->
@@ -165,14 +168,14 @@ module private Helpers =
 module Models =
   
   /// An additional note
-  [<CLIMutable>]
+  [<CLIMutable; NoComparison; NoEquality>]
   type NoteEntry = {
     /// The notes being added
     notes : string
     }
   
   /// A prayer request
-  [<CLIMutable>]
+  [<CLIMutable; NoComparison; NoEquality>]
   type Request = {
     /// The ID of the request
     requestId     : string
@@ -191,7 +194,7 @@ module Models =
     }
   
   /// The time until which a request should not appear in the journal
-  [<CLIMutable>]
+  [<CLIMutable; NoComparison; NoEquality>]
   type SnoozeUntil = {
     /// The time at which the request should reappear
     until : int64
@@ -213,20 +216,6 @@ module Components =
       return! renderComponent [ Views.Journal.journalItems shown ] next ctx
       }
   
-  // GET /components/request/[req-id]/edit  
-  let requestEdit requestId : HttpHandler =
-    requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
-      match requestId with
-      | "new" ->
-          return! partialIfNotRefresh "Add Prayer Request"
-                    (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) "" false) next ctx
-      | _ ->
-          match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-          | Some req -> return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req "" false) next ctx
-          | None -> return! Error.notFound next ctx
-      }
-
   // GET /components/request-item/[req-id]
   let requestItem reqId : HttpHandler =
     requiresAuthentication Error.notAuthorized
@@ -234,6 +223,14 @@ module Components =
       match! Data.tryJournalById (RequestId.ofString reqId) (userId ctx) (db ctx) with
       | Some req -> return! renderComponent [ Views.Request.reqListItem req ] next ctx
       | None -> return! Error.notFound next ctx
+      }
+
+  /// GET /components/request/[req-id]/notes
+  let notes requestId : HttpHandler =
+    requiresAuthentication Error.notAuthorized
+    >=> fun next ctx -> task {
+      let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
+      return! renderComponent (Views.Request.notes notes) next ctx
       }
 
 
@@ -257,7 +254,8 @@ module Journal =
         |> Seq.tryFind (fun c -> c.Type = ClaimTypes.GivenName)
         |> Option.map (fun c -> c.Value)
         |> Option.defaultValue "Your"
-      return! partialIfNotRefresh (sprintf "%s Prayer Journal" usr) (Views.Journal.journal usr) next ctx
+      let title = usr |> match usr with "Your" -> sprintf "%s" | _ -> sprintf "%s's"
+      return! partialIfNotRefresh (sprintf "%s Prayer Journal" title) (Views.Journal.journal usr) next ctx
     }
 
 
@@ -286,9 +284,9 @@ module Request =
     >=> fun next ctx -> task {
       let returnTo =
         match ctx.Request.Headers.Referer.[0] with
-        | it when it.EndsWith "/active" -> "active"
+        | it when it.EndsWith "/active"  -> "active"
         | it when it.EndsWith "/snoozed" -> "snoozed"
-        | _ -> "journal"
+        | _                              -> "journal"
       match requestId with
       | "new" ->
           return! partialIfNotRefresh "Add Prayer Request"
@@ -381,14 +379,6 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
   
-  /// GET /api/request/[req-id]/notes
-  let getNotes requestId : HttpHandler =
-    requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
-      let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
-      return! json notes next ctx
-      }
-  
   // PATCH /request/[req-id]/show
   let show requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
@@ -465,12 +455,8 @@ module Request =
           }
       Data.addRequest req db
       do! db.saveChanges ()
-      Messages.pushSuccess (ctx |> (user >> Option.get)) "Added prayer request" "/journal"
-      // TODO: this is not right
-      return! (
-        redirectTo false "/journal"
-        // >=> createdAt (RequestId.toString req.id |> sprintf "/request/%s")
-        ) next ctx
+      Messages.pushSuccess ctx "Added prayer request" "/journal"
+      return! seeOther "/journal" next ctx
       }
   
   // PATCH /request
@@ -485,20 +471,25 @@ module Request =
           // update recurrence if changed
           let (recur, interval) = parseRecurrence form
           match recur = req.recurType && interval = req.recurCount with
-          | true -> ()
+          | true  -> ()
           | false ->
               do! Data.updateRecurrence req.requestId usrId recur interval db
               match recur with
               | Immediate -> do! Data.updateShowAfter req.requestId usrId (Ticks 0L) db
-              | _ -> ()
+              | _         -> ()
           // append history
           let upd8Text = form.requestText.Trim ()
           let text     = match upd8Text = req.text with true -> None | false -> Some upd8Text
           do! Data.addHistory req.requestId usrId
                 { asOf = jsNow (); status = (Option.get >> RequestAction.ofString) form.status; text = text } db
           do! db.saveChanges ()
-          return! (withSuccessMessage "Prayer request updated successfully"
-                   >=> Components.requestItem (RequestId.toString req.requestId)) next ctx
+          let nextUrl =
+            match form.returnTo with
+            | "active"          -> "/requests/active"
+            | "snoozed"         -> "/requests/snoozed"
+            | _ (* "journal" *) -> "/journal"
+          Messages.pushSuccess ctx "Prayer request updated successfully" nextUrl
+          return! seeOther nextUrl next ctx
       | None -> return! Error.notFound next ctx
       }
 
@@ -529,9 +520,9 @@ let routes =
   [ GET_HEAD [ route "/" Home.home ]
     subRoute "/components/" [
       GET_HEAD [
-        route  "journal-items"   Components.journalItems
-        routef "request/%s/edit" Components.requestEdit
-        routef "request/%s/item" Components.requestItem
+        route  "journal-items"    Components.journalItems
+        routef "request/%s/item"  Components.requestItem
+        routef "request/%s/notes" Components.notes
         ]
       ]
     GET_HEAD [ route "/journal" Journal.journal ]
@@ -568,7 +559,6 @@ let routes =
     subRoute "/api/" [
       GET [
         subRoute "request" [
-          routef "/%s/notes"  Request.getNotes
           routef "/%s"        Request.get
           ]
         ]

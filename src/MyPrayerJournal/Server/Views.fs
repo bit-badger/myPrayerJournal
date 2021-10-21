@@ -29,7 +29,7 @@ module private Helpers =
   /// Create a link that targets the `#top` element and pushes a URL to history
   let pageLink href attrs =
     attrs
-    |> List.append [ _href href; _hxBoost; _hxTarget "#top"; _hxPushUrl ]
+    |> List.append [ _href href; _hxBoost; _hxTarget "#top"; _hxSwap HxSwap.InnerHtml; _hxPushUrl ]
     |> a
 
   /// Create a Material icon
@@ -269,27 +269,33 @@ module Journal =
 
   /// Display a card for this prayer request
   let journalCard req =
+    let reqId = RequestId.toString req.requestId
+    let spacer = span [] [ rawText "&nbsp;" ]
     div [ _class "col" ] [
       div [ _class "card h-100" ] [
-        div [ _class "card-header p-0 text-end"; _roleToolBar ] [
+        div [ _class "card-header p-0 d-flex"; _roleToolBar ] [
+          pageLink $"/request/{reqId}/edit" [ _class  "btn btn-secondary"; _title "Edit Request" ] [ icon "edit" ]
+          spacer
           button [
-            _class    "btn btn-success"
-            _hxPatch  $"/request/{RequestId.toString req.requestId}/prayed"
-            _title    "Mark as Prayed"
-            ] [ icon "done" ]
-          // span
-          //   md-button(@click.stop='showEdit()').md-icon-button.md-raised
-          //     md-icon edit
-          //     md-tooltip(md-direction='top'
-          //                md-delay=1000) Edit Request
-          //   md-button(@click.stop='showNotes()').md-icon-button.md-raised
-          //     md-icon comment
-          //     md-tooltip(md-direction='top'
-          //                md-delay=1000) Add Notes
+            _type  "button"
+            _class "btn btn-secondary"
+            _title "Add Notes"
+            _data  "bs-toggle"  "modal"
+            _data  "bs-target"  "#notesModal"
+            _data  "request-id" reqId
+            ] [ icon "comment" ]
+          spacer
           //   md-button(@click.stop='snooze()').md-icon-button.md-raised
           //     md-icon schedule
           //     md-tooltip(md-direction='top'
           //                md-delay=1000) Snooze Request
+          div [ _class "flex-grow-1" ] []
+          button [
+            _type    "button"
+            _class   "btn btn-success w-25"
+            _hxPatch $"/request/{reqId}/prayed"
+            _title   "Mark as Prayed"
+            ] [ icon "done" ]
           ]
         div [ _class "card-body" ] [
           p [ _class "request-text" ] [ str req.text ]
@@ -317,6 +323,40 @@ module Journal =
       _hxSwap    HxSwap.OuterHtml
       _hxTrigger HxTrigger.Load
       ] [ rawText "Loading your prayer journal&hellip;" ]
+    div [
+      _id             "notesModal"
+      _class          "modal fade"
+      _tabindex       "-1"
+      _ariaLabelledBy "nodesModalLabel"
+      _ariaHidden     "true"
+      ] [
+      div [ _class "modal-dialog modal-dialog-scrollable" ] [
+        div [ _class "modal-content" ] [
+          div [ _class "modal-header" ] [
+            h5 [ _class "modal-title"; _id "nodesModalLabel" ] [ str "Add Notes to Prayer Request" ]
+            button [ _type "button"; _class "btn-close"; _data "bs-dismiss" "modal"; _ariaLabel "Close" ] []
+            ]
+          div [ _class "modal-body" ] [
+            form [ _id "notesForm"; _method "POST"; _action ""; _hxBoost; _hxTarget "#top" ] [
+              str "TODO"
+              button [ _type "submit"; _class "btn btn-primary" ] [ str "Add Notes" ]
+              ]
+            hr []
+            div [
+              _id       "notesLoad"
+              _class    "btn btn-secondary"
+              _hxGet    ""
+              _hxSwap   HxSwap.OuterHtml
+              _hxTarget "this"
+              ] [ str "Load Prior Notes" ]
+            ]
+          div [ _class "modal-footer" ] [
+            button [ _type "button"; _class "btn btn-secondary"; _data "bs-dismiss" "modal" ] [ str "Close" ]
+            ]
+          ]
+        ]
+      ]
+    script [] [ str "setTimeout(function () { mpj.journal.setUp() }, 1000)" ]
     ]
 
   /// The journal items
@@ -594,6 +634,15 @@ module Request =
           pageLink cancelLink [ _class "btn btn-secondary ms-2" ] [ icon "arrow_back"; str " Cancel" ]
           ]
         ]
+      ]
+
+  /// Display a list of notes for a request
+  let notes notes =
+    let toItem (note : Note) = p [] [ small [ _class "text-muted" ] [ relativeDate note.asOf ]; br []; str note.notes ]
+    [ p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
+      match notes with
+      | [] -> p [ _class "text-center text-muted" ] [ str "There are no prior notes for this request" ]
+      | _  -> yield! notes |> List.map toItem
       ]
 
 
