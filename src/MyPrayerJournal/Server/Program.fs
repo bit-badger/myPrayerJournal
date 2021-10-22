@@ -92,9 +92,9 @@ module Configure =
         /// Configure OIDC with Auth0 options from configuration
         fun opts ->
           let cfg = bldr.Configuration.GetSection "Auth0"
-          opts.Authority    <- sprintf "https://%s/" cfg.["Domain"]
-          opts.ClientId     <- cfg.["Id"]
-          opts.ClientSecret <- cfg.["Secret"]
+          opts.Authority    <- sprintf "https://%s/" cfg["Domain"]
+          opts.ClientId     <- cfg["Id"]
+          opts.ClientSecret <- cfg["Secret"]
           opts.ResponseType <- OpenIdConnectResponseType.Code
           
           opts.Scope.Clear ()
@@ -119,7 +119,7 @@ module Configure =
                         sprintf "%s://%s%s%s" request.Scheme request.Host.Value request.PathBase.Value redirUri
                     | false -> redirUri
                   Uri.EscapeDataString finalRedirUri |> sprintf "&returnTo=%s"
-            sprintf "https://%s/v2/logout?client_id=%s%s" cfg.["Domain"] cfg.["Id"] returnTo
+            sprintf "https://%s/v2/logout?client_id=%s%s" cfg["Domain"] cfg["Id"] returnTo
             |> ctx.Response.Redirect
             ctx.HandleResponse ()
 
@@ -132,7 +132,7 @@ module Configure =
     Data.Startup.ensureDb db
     bldr.Services.AddSingleton(jsonOptions)
       .AddSingleton<Json.ISerializer, SystemTextJson.Serializer>()
-      .AddSingleton<LiteDatabase>(db)
+      .AddSingleton<LiteDatabase> db
     |> ignore
     bldr.Build ()
   
@@ -155,7 +155,8 @@ module Configure =
       .UseEndpoints (fun e ->
           e.MapGiraffeEndpoints Handlers.routes
           // TODO: fallback to 404
-          e.MapFallbackToFile "index.html" |> ignore)
+          // e.MapFallbackToFile "index.html"
+          |> ignore)
     |> ignore
     app
 

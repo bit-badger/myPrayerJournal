@@ -93,7 +93,7 @@ module private Helpers =
   
   /// Return a 303 SEE OTHER response (forces a GET on the redirected URL)
   let seeOther (url : string) =
-    setStatusCode 303 >=> setHttpHeader "Location" url
+    noResponseCaching >=> setStatusCode 303 >=> setHttpHeader "Location" url
 
   /// The "now" time in JavaScript as Ticks
   let jsNow () =
@@ -101,7 +101,8 @@ module private Helpers =
   
   /// Render a component result
   let renderComponent nodes : HttpHandler =
-    fun next ctx -> task {
+    noResponseCaching
+    >=> fun next ctx -> task {
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
 
@@ -143,8 +144,8 @@ module private Helpers =
       msg |> Option.iter (fun _ -> messages <- messages.Remove userId)
       msg)
 
-  /// Send a partial result if this is not a full page load
-  let partialIfNotRefresh (pageTitle : string) content : HttpHandler =
+  /// Send a partial result if this is not a full page load (does not append no-cache headers)
+  let partialStatic (pageTitle : string) content : HttpHandler =
     fun next ctx ->
       let isPartial = ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh
       let view =
@@ -157,7 +158,10 @@ module private Helpers =
               | Some (msg, url) -> setHttpHeader "X-Toast" msg >=> withHxPush url >=> writeView view
               | None -> writeView view
           | None -> writeView view
-
+   
+  /// Send an explicitly non-cached result, rendering as a partial if this is not a full page load
+  let partial pageTitle content =
+    noResponseCaching >=> partialStatic pageTitle content
 
   /// Add a success message header to the response
   let withSuccessMessage : string -> HttpHandler =
@@ -222,8 +226,13 @@ module Components =
     >=> fun next ctx -> task {
       match! Data.tryJournalById (RequestId.ofString reqId) (userId ctx) (db ctx) with
       | Some req -> return! renderComponent [ Views.Request.reqListItem req ] next ctx
-      | None -> return! Error.notFound next ctx
+      | None     -> return! Error.notFound next ctx
       }
+
+  /// GET /components/request/[req-id]/add-notes
+  let addNotes requestId : HttpHandler =
+    requiresAuthentication Error.notAuthorized
+    >=> renderComponent (Views.Journal.notesEdit (RequestId.ofString requestId))
 
   /// GET /components/request/[req-id]/notes
   let notes requestId : HttpHandler =
@@ -239,7 +248,7 @@ module Home =
   
   // GET /
   let home : HttpHandler =
-    partialIfNotRefresh "Welcome!" Views.Home.home
+    partialStatic "Welcome!" Views.Home.home
   
 
 /// /journal URL
@@ -255,7 +264,7 @@ module Journal =
         |> Option.map (fun c -> c.Value)
         |> Option.defaultValue "Your"
       let title = usr |> match usr with "Your" -> sprintf "%s" | _ -> sprintf "%s's"
-      return! partialIfNotRefresh (sprintf "%s Prayer Journal" title) (Views.Journal.journal usr) next ctx
+      return! partial (sprintf "%s Prayer Journal" title) (Views.Journal.journal usr) next ctx
     }
 
 
@@ -264,15 +273,11 @@ module Legal =
   
   // GET /legal/privacy-policy
   let privacyPolicy : HttpHandler =
-    partialIfNotRefresh "Privacy Policy" Views.Legal.privacyPolicy
+    partialStatic "Privacy Policy" Views.Legal.privacyPolicy
   
   // GET /legal/terms-of-service
   let termsOfService : HttpHandler =
-    partialIfNotRefresh "Terms of Service" Views.Legal.termsOfService
-
-
-/// Alias for the Ply task module (The F# "task" CE can't handle differing types well within the same CE)
-module Ply = FSharp.Control.Tasks.Affine
+    partialStatic "Terms of Service" Views.Legal.termsOfService
 
 
 /// /api/request and /request(s) URLs
@@ -289,13 +294,12 @@ module Request =
         | _                              -> "journal"
       match requestId with
       | "new" ->
-          return! partialIfNotRefresh "Add Prayer Request"
+          return! partial "Add Prayer Request"
                     (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) returnTo true) next ctx
-      | _ ->
+      | _     ->
           match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-          | Some req ->
-              return! partialIfNotRefresh "Edit Prayer Request" (Views.Request.edit req returnTo false) next ctx
-          | None -> return! Error.notFound next ctx
+          | Some req -> return! partial "Edit Prayer Request" (Views.Request.edit req returnTo false) next ctx
+          | None     -> return! Error.notFound next ctx
       }
 
   // PATCH /request/[req-id]/prayed
@@ -311,7 +315,7 @@ module Request =
           do! Data.addHistory reqId usrId { asOf = now; status = Prayed; text = None } db
           let nextShow =
             match Recurrence.duration req.recurType with
-            | 0L -> 0L
+            | 0L       -> 0L
             | duration -> (Ticks.toLong now) + (duration * int64 req.recurCount)
           do! Data.updateShowAfter reqId usrId (Ticks nextShow) db
           do! db.saveChanges ()
@@ -340,7 +344,7 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let! reqs = Data.journalByUserId (userId ctx) (db ctx)
-      return! partialIfNotRefresh "Active Requests" (Views.Request.active reqs) next ctx
+      return! partial "Active Requests" (Views.Request.active reqs) next ctx
       }
   
   // GET /requests/snoozed
@@ -350,7 +354,7 @@ module Request =
       let! reqs    = Data.journalByUserId (userId ctx) (db ctx)
       let  now     = (jsNow >> Ticks.toLong) ()
       let  snoozed = reqs |> List.filter (fun r -> Ticks.toLong r.snoozedUntil > now)
-      return! partialIfNotRefresh "Active Requests" (Views.Request.snoozed snoozed) next ctx
+      return! partial "Active Requests" (Views.Request.snoozed snoozed) next ctx
       }
 
   // GET /requests/answered
@@ -358,7 +362,7 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
-      return! partialIfNotRefresh "Answered Requests" (Views.Request.answered reqs) next ctx
+      return! partial "Answered Requests" (Views.Request.answered reqs) next ctx
       }
   
   /// GET /api/request/[req-id]
@@ -375,8 +379,8 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> task {
       match! Data.tryFullRequestById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-      | Some req -> return! partialIfNotRefresh "Prayer Request" (Views.Request.full req) next ctx
-      | None -> return! Error.notFound next ctx
+      | Some req -> return! partial "Prayer Request" (Views.Request.full req) next ctx
+      | None     -> return! Error.notFound next ctx
       }
   
   // PATCH /request/[req-id]/show
@@ -462,7 +466,7 @@ module Request =
   // PATCH /request
   let update : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> Ply.task {
+    >=> fun next ctx -> task {
       let! form  = ctx.BindModelAsync<Models.Request> ()
       let  db    = db ctx
       let  usrId = userId ctx
@@ -520,9 +524,10 @@ let routes =
   [ GET_HEAD [ route "/" Home.home ]
     subRoute "/components/" [
       GET_HEAD [
-        route  "journal-items"    Components.journalItems
-        routef "request/%s/item"  Components.requestItem
-        routef "request/%s/notes" Components.notes
+        route  "journal-items"        Components.journalItems
+        routef "request/%s/add-notes" Components.addNotes
+        routef "request/%s/item"      Components.requestItem
+        routef "request/%s/notes"     Components.notes
         ]
       ]
     GET_HEAD [ route "/journal" Journal.journal ]

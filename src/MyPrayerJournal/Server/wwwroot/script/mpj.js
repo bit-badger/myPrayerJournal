@@ -41,6 +41,21 @@ const mpj = {
     document.getElementById("toasts").appendChild(toastEl)
     new bootstrap.Toast(toastEl, { autohide: level === "success" }).show()
   },
+  /**
+   * Load local version of Bootstrap CSS if the CDN load failed
+   */
+  ensureCss () {
+    let loaded = false
+    for (let i = 0; !loaded && i < document.styleSheets.length; i++) {
+      loaded = document.styleSheets[i].href.endsWith("bootstrap.min.css")
+    }
+    if (!loaded) {
+      const css = document.createElement("link")
+      css.rel = "stylesheet"
+      css.href = "/style/bootstrap.min.css"
+      document.getElementsByTagName("head")[0].appendChild(css)
+    }
+  },
   /** Script for the request edit component */
   edit: {
     /**
@@ -74,3 +89,4 @@ htmx.on("htmx:afterOnLoad", function (evt) {
     mpj.showToast(evt.detail.xhr.getResponseHeader("x-toast"))
   }
 })
+

@@ -4,19 +4,19 @@ module MyPrayerJournal.Dates
 
 
 type internal FormatDistanceToken =
-| LessThanXMinutes
-| XMinutes
-| AboutXHours
-| XHours
-| XDays
-| AboutXWeeks
-| XWeeks
-| AboutXMonths
-| XMonths
-| AboutXYears
-| XYears
-| OverXYears
-| AlmostXYears
+  | LessThanXMinutes
+  | XMinutes
+  | AboutXHours
+  | XHours
+  | XDays
+  | AboutXWeeks
+  | XWeeks
+  | AboutXMonths
+  | XMonths
+  | AboutXYears
+  | XYears
+  | OverXYears
+  | AlmostXYears
 
 let internal locales =
   let format = PrintfFormat<int -> string, unit, string, string>
@@ -38,10 +38,10 @@ let internal locales =
     ]
   ]
 
-let aDay          =  1_440.
-let almostTwoDays =  2_520.
-let aMonth        = 43_200.
-let twoMonths     = 86_400.
+let aDay        =  1_440.
+let almost2Days =  2_520.
+let aMonth      = 43_200.
+let twoMonths   = 86_400.
 
 open System
 
@@ -51,7 +51,7 @@ let fromJs ticks = DateTime.UnixEpoch + TimeSpan.FromTicks (ticks * 10_000L)
 let formatDistance (startDate : DateTime) (endDate : DateTime) =
   let format (token, number) locale =
     let labels = locales |> Map.find locale
-    match number with 1 -> fst labels.[token] | _ -> sprintf (snd labels.[token]) number
+    match number with 1 -> fst labels[token] | _ -> sprintf (snd labels[token]) number
   let round (it : float) = Math.Round it |> int
 
   let diff        = startDate - endDate
@@ -60,18 +60,18 @@ let formatDistance (startDate : DateTime) (endDate : DateTime) =
     let months = minutes / aMonth |> round
     let years  = months / 12
     match true with
-    | _ when minutes < 1. -> LessThanXMinutes, 1
-    | _ when minutes < 45. -> XMinutes, round minutes
-    | _ when minutes < 90. -> AboutXHours, 1
-    | _ when minutes < aDay -> AboutXHours, round (minutes / 60.)
-    | _ when minutes < almostTwoDays -> XDays, 1
-    | _ when minutes < aMonth -> XDays, round (minutes / aDay)
-    | _ when minutes < twoMonths -> AboutXMonths, round (minutes / aMonth)
-    | _ when months < 12 -> XMonths, round (minutes / aMonth)
-    | _ when months % 12 < 3 -> AboutXYears, years
-    | _ when months % 12 < 9 -> OverXYears, years
-    | _ -> AlmostXYears, years + 1
+    | _ when minutes < 1.          -> LessThanXMinutes, 1
+    | _ when minutes < 45.         -> XMinutes, round minutes
+    | _ when minutes < 90.         -> AboutXHours, 1
+    | _ when minutes < aDay        -> AboutXHours, round (minutes / 60.)
+    | _ when minutes < almost2Days -> XDays, 1
+    | _ when minutes < aMonth      -> XDays, round (minutes / aDay)
+    | _ when minutes < twoMonths   -> AboutXMonths, round (minutes / aMonth)
+    | _ when months      < 12      -> XMonths, round (minutes / aMonth)
+    | _ when months % 12 < 3       -> AboutXYears, years
+    | _ when months % 12 < 9       -> OverXYears, years
+    | _                            -> AlmostXYears, years + 1
   
-  let words = format formatToken "en-US"
-  match startDate > endDate with true -> $"{words} ago" | false -> $"in {words}"
+  format formatToken "en-US"
+  |> match startDate > endDate with true -> sprintf "%s ago" | false -> sprintf "in %s"
 

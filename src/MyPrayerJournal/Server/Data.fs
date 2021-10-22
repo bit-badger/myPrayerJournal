@@ -14,10 +14,10 @@ module Extensions =
   type LiteDatabase with
     /// The Request collection
     member this.requests
-      with get () = this.GetCollection<Request>("request")
+      with get () = this.GetCollection<Request> "request"
     /// Async version of the checkpoint command (flushes log)
     member this.saveChanges () =
-      this.Checkpoint()
+      this.Checkpoint ()
       Task.CompletedTask
 
 
@@ -29,56 +29,56 @@ module Mapping =
   /// Map a history entry to BSON
   let historyToBson (hist : History) : BsonValue =
     let doc = BsonDocument ()
-    doc.["asOf"]   <- BsonValue (Ticks.toLong hist.asOf)
-    doc.["status"] <- BsonValue (RequestAction.toString hist.status)
-    doc.["text"]   <- BsonValue (match hist.text with Some t -> t | None -> "")
+    doc["asOf"]   <- Ticks.toLong hist.asOf
+    doc["status"] <- RequestAction.toString hist.status
+    doc["text"]   <- match hist.text with Some t -> t | None -> ""
     upcast doc
 
   /// Map a BSON document to a history entry
   let historyFromBson (doc : BsonValue) =
-    { asOf   = Ticks doc.["asOf"].AsInt64
-      status = RequestAction.ofString doc.["status"].AsString
-      text   = match doc.["text"].AsString with "" -> None | txt -> Some txt
+    { asOf   = Ticks doc["asOf"].AsInt64
+      status = RequestAction.ofString doc["status"].AsString
+      text   = match doc["text"].AsString with "" -> None | txt -> Some txt
       }
 
   /// Map a note entry to BSON
   let noteToBson (note : Note) : BsonValue =
     let doc = BsonDocument ()
-    doc.["asOf"]  <- BsonValue (Ticks.toLong note.asOf)
-    doc.["notes"] <- BsonValue note.notes
+    doc["asOf"]  <- Ticks.toLong note.asOf
+    doc["notes"] <- note.notes
     upcast doc
 
   /// Map a BSON document to a note entry
   let noteFromBson (doc : BsonValue) =
-    { asOf  = Ticks doc.["asOf"].AsInt64
-      notes = doc.["notes"].AsString
+    { asOf  = Ticks doc["asOf"].AsInt64
+      notes = doc["notes"].AsString
       }
 
   /// Map a request to its BSON representation
   let requestToBson req : BsonValue =
     let doc = BsonDocument ()
-    doc.["_id"]          <- BsonValue (RequestId.toString req.id)
-    doc.["enteredOn"]    <- BsonValue (Ticks.toLong req.enteredOn)
-    doc.["userId"]       <- BsonValue (UserId.toString req.userId)
-    doc.["snoozedUntil"] <- BsonValue (Ticks.toLong req.snoozedUntil)
-    doc.["showAfter"]    <- BsonValue (Ticks.toLong req.showAfter)
-    doc.["recurType"]    <- BsonValue (Recurrence.toString req.recurType)
-    doc.["recurCount"]   <- BsonValue req.recurCount
-    doc.["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
-    doc.["notes"]        <- BsonArray (req.notes   |> List.map noteToBson    |> Seq.ofList)
+    doc["_id"]          <- RequestId.toString req.id
+    doc["enteredOn"]    <- Ticks.toLong req.enteredOn
+    doc["userId"]       <- UserId.toString req.userId
+    doc["snoozedUntil"] <- Ticks.toLong req.snoozedUntil
+    doc["showAfter"]    <- Ticks.toLong req.showAfter
+    doc["recurType"]    <- Recurrence.toString req.recurType
+    doc["recurCount"]   <- BsonValue req.recurCount
+    doc["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
+    doc["notes"]        <- BsonArray (req.notes   |> List.map noteToBson    |> Seq.ofList)
     upcast doc
   
   /// Map a BSON document to a request
   let requestFromBson (doc : BsonValue) =
-    { id           = RequestId.ofString doc.["_id"].AsString
-      enteredOn    = Ticks doc.["enteredOn"].AsInt64
-      userId       = UserId doc.["userId"].AsString
-      snoozedUntil = Ticks doc.["snoozedUntil"].AsInt64
-      showAfter    = Ticks doc.["showAfter"].AsInt64
-      recurType    = Recurrence.ofString doc.["recurType"].AsString
-      recurCount   = int16 doc.["recurCount"].AsInt32
-      history      = doc.["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
-      notes        = doc.["notes"].AsArray   |> Seq.map noteFromBson    |> List.ofSeq
+    { id           = RequestId.ofString doc["_id"].AsString
+      enteredOn    = Ticks doc["enteredOn"].AsInt64
+      userId       = UserId doc["userId"].AsString
+      snoozedUntil = Ticks doc["snoozedUntil"].AsInt64
+      showAfter    = Ticks doc["showAfter"].AsInt64
+      recurType    = Recurrence.ofString doc["recurType"].AsString
+      recurCount   = int16 doc["recurCount"].AsInt32
+      history      = doc["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
+      notes        = doc["notes"].AsArray   |> Seq.map noteFromBson    |> List.ofSeq
       }
   
   /// Set up the mapping
@@ -117,7 +117,7 @@ module private Helpers =
 
 /// Retrieve a request, including its history and notes, by its ID and user ID
 let tryFullRequestById reqId userId (db : LiteDatabase) = task {
-  let! req = db.requests.Find (Query.EQ ("_id", RequestId.toString reqId |> BsonValue)) |> firstAsync
+  let! req = db.requests.Find (Query.EQ ("_id", RequestId.toString reqId)) |> firstAsync
   return match box req with null -> None | _ when req.userId = userId -> Some req | _ -> None
   }
 
@@ -125,14 +125,14 @@ let tryFullRequestById reqId userId (db : LiteDatabase) = task {
 let addHistory reqId userId hist db = task {
   match! tryFullRequestById reqId userId db with
   | Some req -> do! doUpdate db { req with history = hist :: req.history }
-  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  | None     -> invalidOp $"{RequestId.toString reqId} not found"
   }
 
 /// Add a note
 let addNote reqId userId note db = task {
   match! tryFullRequestById reqId userId db with
   | Some req -> do! doUpdate db { req with notes = note :: req.notes }
-  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  | None     -> invalidOp $"{RequestId.toString reqId} not found"
   }
 
 /// Add a request
@@ -141,7 +141,7 @@ let addRequest (req : Request) (db : LiteDatabase) =
 
 /// Retrieve all answered requests for the given user
 let answeredRequests userId (db : LiteDatabase) = task {
-  let! reqs = db.requests.Find (Query.EQ ("userId", UserId.toString userId |> BsonValue)) |> toListAsync
+  let! reqs = db.requests.Find (Query.EQ ("userId", UserId.toString userId)) |> toListAsync
   return
     reqs
     |> Seq.map JournalRequest.ofRequestFull
@@ -152,7 +152,7 @@ let answeredRequests userId (db : LiteDatabase) = task {
   
 /// Retrieve the user's current journal
 let journalByUserId userId (db : LiteDatabase) = task {
-  let! jrnl = db.requests.Find (Query.EQ ("userId", UserId.toString userId |> BsonValue)) |> toListAsync
+  let! jrnl = db.requests.Find (Query.EQ ("userId", UserId.toString userId)) |> toListAsync
   return
     jrnl
     |> Seq.map JournalRequest.ofRequestLite
@@ -163,9 +163,8 @@ let journalByUserId userId (db : LiteDatabase) = task {
 
 /// Retrieve a request by its ID and user ID (without notes and history)
 let tryRequestById reqId userId db = task {
-  match! tryFullRequestById reqId userId db with
-  | Some r -> return Some { r with history = []; notes = [] }
-  | _ -> return None
+  let! req = tryFullRequestById reqId userId db
+  return req |> Option.map (fun r -> { r with history = []; notes = [] })
   }
 
 /// Retrieve notes for a request by its ID and user ID
@@ -175,28 +174,27 @@ let notesById reqId userId (db : LiteDatabase) = task {
     
 /// Retrieve a journal request by its ID and user ID
 let tryJournalById reqId userId (db : LiteDatabase) = task {
-  match! tryFullRequestById reqId userId db with
-  | Some req -> return req |> (JournalRequest.ofRequestLite >> Some)
-  | None -> return None
+  let! req = tryFullRequestById reqId userId db
+  return req |> Option.map JournalRequest.ofRequestLite
   }
     
 /// Update the recurrence for a request
 let updateRecurrence reqId userId recurType recurCount db = task {
   match! tryFullRequestById reqId userId db with
   | Some req -> do! doUpdate db { req with recurType = recurType; recurCount = recurCount }
-  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  | None     -> invalidOp $"{RequestId.toString reqId} not found"
   }
 
 /// Update a snoozed request
 let updateSnoozed reqId userId until db = task {
   match! tryFullRequestById reqId userId db with
   | Some req -> do! doUpdate db { req with snoozedUntil = until; showAfter = until }
-  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  | None     -> invalidOp $"{RequestId.toString reqId} not found"
   }
 
 /// Update the "show after" timestamp for a request
 let updateShowAfter reqId userId showAfter db = task {
   match! tryFullRequestById reqId userId db with
   | Some req -> do! doUpdate db { req with showAfter = showAfter }
-  | None -> invalidOp $"{RequestId.toString reqId} not found"
+  | None     -> invalidOp $"{RequestId.toString reqId} not found"
   }

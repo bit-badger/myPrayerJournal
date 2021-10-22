@@ -180,7 +180,7 @@ module JournalRequest =
                       |> List.tryHead
                       |> Option.map (fun h -> Option.get h.text)
                       |> Option.defaultValue ""
-      asOf         = match hist with Some h -> h.asOf | None -> Ticks 0L
+      asOf         = match hist with Some h -> h.asOf   | None -> Ticks 0L
       lastStatus   = match hist with Some h -> h.status | None -> Created
       snoozedUntil = req.snoozedUntil
       showAfter    = req.showAfter

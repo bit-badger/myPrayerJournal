@@ -54,7 +54,7 @@ module private Helpers =
     span [ _title (date.ToString "f") ] [ Dates.formatDistance DateTime.UtcNow date |> str ]
 
 
-/// Views for home and log on pages
+/// View for home page
 module Home =
   
   /// The home page
@@ -69,13 +69,6 @@ module Home =
       str "This site is open and available to the general public. To get started, simply click the "
       rawText "&ldquo;Log On&rdquo; link above, and log on with either a Microsoft or Google account. You can also "
       rawText "learn more about the site at the &ldquo;Docs&rdquo; link, also above."
-      ]
-    ]
-  
-  /// The log on page
-  let logOn = article [ _class "container mt-3" ] [
-    p [] [
-      em [] [ str "Verifying..." ]
       ]
     ]
 
@@ -277,12 +270,14 @@ module Journal =
           pageLink $"/request/{reqId}/edit" [ _class  "btn btn-secondary"; _title "Edit Request" ] [ icon "edit" ]
           spacer
           button [
-            _type  "button"
-            _class "btn btn-secondary"
-            _title "Add Notes"
-            _data  "bs-toggle"  "modal"
-            _data  "bs-target"  "#notesModal"
-            _data  "request-id" reqId
+            _type     "button"
+            _class    "btn btn-secondary"
+            _title    "Add Notes"
+            _data     "bs-toggle" "modal"
+            _data     "bs-target" "#notesModal"
+            _hxGet    $"/components/request/{reqId}/add-notes"
+            _hxTarget "#notesBody"
+            _hxSwap   HxSwap.InnerHtml
             ] [ icon "comment" ]
           spacer
           //   md-button(@click.stop='snooze()').md-icon-button.md-raised
@@ -336,27 +331,13 @@ module Journal =
             h5 [ _class "modal-title"; _id "nodesModalLabel" ] [ str "Add Notes to Prayer Request" ]
             button [ _type "button"; _class "btn-close"; _data "bs-dismiss" "modal"; _ariaLabel "Close" ] []
             ]
-          div [ _class "modal-body" ] [
-            form [ _id "notesForm"; _method "POST"; _action ""; _hxBoost; _hxTarget "#top" ] [
-              str "TODO"
-              button [ _type "submit"; _class "btn btn-primary" ] [ str "Add Notes" ]
-              ]
-            hr []
-            div [
-              _id       "notesLoad"
-              _class    "btn btn-secondary"
-              _hxGet    ""
-              _hxSwap   HxSwap.OuterHtml
-              _hxTarget "this"
-              ] [ str "Load Prior Notes" ]
-            ]
+          div [ _class "modal-body"; _id "notesBody" ] [ ]
           div [ _class "modal-footer" ] [
             button [ _type "button"; _class "btn btn-secondary"; _data "bs-dismiss" "modal" ] [ str "Close" ]
             ]
           ]
         ]
       ]
-    script [] [ str "setTimeout(function () { mpj.journal.setUp() }, 1000)" ]
     ]
 
   /// The journal items
@@ -376,6 +357,25 @@ module Journal =
             _hxSwap   HxSwap.OuterHtml
             ]
 
+  /// The notes edit modal body
+  let notesEdit requestId =
+    let reqId = RequestId.toString requestId
+    [ form [ _hxPost $"/request/{reqId}/note"; _hxTarget "#top" ] [
+        str "TODO"
+        button [ _type "submit"; _class "btn btn-primary" ] [ str "Add Notes" ]
+        ]
+      div [ _id "priorNotes" ] [
+        p [ _class "text-center pt-5" ] [
+          button [
+            _type     "button"
+            _class    "btn btn-secondary"
+            _hxGet    $"/components/request/{reqId}/notes"
+            _hxSwap   HxSwap.OuterHtml
+            _hxTarget "#priorNotes"
+            ] [str "Load Prior Notes" ]
+          ]
+        ]
+      ]
 
 
 /// Views for request pages and components
@@ -396,10 +396,9 @@ module Request =
       ] [
       pageLink $"/request/{reqId}/full" [ btnClass; _title "View Full Request" ] [ icon "description" ]
       match isAnswered with
-      | true -> ()
-      | false ->
-          button [ btnClass; _hxGet $"/components/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
-      match () with
+      | true  -> ()
+      | false -> button [ btnClass; _hxGet $"/components/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
+      match true with
       | _ when isSnoozed ->
           button [ btnClass; _hxPatch $"/request/{reqId}/cancel-snooze"; _title "Cancel Snooze" ] [ icon "restore" ]
       | _ when isPending ->
@@ -522,7 +521,7 @@ module Request =
       | "snoozed"         -> "/requests/snoozed"
       | _ (* "journal" *) -> "/journal"
     article [ _class "container" ] [
-      h5 [ _class "pb-3" ] [ (match isNew with true -> "Add" | false -> "Edit") |> strf "%s Prayer Request" ]
+      h2 [ _class "pb-3" ] [ (match isNew with true -> "Add" | false -> "Edit") |> strf "%s Prayer Request" ]
       form [
         _hxBoost
         _hxTarget "#top"
@@ -639,7 +638,8 @@ module Request =
   /// Display a list of notes for a request
   let notes notes =
     let toItem (note : Note) = p [] [ small [ _class "text-muted" ] [ relativeDate note.asOf ]; br []; str note.notes ]
-    [ p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
+    [ hr [ _style "margin: .5rem -1rem" ]
+      p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
       match notes with
       | [] -> p [ _class "text-center text-muted" ] [ str "There are no prior notes for this request" ]
       | _  -> yield! notes |> List.map toItem
@@ -696,12 +696,20 @@ module Layout =
         _integrity   "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"
         _crossorigin "anonymous"
         ] []
+      script [] [
+        rawText "if (!htmx) document.write('<script src=\"/script/htmx-1.5.0.min.js\"><\/script>')"
+        ]
       script [
         _async
         _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
         _integrity   "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
         _crossorigin "anonymous"
         ] []
+      script [] [
+        rawText "setTimeout(function () { "
+        rawText "if (!bootstrap) document.write('<script src=\"/script/bootstrap.bundle.min.js\"><\/script>') "
+        rawText "}, 2000)"
+        ]
       script [ _src "/script/mpj.js" ] []
       ]
 

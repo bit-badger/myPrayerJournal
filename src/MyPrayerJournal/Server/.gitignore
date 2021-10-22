@@ -12,8 +12,5 @@ wwwroot/*.js.map
 wwwroot/css
 wwwroot/js
 
-## Local library files
-wwwroot/script/htmx*.js
-
 ## Development settings
 appsettings.Development.json
