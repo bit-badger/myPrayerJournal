@@ -95,9 +95,13 @@ module private Helpers =
   let seeOther (url : string) =
     noResponseCaching >=> setStatusCode 303 >=> setHttpHeader "Location" url
 
+  /// Convert a date/time to JS-style ticks
+  let toJs (date : DateTime) =
+    date.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> (int64 >> ( * ) 1_000L >> Ticks)
+
   /// The "now" time in JavaScript as Ticks
   let jsNow () =
-    DateTime.UtcNow.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> (int64 >> ( * ) 1_000L >> Ticks)
+    toJs DateTime.UtcNow
   
   /// Render a component result
   let renderComponent nodes : HttpHandler =
@@ -106,13 +110,22 @@ module private Helpers =
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
 
+  open Views.Layout
+
   /// Create a page rendering context
-  let pageContext (ctx : HttpContext) pageTitle content : Views.Layout.PageRenderContext =
-    { isAuthenticated = (user >> Option.isSome) ctx
-      hasSnoozed      = false
+  let pageContext (ctx : HttpContext) pageTitle content = backgroundTask {
+    let! hasSnoozed = backgroundTask {
+      match user ctx with
+      | Some _ -> return! Data.hasSnoozed (userId ctx) (jsNow ()) (db ctx)
+      | None   -> return  false
+      }
+    return {
+      isAuthenticated = (user >> Option.isSome) ctx
+      hasSnoozed      = hasSnoozed
       currentUrl      = ctx.Request.Path.Value
       pageTitle       = pageTitle
       content         = content
+      }
     }
 
   /// Composable handler to write a view to the output
@@ -146,18 +159,19 @@ module private Helpers =
 
   /// Send a partial result if this is not a full page load (does not append no-cache headers)
   let partialStatic (pageTitle : string) content : HttpHandler =
-    fun next ctx ->
-      let isPartial = ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh
-      let view =
-        pageContext ctx pageTitle content
-        |> match isPartial with true -> Views.Layout.partial | false -> Views.Layout.view
-      (next, ctx)
-      ||> match user ctx with
-          | Some u ->
-              match Messages.pop u with
-              | Some (msg, url) -> setHttpHeader "X-Toast" msg >=> withHxPush url >=> writeView view
-              | None -> writeView view
-          | None -> writeView view
+    fun next ctx -> backgroundTask {
+      let  isPartial = ctx.Request.IsHtmx && not ctx.Request.IsHtmxRefresh
+      let! pageCtx   = pageContext ctx pageTitle content
+      let  view      = (match isPartial with true -> partial | false -> view) pageCtx
+      return! 
+        (next, ctx)
+        ||> match user ctx with
+            | Some u ->
+                match Messages.pop u with
+                | Some (msg, url) -> setHttpHeader "X-Toast" msg >=> withHxPush url >=> writeView view
+                | None -> writeView view
+            | None -> writeView view
+      }
    
   /// Send an explicitly non-cached result, rendering as a partial if this is not a full page load
   let partial pageTitle content =
@@ -201,11 +215,11 @@ module Models =
     recurInterval : string option
     }
   
-  /// The time until which a request should not appear in the journal
+  /// The date until which a request should not appear in the journal
   [<CLIMutable; NoComparison; NoEquality>]
   type SnoozeUntil = {
-    /// The time at which the request should reappear
-    until : int64
+    /// The date (YYYY-MM-DD) at which the request should reappear
+    until : string
     }
 
 
@@ -233,18 +247,23 @@ module Components =
       | None     -> return! Error.notFound next ctx
       }
 
-  /// GET /components/request/[req-id]/add-notes
+  // GET /components/request/[req-id]/add-notes
   let addNotes requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
     >=> renderComponent (Views.Journal.notesEdit (RequestId.ofString requestId))
 
-  /// GET /components/request/[req-id]/notes
+  // GET /components/request/[req-id]/notes
   let notes requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
       return! renderComponent (Views.Request.notes notes) next ctx
       }
+  
+  // GET /components/request/[req-id]/snooze
+  let snooze requestId : HttpHandler =
+    requiresAuthentication Error.notAuthorized
+    >=> renderComponent [ RequestId.ofString requestId |> Views.Journal.snooze ]
 
 
 /// / URL    
@@ -369,7 +388,7 @@ module Request =
       return! partial "Answered Requests" (Views.Request.answered reqs) next ctx
       }
   
-  /// GET /api/request/[req-id]
+  // GET /api/request/[req-id]
   let get requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
@@ -402,7 +421,7 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
   
-  /// PATCH /api/request/[req-id]/snooze
+  // PATCH /request/[req-id]/snooze
   let snooze requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
@@ -411,10 +430,14 @@ module Request =
       let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
-          let! until = ctx.BindJsonAsync<Models.SnoozeUntil> ()
-          do! Data.updateSnoozed reqId usrId (Ticks until.until) db
+          let! until = ctx.BindFormAsync<Models.SnoozeUntil> ()
+          let date = sprintf "%s 00:00:00" until.until |> DateTime.Parse
+          do! Data.updateSnoozed reqId usrId (toJs date) db
           do! db.saveChanges ()
-          return! setStatusCode 204 next ctx
+          return!
+            (withSuccessMessage $"Request snoozed until {until.until}"
+             >=> hideModal "snooze"
+             >=> Components.journalItems) next ctx
       | None -> return! Error.notFound next ctx
       }
   
@@ -532,6 +555,7 @@ let routes =
         routef "request/%s/add-notes" Components.addNotes
         routef "request/%s/item"      Components.requestItem
         routef "request/%s/notes"     Components.notes
+        routef "request/%s/snooze"    Components.snooze
         ]
       ]
     GET_HEAD [ route "/journal" Journal.journal ]
@@ -554,6 +578,7 @@ let routes =
         routef "/%s/cancel-snooze" Request.cancelSnooze
         routef "/%s/prayed"        Request.prayed
         routef "/%s/show"          Request.show
+        routef "/%s/snooze"        Request.snooze
         ]
       POST [
         route  ""         Request.add
@@ -564,18 +589,6 @@ let routes =
       GET_HEAD [
         route "log-off" User.logOff
         route "log-on"  User.logOn
-        ]
-      ]
-    subRoute "/api/" [
-      GET [
-        subRoute "request" [
-          routef "/%s"        Request.get
-          ]
-        ]
-      PATCH [
-        subRoute "request" [
-          routef "/%s/snooze"     Request.snooze
-          ]
         ]
       ]
     ]

@@ -26,10 +26,16 @@ let journalCard req =
           _hxSwap   HxSwap.InnerHtml
           ] [ icon "comment" ]
         spacer
-        //   md-button(@click.stop='snooze()').md-icon-button.md-raised
-        //     md-icon schedule
-        //     md-tooltip(md-direction='top'
-        //                md-delay=1000) Snooze Request
+        button [
+          _type     "button"
+          _class    "btn btn-secondary"
+          _title    "Snooze Request"
+          _data     "bs-toggle" "modal"
+          _data     "bs-target" "#snoozeModal"
+          _hxGet    $"/components/request/{reqId}/snooze"
+          _hxTarget "#snoozeBody"
+          _hxSwap   HxSwap.InnerHtml
+          ] [ icon "schedule" ]
         div [ _class "flex-grow-1" ] []
         button [
           _type    "button"
@@ -82,6 +88,28 @@ let journal user = article [ _class "container-fluid mt-3" ] [
         ]
       ]
     ]
+  div [
+    _id             "snoozeModal"
+    _class          "modal fade"
+    _tabindex       "-1"
+    _ariaLabelledBy "snoozeModalLabel"
+    _ariaHidden     "true"
+    ] [
+    div [ _class "modal-dialog modal-sm" ] [
+      div [ _class "modal-content" ] [
+        div [ _class "modal-header" ] [
+          h5 [ _class "modal-title"; _id "snoozeModalLabel" ] [ str "Snooze Prayer Request" ]
+          button [ _type "button"; _class "btn-close"; _data "bs-dismiss" "modal"; _ariaLabel "Close" ] []
+          ]
+        div [ _class "modal-body"; _id "snoozeBody" ] [ ]
+        div [ _class "modal-footer" ] [
+          button [ _type "button"; _id "snoozeDismiss"; _class "btn btn-secondary"; _data "bs-dismiss" "modal" ] [
+            str "Close"
+            ]
+          ]
+        ]
+      ]
+    ]
   ]
 
 /// The journal items
@@ -96,6 +124,7 @@ let journalItems items =
       items
       |> List.map journalCard
       |> section [
+          _id       "journalItems"
           _class    "row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3"
           _hxTarget "this"
           _hxSwap   HxSwap.OuterHtml
@@ -130,4 +159,19 @@ let notesEdit requestId =
           ] [str "Load Prior Notes" ]
         ]
       ]
+    ]
+
+/// The snooze edit form
+let snooze requestId =
+  let today = System.DateTime.Today.ToString "yyyy-MM-dd"
+  form [
+    _hxPatch  $"/request/{RequestId.toString requestId}/snooze"
+    _hxTarget "#journalItems"
+    _hxSwap   HxSwap.OuterHtml
+    ] [
+    div [ _class "form-floating pb-3" ] [
+      input [ _type "date"; _id "until"; _name "until"; _class "form-control"; _min today ]
+      label [ _for "until" ] [ str "Until" ]
+      ]
+    p [ _class "text-end mb-0" ] [ button [ _type "submit"; _class "btn btn-primary" ] [ str "Snooze" ] ]
     ]

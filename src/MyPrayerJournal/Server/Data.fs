@@ -149,7 +149,7 @@ let answeredRequests userId (db : LiteDatabase) = backgroundTask {
     |> Seq.sortByDescending (fun it -> Ticks.toLong it.asOf)
     |> List.ofSeq
   }
-  
+
 /// Retrieve the user's current journal
 let journalByUserId userId (db : LiteDatabase) = backgroundTask {
   let! jrnl = db.requests.Find (Query.EQ ("userId", UserId.toString userId)) |> toListAsync
@@ -159,6 +159,12 @@ let journalByUserId userId (db : LiteDatabase) = backgroundTask {
     |> Seq.filter (fun it -> it.lastStatus <> Answered)
     |> Seq.sortBy (fun it -> Ticks.toLong it.asOf)
     |> List.ofSeq
+  }
+
+/// Does the user have any snoozed requests?
+let hasSnoozed userId now (db : LiteDatabase) = backgroundTask {
+  let! jrnl = journalByUserId userId db
+  return jrnl |> List.exists (fun r -> Ticks.toLong r.snoozedUntil > Ticks.toLong now)
   }
 
 /// Retrieve a request by its ID and user ID (without notes and history)
