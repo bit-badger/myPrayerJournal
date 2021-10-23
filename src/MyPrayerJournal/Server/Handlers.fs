@@ -107,7 +107,7 @@ module private Helpers =
       }
 
   /// Create a page rendering context
-  let pageContext (ctx : HttpContext) pageTitle content : Views.PageRenderContext =
+  let pageContext (ctx : HttpContext) pageTitle content : Views.Layout.PageRenderContext =
     { isAuthenticated = (user >> Option.isSome) ctx
       hasSnoozed      = false
       currentUrl      = ctx.Request.Path.Value
@@ -248,7 +248,7 @@ module Home =
   
   // GET /
   let home : HttpHandler =
-    partialStatic "Welcome!" Views.Home.home
+    partialStatic "Welcome!" Views.Layout.home
   
 
 /// /journal URL

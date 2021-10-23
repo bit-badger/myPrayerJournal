@@ -23,8 +23,10 @@ nav .j {
   cursor: pointer;
   background-color: rgba(255, 255, 255, .2);
 }
-.navbar-nav .is-active-route {
-  background-color: rgba(255, 255, 255, .2);
+.nav-item a.is-active-route {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: solid 4px rgba(255, 255, 255, .3);
 }
 
 form {
