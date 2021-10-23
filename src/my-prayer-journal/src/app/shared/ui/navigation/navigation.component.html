@@ -1,9 +1,0 @@
-<ng-container *ngIf="auth.loggedIn">
-  <a routerLink="/journal">Journal</a>
-  <a routerLink="/requests/active">Active</a>
-  <a *ngIf="hasSnoozed" routerLink="/requests/snoozed">Snoozed</a>
-  <a routerLink="/requests/answered">Answered</a>
-  <a href="/user/log-off" (click)="logOff($event)">Log Off</a>
-</ng-container>
-<a *ngIf="!auth.loggedIn" href="/user/log-on" (click)="logOn($event)">Log On</a>
-<a href="https://docs.prayerjournal.me" target="_blank">Docs</a>
