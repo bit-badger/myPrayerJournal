@@ -263,8 +263,7 @@ let edit (req : JournalRequest) returnTo isNew =
 /// Display a list of notes for a request
 let notes notes =
   let toItem (note : Note) = p [] [ small [ _class "text-muted" ] [ relativeDate note.asOf ]; br []; str note.notes ]
-  [ hr [ _style "margin: .5rem -1rem" ]
-    p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
+  [ p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
     match notes with
     | [] -> p [ _class "text-center text-muted" ] [ str "There are no prior notes for this request" ]
     | _  -> yield! notes |> List.map toItem

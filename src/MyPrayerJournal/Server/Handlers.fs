@@ -17,7 +17,7 @@ module private LogOnHelpers =
 
   /// Log on, optionally specifying a redirected URL once authentication is complete
   let logOn url : HttpHandler =
-    fun next ctx -> task {
+    fun next ctx -> backgroundTask {
       match url with
       | Some it ->
           do! ctx.ChallengeAsync ("Auth0", AuthenticationProperties (RedirectUri = it))
@@ -102,7 +102,7 @@ module private Helpers =
   /// Render a component result
   let renderComponent nodes : HttpHandler =
     noResponseCaching
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
 
@@ -117,7 +117,7 @@ module private Helpers =
 
   /// Composable handler to write a view to the output
   let writeView view : HttpHandler =
-    fun next ctx -> task {
+    fun next ctx -> backgroundTask {
       return! ctx.WriteHtmlViewAsync view
       }
 
@@ -166,6 +166,10 @@ module private Helpers =
   /// Add a success message header to the response
   let withSuccessMessage : string -> HttpHandler =
     sprintf "success|||%s" >> setHttpHeader "X-Toast"
+  
+  /// Hide a modal window when the response is sent
+  let hideModal (name : string) : HttpHandler =
+    setHttpHeader "X-Hide-Modal" name
 
 
 /// Strongly-typed models for post requests
@@ -213,7 +217,7 @@ module Components =
   // GET /components/journal-items
   let journalItems : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let  shouldShow now r = now > Ticks.toLong r.snoozedUntil && now > Ticks.toLong r.showAfter
       let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
       let  shown = jrnl |> List.filter (shouldShow ((jsNow >> Ticks.toLong) ()))
@@ -223,7 +227,7 @@ module Components =
   // GET /components/request-item/[req-id]
   let requestItem reqId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       match! Data.tryJournalById (RequestId.ofString reqId) (userId ctx) (db ctx) with
       | Some req -> return! renderComponent [ Views.Request.reqListItem req ] next ctx
       | None     -> return! Error.notFound next ctx
@@ -237,7 +241,7 @@ module Components =
   /// GET /components/request/[req-id]/notes
   let notes requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
       return! renderComponent (Views.Request.notes notes) next ctx
       }
@@ -257,7 +261,7 @@ module Journal =
   // GET /journal
   let journal : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let usr =
         ctx.User.Claims
         |> Seq.tryFind (fun c -> c.Type = ClaimTypes.GivenName)
@@ -286,7 +290,7 @@ module Request =
   // GET /request/[req-id]/edit  
   let edit requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let returnTo =
         match ctx.Request.Headers.Referer.[0] with
         | it when it.EndsWith "/active"  -> "active"
@@ -305,7 +309,7 @@ module Request =
   // PATCH /request/[req-id]/prayed
   let prayed requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let db    = db     ctx
       let usrId = userId ctx
       let reqId = RequestId.ofString requestId
@@ -323,26 +327,26 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
   
-  /// POST /api/request/[req-id]/note
+  /// POST /request/[req-id]/note
   let addNote requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let db    = db     ctx
       let usrId = userId ctx
       let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
-          let! notes = ctx.BindJsonAsync<Models.NoteEntry> ()
+          let! notes = ctx.BindFormAsync<Models.NoteEntry> ()
           do! Data.addNote reqId usrId { asOf = jsNow (); notes = notes.notes } db
           do! db.saveChanges ()
-          return! created next ctx
+          return! (withSuccessMessage "Added Notes" >=> hideModal "notes" >=> created) next ctx
       | None -> return! Error.notFound next ctx
       }
           
   // GET /requests/active
   let active : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let! reqs = Data.journalByUserId (userId ctx) (db ctx)
       return! partial "Active Requests" (Views.Request.active reqs) next ctx
       }
@@ -350,7 +354,7 @@ module Request =
   // GET /requests/snoozed
   let snoozed : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let! reqs    = Data.journalByUserId (userId ctx) (db ctx)
       let  now     = (jsNow >> Ticks.toLong) ()
       let  snoozed = reqs |> List.filter (fun r -> Ticks.toLong r.snoozedUntil > now)
@@ -360,7 +364,7 @@ module Request =
   // GET /requests/answered
   let answered : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
       return! partial "Answered Requests" (Views.Request.answered reqs) next ctx
       }
@@ -368,7 +372,7 @@ module Request =
   /// GET /api/request/[req-id]
   let get requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
       | Some req -> return! json req next ctx
       | None -> return! Error.notFound next ctx
@@ -377,7 +381,7 @@ module Request =
   // GET /request/[req-id]/full
   let getFull requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       match! Data.tryFullRequestById (RequestId.ofString requestId) (userId ctx) (db ctx) with
       | Some req -> return! partial "Prayer Request" (Views.Request.full req) next ctx
       | None     -> return! Error.notFound next ctx
@@ -386,7 +390,7 @@ module Request =
   // PATCH /request/[req-id]/show
   let show requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let db    = db     ctx
       let usrId = userId ctx
       let reqId = RequestId.ofString requestId
@@ -401,7 +405,7 @@ module Request =
   /// PATCH /api/request/[req-id]/snooze
   let snooze requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let db    = db     ctx
       let usrId = userId ctx
       let reqId = RequestId.ofString requestId
@@ -417,7 +421,7 @@ module Request =
   // PATCH /request/[req-id]/cancel-snooze
   let cancelSnooze requestId : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let db    = db     ctx
       let usrId = userId ctx
       let reqId = RequestId.ofString requestId
@@ -437,7 +441,7 @@ module Request =
   // POST /request
   let add : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let! form             = ctx.BindModelAsync<Models.Request> ()
       let  db               = db ctx
       let  usrId            = userId ctx
@@ -466,7 +470,7 @@ module Request =
   // PATCH /request
   let update : HttpHandler =
     requiresAuthentication Error.notAuthorized
-    >=> fun next ctx -> task {
+    >=> fun next ctx -> backgroundTask {
       let! form  = ctx.BindModelAsync<Models.Request> ()
       let  db    = db ctx
       let  usrId = userId ctx
@@ -552,7 +556,8 @@ let routes =
         routef "/%s/show"          Request.show
         ]
       POST [
-        route "" Request.add
+        route  ""         Request.add
+        routef "/%s/note" Request.addNote
         ]
       ]
     subRoute "/user/" [
@@ -570,11 +575,6 @@ let routes =
       PATCH [
         subRoute "request" [
           routef "/%s/snooze"     Request.snooze
-          ]
-        ]
-      POST [
-        subRoute "request" [
-          routef "/%s/note"    Request.addNote
           ]
         ]
       ]

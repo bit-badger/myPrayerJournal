@@ -66,19 +66,6 @@ const mpj = {
       const isDisabled = target.value === "Immediate"
       ;["recurCount", "recurInterval"].forEach(it => document.getElementById(it).disabled = isDisabled)
     }
-  },
-  /** Script for the journal page */
-  journal: {
-    /**
-     * Set up the journal page modals
-     */
-    setUp () {
-      document.getElementById("notesModal").addEventListener("show.bs.modal", function (event) {
-        const reqId = event.relatedTarget.getAttribute("data-request-id")
-        document.getElementById("notesForm").setAttribute("action", `/request/${reqId}/note`)
-        document.getElementById("notesLoad").setAttribute("hx-get", `/components/request/${reqId}/notes`)
-      })
-    }
   }
 }
 
@@ -88,5 +75,8 @@ htmx.on("htmx:afterOnLoad", function (evt) {
   if (hdrs.indexOf("x-toast") >= 0) {
     mpj.showToast(evt.detail.xhr.getResponseHeader("x-toast"))
   }
+  // Hide a modal window if requested
+  if (hdrs.indexOf("x-hide-modal") >= 0) {
+    document.getElementById(evt.detail.xhr.getResponseHeader("x-hide-modal") + "Dismiss").click()
+  }
 })
-

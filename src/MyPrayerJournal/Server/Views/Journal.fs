@@ -75,7 +75,9 @@ let journal user = article [ _class "container-fluid mt-3" ] [
           ]
         div [ _class "modal-body"; _id "notesBody" ] [ ]
         div [ _class "modal-footer" ] [
-          button [ _type "button"; _class "btn btn-secondary"; _data "bs-dismiss" "modal" ] [ str "Close" ]
+          button [ _type "button"; _id "notesDismiss"; _class "btn btn-secondary"; _data "bs-dismiss" "modal" ] [
+            str "Close"
+            ]
           ]
         ]
       ]
@@ -102,12 +104,23 @@ let journalItems items =
 /// The notes edit modal body
 let notesEdit requestId =
   let reqId = RequestId.toString requestId
-  [ form [ _hxPost $"/request/{reqId}/note"; _hxTarget "#top" ] [
-      str "TODO"
-      button [ _type "submit"; _class "btn btn-primary" ] [ str "Add Notes" ]
+  [ form [ _hxPost $"/request/{reqId}/note" ] [
+      div [ _class "form-floating pb-3" ] [
+        textarea [
+          _id          "notes"
+          _name        "notes"
+          _class       "form-control"
+          _style       "min-height: 8rem;"
+          _placeholder "Notes"
+          _autofocus;  _required
+          ] [ ]
+        label [ _for "notes" ] [ str "Notes" ]
+        ]
+      p [ _class "text-end" ] [ button [ _type "submit"; _class "btn btn-primary" ] [ str "Add Notes" ] ]
       ]
+    hr [ _style "margin: .5rem -1rem" ]
     div [ _id "priorNotes" ] [
-      p [ _class "text-center pt-5" ] [
+      p [ _class "text-center pt-3" ] [
         button [
           _type     "button"
           _class    "btn btn-secondary"
