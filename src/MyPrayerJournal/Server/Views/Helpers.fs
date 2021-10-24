@@ -5,7 +5,7 @@ module private MyPrayerJournal.Views.Helpers
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
-open System
+open NodaTime
 
 /// Create a link that targets the `#top` element and pushes a URL to history
 let pageLink href attrs =
@@ -26,10 +26,6 @@ let noResults heading link buttonText text =
       ]
     ]
 
-/// Convert `Ticks` to `DateTime`
-let fromJs = Ticks.toLong >> Dates.fromJs
-
 /// Create a date with a span tag, displaying the relative date with the full date/time in the tooltip
-let relativeDate jsDate =
-  let date = fromJs jsDate
-  span [ _title (date.ToString "f") ] [ Dates.formatDistance DateTime.UtcNow date |> str ]
+let relativeDate (date : Instant) now =
+  span [ _title (date.ToDateTimeOffset().ToString ("f", null)) ] [ Dates.formatDistance now date |> str ]

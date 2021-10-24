@@ -5,6 +5,7 @@ module MyPrayerJournal.Domain
 // fsharplint:disable RecordFieldNames
 
 open Cuid
+open NodaTime
 
 /// An identifier for a request
 type RequestId =
@@ -26,16 +27,6 @@ type UserId =
 module UserId =
   /// The string representation of the user ID
   let toString = function UserId x -> x
-
-
-/// A long integer representing seconds since the epoch
-type Ticks =
-  | Ticks of int64
-
-/// Functions to manipulate Ticks
-module Ticks =
-  /// The int64 (long) representation of ticks
-  let toLong = function Ticks x -> x
 
 
 /// How frequently a request should reappear after it is marked "Prayed"
@@ -71,7 +62,6 @@ module Recurrence =
     | Hours     -> oneHour
     | Days      -> oneHour * 24L
     | Weeks     -> oneHour * 24L * 7L)
-    |> ( * ) 1000L
 
 
 /// The action taken on a request as part of a history entry
@@ -86,7 +76,7 @@ type RequestAction =
 [<CLIMutable; NoComparison; NoEquality>]
 type History = {
   /// The time when this history entry was made
-  asOf   : Ticks
+  asOf   : Instant
   /// The status for this history entry
   status : RequestAction
   /// The text of the update, if applicable
@@ -97,7 +87,7 @@ type History = {
 [<CLIMutable; NoComparison; NoEquality>]
 type Note = {
   /// The time when this note was made
-  asOf  : Ticks
+  asOf  : Instant
   /// The text of the notes
   notes : string
   }
@@ -108,13 +98,13 @@ type Request = {
   /// The ID of the request
   id           : RequestId
   /// The time this request was initially entered
-  enteredOn    : Ticks
+  enteredOn    : Instant
   /// The ID of the user to whom this request belongs ("sub" from the JWT)
   userId       : UserId
   /// The time at which this request should reappear in the user's journal by manual user choice
-  snoozedUntil : Ticks
+  snoozedUntil : Instant
   /// The time at which this request should reappear in the user's journal by recurrence
-  showAfter    : Ticks
+  showAfter    : Instant
   /// The type of recurrence for this request
   recurType    : Recurrence
   /// How many of the recurrence intervals should occur between appearances in the journal
@@ -128,10 +118,10 @@ with
   /// An empty request
   static member empty =
     { id           = Cuid.generate () |> RequestId
-      enteredOn    = Ticks 0L
+      enteredOn    = Instant.MinValue
       userId       = UserId ""
-      snoozedUntil = Ticks 0L
-      showAfter    = Ticks 0L
+      snoozedUntil = Instant.MinValue
+      showAfter    = Instant.MinValue
       recurType    = Immediate
       recurCount   = 0s
       history      = []
@@ -149,13 +139,13 @@ type JournalRequest =
     /// The current text of the request
     text         : string
     /// The last time action was taken on the request
-    asOf         : Ticks
+    asOf         : Instant
     /// The last status for the request
     lastStatus   : RequestAction
     /// The time that this request should reappear in the user's journal
-    snoozedUntil : Ticks
+    snoozedUntil : Instant
     /// The time after which this request should reappear in the user's journal by configured recurrence
-    showAfter    : Ticks
+    showAfter    : Instant
     /// The type of recurrence for this request
     recurType    : Recurrence
     /// How many of the recurrence intervals should occur between appearances in the journal
@@ -171,16 +161,16 @@ module JournalRequest =
 
   /// Convert a request to the form used for the journal (precomputed values, no notes or history)
   let ofRequestLite (req : Request) =
-    let hist = req.history |> List.sortByDescending (fun it -> Ticks.toLong it.asOf) |> List.tryHead
+    let hist = req.history |> List.sortByDescending (fun it -> it.asOf) |> List.tryHead
     { requestId    = req.id
       userId       = req.userId
       text         = req.history
                       |> List.filter (fun it -> Option.isSome it.text)
-                      |> List.sortByDescending (fun it -> Ticks.toLong it.asOf)
+                      |> List.sortByDescending (fun it -> it.asOf)
                       |> List.tryHead
                       |> Option.map (fun h -> Option.get h.text)
                       |> Option.defaultValue ""
-      asOf         = match hist with Some h -> h.asOf   | None -> Ticks 0L
+      asOf         = match hist with Some h -> h.asOf   | None -> Instant.MinValue
       lastStatus   = match hist with Some h -> h.status | None -> Created
       snoozedUntil = req.snoozedUntil
       showAfter    = req.showAfter

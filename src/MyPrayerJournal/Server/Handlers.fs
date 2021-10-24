@@ -10,6 +10,7 @@ open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Http
 open System
 open System.Security.Claims
+open NodaTime
 
 /// Helper function to be able to split out log on
 [<AutoOpen>]
@@ -81,6 +82,14 @@ module private Helpers =
   let userId ctx =
     (user >> Option.get) ctx |> UserId
 
+  /// Get the system clock
+  let clock (ctx : HttpContext) =
+    ctx.GetService<IClock> ()
+  
+  /// Get the current instant
+  let now ctx =
+    (clock ctx).GetCurrentInstant ()
+
   /// Return a 201 CREATED response
   let created =
     setStatusCode 201
@@ -95,14 +104,6 @@ module private Helpers =
   let seeOther (url : string) =
     noResponseCaching >=> setStatusCode 303 >=> setHttpHeader "Location" url
 
-  /// Convert a date/time to JS-style ticks
-  let toJs (date : DateTime) =
-    date.Subtract(DateTime (1970, 1, 1, 0, 0, 0)).TotalSeconds |> (int64 >> ( * ) 1_000L >> Ticks)
-
-  /// The "now" time in JavaScript as Ticks
-  let jsNow () =
-    toJs DateTime.UtcNow
-  
   /// Render a component result
   let renderComponent nodes : HttpHandler =
     noResponseCaching
@@ -116,7 +117,7 @@ module private Helpers =
   let pageContext (ctx : HttpContext) pageTitle content = backgroundTask {
     let! hasSnoozed = backgroundTask {
       match user ctx with
-      | Some _ -> return! Data.hasSnoozed (userId ctx) (jsNow ()) (db ctx)
+      | Some _ -> return! Data.hasSnoozed (userId ctx) (now ctx) (db ctx)
       | None   -> return  false
       }
     return {
@@ -224,6 +225,7 @@ module Models =
 
 
 open MyPrayerJournal.Data.Extensions
+open NodaTime.Text
 
 /// Handlers for less-than-full-page HTML requests
 module Components =
@@ -232,10 +234,10 @@ module Components =
   let journalItems : HttpHandler =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
-      let  shouldShow now r = now > Ticks.toLong r.snoozedUntil && now > Ticks.toLong r.showAfter
+      let  now   = now ctx
       let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
-      let  shown = jrnl |> List.filter (shouldShow ((jsNow >> Ticks.toLong) ()))
-      return! renderComponent [ Views.Journal.journalItems shown ] next ctx
+      let  shown = jrnl |> List.filter (fun it -> now > it.snoozedUntil && now > it.showAfter)
+      return! renderComponent [ Views.Journal.journalItems now shown ] next ctx
       }
   
   // GET /components/request-item/[req-id]
@@ -243,7 +245,7 @@ module Components =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       match! Data.tryJournalById (RequestId.ofString reqId) (userId ctx) (db ctx) with
-      | Some req -> return! renderComponent [ Views.Request.reqListItem req ] next ctx
+      | Some req -> return! renderComponent [ Views.Request.reqListItem (now ctx) req ] next ctx
       | None     -> return! Error.notFound next ctx
       }
 
@@ -257,7 +259,7 @@ module Components =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       let! notes = Data.notesById (RequestId.ofString requestId) (userId ctx) (db ctx)
-      return! renderComponent (Views.Request.notes notes) next ctx
+      return! renderComponent (Views.Request.notes (now ctx) notes) next ctx
       }
   
   // GET /components/request/[req-id]/snooze
@@ -321,8 +323,12 @@ module Request =
                     (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) returnTo true) next ctx
       | _     ->
           match! Data.tryJournalById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-          | Some req -> return! partial "Edit Prayer Request" (Views.Request.edit req returnTo false) next ctx
-          | None     -> return! Error.notFound next ctx
+          | Some req ->
+              debug ctx "Found - sending view"
+              return! partial "Edit Prayer Request" (Views.Request.edit req returnTo false) next ctx
+          | None     ->
+              debug ctx "Not found - uh oh..."
+              return! Error.notFound next ctx
       }
 
   // PATCH /request/[req-id]/prayed
@@ -334,13 +340,13 @@ module Request =
       let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some req ->
-          let now  = jsNow ()
+          let now  = now ctx
           do! Data.addHistory reqId usrId { asOf = now; status = Prayed; text = None } db
           let nextShow =
             match Recurrence.duration req.recurType with
-            | 0L       -> 0L
-            | duration -> (Ticks.toLong now) + (duration * int64 req.recurCount)
-          do! Data.updateShowAfter reqId usrId (Ticks nextShow) db
+            | 0L       -> Instant.MinValue
+            | duration -> now.Plus (Duration.FromSeconds (duration * int64 req.recurCount))
+          do! Data.updateShowAfter reqId usrId nextShow db
           do! db.saveChanges ()
           return! (withSuccessMessage "Request marked as prayed" >=> Components.journalItems) next ctx
       | None -> return! Error.notFound next ctx
@@ -356,7 +362,7 @@ module Request =
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
           let! notes = ctx.BindFormAsync<Models.NoteEntry> ()
-          do! Data.addNote reqId usrId { asOf = jsNow (); notes = notes.notes } db
+          do! Data.addNote reqId usrId { asOf = now ctx; notes = notes.notes } db
           do! db.saveChanges ()
           return! (withSuccessMessage "Added Notes" >=> hideModal "notes" >=> created) next ctx
       | None -> return! Error.notFound next ctx
@@ -367,7 +373,7 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       let! reqs = Data.journalByUserId (userId ctx) (db ctx)
-      return! partial "Active Requests" (Views.Request.active reqs) next ctx
+      return! partial "Active Requests" (Views.Request.active (now ctx) reqs) next ctx
       }
   
   // GET /requests/snoozed
@@ -375,9 +381,9 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       let! reqs    = Data.journalByUserId (userId ctx) (db ctx)
-      let  now     = (jsNow >> Ticks.toLong) ()
-      let  snoozed = reqs |> List.filter (fun r -> Ticks.toLong r.snoozedUntil > now)
-      return! partial "Active Requests" (Views.Request.snoozed snoozed) next ctx
+      let  now     = now ctx
+      let  snoozed = reqs |> List.filter (fun it -> it.snoozedUntil > now)
+      return! partial "Active Requests" (Views.Request.snoozed now snoozed) next ctx
       }
 
   // GET /requests/answered
@@ -385,7 +391,7 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       let! reqs = Data.answeredRequests (userId ctx) (db ctx)
-      return! partial "Answered Requests" (Views.Request.answered reqs) next ctx
+      return! partial "Answered Requests" (Views.Request.answered (now ctx) reqs) next ctx
       }
   
   // GET /api/request/[req-id]
@@ -402,7 +408,7 @@ module Request =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
       match! Data.tryFullRequestById (RequestId.ofString requestId) (userId ctx) (db ctx) with
-      | Some req -> return! partial "Prayer Request" (Views.Request.full req) next ctx
+      | Some req -> return! partial "Prayer Request" (Views.Request.full (clock ctx) req) next ctx
       | None     -> return! Error.notFound next ctx
       }
   
@@ -415,7 +421,7 @@ module Request =
       let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
-          do! Data.updateShowAfter reqId usrId (Ticks 0L) db
+          do! Data.updateShowAfter reqId usrId Instant.MinValue db
           do! db.saveChanges ()
           return! (withSuccessMessage "Request now shown" >=> Components.requestItem requestId) next ctx
       | None -> return! Error.notFound next ctx
@@ -431,8 +437,11 @@ module Request =
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
           let! until = ctx.BindFormAsync<Models.SnoozeUntil> ()
-          let date = sprintf "%s 00:00:00" until.until |> DateTime.Parse
-          do! Data.updateSnoozed reqId usrId (toJs date) db
+          let date =
+            LocalDatePattern.CreateWithInvariantCulture("yyyy-MM-dd").Parse(until.until).Value
+              .AtStartOfDayInZone(DateTimeZone.Utc)
+              .ToInstant ()
+          do! Data.updateSnoozed reqId usrId date db
           do! db.saveChanges ()
           return!
             (withSuccessMessage $"Request snoozed until {until.until}"
@@ -450,7 +459,7 @@ module Request =
       let reqId = RequestId.ofString requestId
       match! Data.tryRequestById reqId usrId db with
       | Some _ ->
-          do! Data.updateSnoozed reqId usrId (Ticks 0L) db
+          do! Data.updateSnoozed reqId usrId Instant.MinValue db
           do! db.saveChanges ()
           return! (withSuccessMessage "Request unsnoozed" >=> Components.requestItem requestId) next ctx
       | None -> return! Error.notFound next ctx
@@ -468,13 +477,13 @@ module Request =
       let! form             = ctx.BindModelAsync<Models.Request> ()
       let  db               = db ctx
       let  usrId            = userId ctx
-      let  now              = jsNow ()
+      let  now              = now ctx
       let (recur, interval) = parseRecurrence form
       let  req   =
         { Request.empty with
             userId     = usrId
             enteredOn  = now
-            showAfter  = Ticks 0L
+            showAfter  = Instant.MinValue
             recurType  = recur
             recurCount = interval
             history    = [
@@ -506,13 +515,13 @@ module Request =
           | false ->
               do! Data.updateRecurrence req.requestId usrId recur interval db
               match recur with
-              | Immediate -> do! Data.updateShowAfter req.requestId usrId (Ticks 0L) db
+              | Immediate -> do! Data.updateShowAfter req.requestId usrId Instant.MinValue db
               | _         -> ()
           // append history
           let upd8Text = form.requestText.Trim ()
           let text     = match upd8Text = req.text with true -> None | false -> Some upd8Text
           do! Data.addHistory req.requestId usrId
-                { asOf = jsNow (); status = (Option.get >> RequestAction.ofString) form.status; text = text } db
+                { asOf = now ctx; status = (Option.get >> RequestAction.ofString) form.status; text = text } db
           do! db.saveChanges ()
           let nextUrl =
             match form.returnTo with

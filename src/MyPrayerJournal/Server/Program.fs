@@ -61,6 +61,7 @@ module Configure =
   open Microsoft.AspNetCore.Http
   open Microsoft.Extensions.DependencyInjection
   open Microsoft.IdentityModel.Protocols.OpenIdConnect
+  open NodaTime
   open System
   open System.Text.Json
   open System.Text.Json.Serialization
@@ -76,6 +77,7 @@ module Configure =
     bldr.Services
       .AddRouting()
       .AddGiraffe()
+      .AddSingleton<IClock>(SystemClock.Instance)
       .Configure<CookiePolicyOptions>(
         fun (opts : CookiePolicyOptions) ->
           opts.MinimumSameSitePolicy <- SameSiteMode.Unspecified

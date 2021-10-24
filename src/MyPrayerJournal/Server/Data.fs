@@ -1,6 +1,7 @@
 ﻿module MyPrayerJournal.Data
 
 open LiteDB
+open NodaTime
 open System
 open System.Threading.Tasks
 
@@ -29,14 +30,14 @@ module Mapping =
   /// Map a history entry to BSON
   let historyToBson (hist : History) : BsonValue =
     let doc = BsonDocument ()
-    doc["asOf"]   <- Ticks.toLong hist.asOf
+    doc["asOf"]   <- hist.asOf.ToUnixTimeMilliseconds ()
     doc["status"] <- RequestAction.toString hist.status
     doc["text"]   <- match hist.text with Some t -> t | None -> ""
     upcast doc
 
   /// Map a BSON document to a history entry
   let historyFromBson (doc : BsonValue) =
-    { asOf   = Ticks doc["asOf"].AsInt64
+    { asOf   = Instant.FromUnixTimeMilliseconds doc["asOf"].AsInt64
       status = RequestAction.ofString doc["status"].AsString
       text   = match doc["text"].AsString with "" -> None | txt -> Some txt
       }
@@ -44,13 +45,13 @@ module Mapping =
   /// Map a note entry to BSON
   let noteToBson (note : Note) : BsonValue =
     let doc = BsonDocument ()
-    doc["asOf"]  <- Ticks.toLong note.asOf
+    doc["asOf"]  <- note.asOf.ToUnixTimeMilliseconds ()
     doc["notes"] <- note.notes
     upcast doc
 
   /// Map a BSON document to a note entry
   let noteFromBson (doc : BsonValue) =
-    { asOf  = Ticks doc["asOf"].AsInt64
+    { asOf  = Instant.FromUnixTimeMilliseconds doc["asOf"].AsInt64
       notes = doc["notes"].AsString
       }
 
@@ -58,10 +59,10 @@ module Mapping =
   let requestToBson req : BsonValue =
     let doc = BsonDocument ()
     doc["_id"]          <- RequestId.toString req.id
-    doc["enteredOn"]    <- Ticks.toLong req.enteredOn
+    doc["enteredOn"]    <- req.enteredOn.ToUnixTimeMilliseconds ()
     doc["userId"]       <- UserId.toString req.userId
-    doc["snoozedUntil"] <- Ticks.toLong req.snoozedUntil
-    doc["showAfter"]    <- Ticks.toLong req.showAfter
+    doc["snoozedUntil"] <- req.snoozedUntil.ToUnixTimeMilliseconds ()
+    doc["showAfter"]    <- req.showAfter.ToUnixTimeMilliseconds ()
     doc["recurType"]    <- Recurrence.toString req.recurType
     doc["recurCount"]   <- BsonValue req.recurCount
     doc["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
@@ -71,10 +72,10 @@ module Mapping =
   /// Map a BSON document to a request
   let requestFromBson (doc : BsonValue) =
     { id           = RequestId.ofString doc["_id"].AsString
-      enteredOn    = Ticks doc["enteredOn"].AsInt64
+      enteredOn    = Instant.FromUnixTimeMilliseconds doc["enteredOn"].AsInt64
       userId       = UserId doc["userId"].AsString
-      snoozedUntil = Ticks doc["snoozedUntil"].AsInt64
-      showAfter    = Ticks doc["showAfter"].AsInt64
+      snoozedUntil = Instant.FromUnixTimeMilliseconds doc["snoozedUntil"].AsInt64
+      showAfter    = Instant.FromUnixTimeMilliseconds doc["showAfter"].AsInt64
       recurType    = Recurrence.ofString doc["recurType"].AsString
       recurCount   = int16 doc["recurCount"].AsInt32
       history      = doc["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
@@ -139,6 +140,8 @@ let addNote reqId userId note db = backgroundTask {
 let addRequest (req : Request) (db : LiteDatabase) =
   db.requests.Insert req |> ignore
 
+// FIXME: make a common function here
+
 /// Retrieve all answered requests for the given user
 let answeredRequests userId (db : LiteDatabase) = backgroundTask {
   let! reqs = db.requests.Find (Query.EQ ("userId", UserId.toString userId)) |> toListAsync
@@ -146,7 +149,7 @@ let answeredRequests userId (db : LiteDatabase) = backgroundTask {
     reqs
     |> Seq.map JournalRequest.ofRequestFull
     |> Seq.filter (fun it -> it.lastStatus = Answered)
-    |> Seq.sortByDescending (fun it -> Ticks.toLong it.asOf)
+    |> Seq.sortByDescending (fun it -> it.asOf)
     |> List.ofSeq
   }
 
@@ -157,14 +160,14 @@ let journalByUserId userId (db : LiteDatabase) = backgroundTask {
     jrnl
     |> Seq.map JournalRequest.ofRequestLite
     |> Seq.filter (fun it -> it.lastStatus <> Answered)
-    |> Seq.sortBy (fun it -> Ticks.toLong it.asOf)
+    |> Seq.sortBy (fun it -> it.asOf)
     |> List.ofSeq
   }
 
 /// Does the user have any snoozed requests?
 let hasSnoozed userId now (db : LiteDatabase) = backgroundTask {
   let! jrnl = journalByUserId userId db
-  return jrnl |> List.exists (fun r -> Ticks.toLong r.snoozedUntil > Ticks.toLong now)
+  return jrnl |> List.exists (fun r -> r.snoozedUntil > now)
   }
 
 /// Retrieve a request by its ID and user ID (without notes and history)

@@ -30,7 +30,7 @@ const mpj = {
     body.innerText = msg
     
     const toastEl = document.createElement("div")
-    toastEl.className = `toast bg-${level} text-white`
+    toastEl.className = `toast bg-${level === "error" ? "danger" : level} text-white`
     toastEl.setAttribute("role", "alert")
     toastEl.setAttribute("aria-live", "assertlive")
     toastEl.setAttribute("aria-atomic", "true")

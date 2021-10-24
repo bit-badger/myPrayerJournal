@@ -2,6 +2,7 @@
 //  Many thanks to date-fns (https://date-fns.org) for this logic
 module MyPrayerJournal.Dates
 
+open NodaTime
 
 type internal FormatDistanceToken =
   | LessThanXMinutes
@@ -48,7 +49,7 @@ open System
 /// Convert from a JavaScript "ticks" value to a date/time
 let fromJs ticks = DateTime.UnixEpoch + TimeSpan.FromTicks (ticks * 10_000L)
 
-let formatDistance (startDate : DateTime) (endDate : DateTime) =
+let formatDistance (startDate : Instant) (endDate : Instant) =
   let format (token, number) locale =
     let labels = locales |> Map.find locale
     match number with 1 -> fst labels[token] | _ -> sprintf (snd labels[token]) number

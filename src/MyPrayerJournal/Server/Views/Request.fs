@@ -4,30 +4,26 @@ module MyPrayerJournal.Views.Request
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
+open NodaTime
 open System
 
 /// Create a request within the list
-let reqListItem req =
-  let jsNow      = int64 (DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds
+let reqListItem now req =
   let reqId      = RequestId.toString req.requestId
   let isAnswered = req.lastStatus = Answered
-  let isSnoozed  = Ticks.toLong req.snoozedUntil > jsNow
-  let isPending  = (not isSnoozed) && Ticks.toLong req.showAfter > jsNow
+  let isSnoozed  = req.snoozedUntil > now
+  let isPending  = (not isSnoozed) && req.showAfter > now
   let btnClass   = _class "btn btn-light mx-2"
-  div [
-    _class    "list-group-item px-0 d-flex flex-row align-items-start"
-    _hxTarget "this"
-    _hxSwap   HxSwap.OuterHtml
-    ] [
+  let restoreBtn (link : string) title =
+    button [ btnClass; _hxPatch $"/request/{reqId}/{link}"; _title title ] [ icon "restore" ]
+  div [ _class "list-group-item px-0 d-flex flex-row align-items-start"; _hxTarget "this"; _hxSwap HxSwap.OuterHtml ] [
     pageLink $"/request/{reqId}/full" [ btnClass; _title "View Full Request" ] [ icon "description" ]
     match isAnswered with
     | true  -> ()
-    | false -> button [ btnClass; _hxGet $"/components/request/{reqId}/edit"; _title "Edit Request" ] [ icon "edit" ]
+    | false -> pageLink $"/request/{reqId}/edit" [ btnClass; _title "Edit Request" ] [ icon "edit" ]
     match true with
-    | _ when isSnoozed ->
-        button [ btnClass; _hxPatch $"/request/{reqId}/cancel-snooze"; _title "Cancel Snooze" ] [ icon "restore" ]
-    | _ when isPending ->
-        button [ btnClass; _hxPatch $"/request/{reqId}/show"; _title "Show Now" ] [ icon "restore" ]
+    | _ when isSnoozed -> restoreBtn "cancel-snooze" "Cancel Snooze"
+    | _ when isPending -> restoreBtn "show"          "Show Now"
     | _ -> ()
     p [ _class "request-text mb-0" ] [
       str req.text
@@ -36,9 +32,9 @@ let reqListItem req =
           br []
           small [ _class "text-muted" ] [
             match () with
-            | _ when isSnoozed   -> [ str "Snooze expires "; relativeDate req.snoozedUntil ]
-            | _ when isPending   -> [ str "Request appears next "; relativeDate req.showAfter ]
-            | _ (* isAnswered *) -> [ str "Answered "; relativeDate req.asOf ]
+            | _ when isSnoozed   -> [ str "Snooze expires ";       relativeDate req.snoozedUntil now ]
+            | _ when isPending   -> [ str "Request appears next "; relativeDate req.showAfter    now ]
+            | _ (* isAnswered *) -> [ str "Answered ";             relativeDate req.asOf         now ]
             |> em []
             ]
       | false -> ()
@@ -46,23 +42,23 @@ let reqListItem req =
     ]
 
 /// Create a list of requests
-let reqList reqs =
+let reqList now reqs =
   reqs
-  |> List.map reqListItem
+  |> List.map (reqListItem now)
   |> div [ _class "list-group" ]
 
 /// View for Active Requests page
-let active reqs = article [ _class "container mt-3" ] [
+let active now reqs = article [ _class "container mt-3" ] [
   h2 [ _class "pb-3" ] [ str "Active Requests" ]
   match reqs |> List.isEmpty with
   | true ->
       noResults "No Active Requests" "/journal" "Return to your journal"
         [ str "Your prayer journal has no active requests" ]
-  | false -> reqList reqs
+  | false -> reqList now reqs
   ]
 
 /// View for Answered Requests page
-let answered reqs = article [ _class "container mt-3" ] [
+let answered now reqs = article [ _class "container mt-3" ] [
   h2 [ _class "pb-3" ] [ str "Answered Requests" ]
   match reqs |> List.isEmpty with
   | true ->
@@ -70,38 +66,39 @@ let answered reqs = article [ _class "container mt-3" ] [
         rawText "Your prayer journal has no answered requests; once you have marked one as &ldquo;Answered&rdquo;, "
         str "it will appear here"
         ]
-  | false -> reqList reqs
+  | false -> reqList now reqs
   ]
 
 /// View for Snoozed Requests page
-let snoozed reqs = article [ _class "container mt-3" ] [
+let snoozed now reqs = article [ _class "container mt-3" ] [
   h2 [ _class "pb-3" ] [ str "Snoozed Requests" ]
-  reqList reqs
+  reqList now reqs
   ]
 
 /// View for Full Request page
-let full (req : Request) =
+let full (clock : IClock) (req : Request) =
+  let now = clock.GetCurrentInstant ()
   let answered =
     req.history
     |> List.filter RequestAction.isAnswered
     |> List.tryHead
     |> Option.map (fun x -> x.asOf)
-  let prayed = req.history |> List.filter RequestAction.isPrayed |> List.length
+  let prayed = (req.history |> List.filter RequestAction.isPrayed |> List.length).ToString "N0"
   let daysOpen =
-    let asOf = answered |> Option.map fromJs |> Option.defaultValue DateTime.Now
-    (asOf - fromJs (req.history |> List.filter RequestAction.isCreated |> List.head).asOf).TotalDays |> int
+    let asOf = defaultArg answered now
+    ((asOf - (req.history |> List.filter RequestAction.isCreated |> List.head).asOf).TotalDays |> int).ToString "N0"
   let lastText =
     req.history
     |> List.filter (fun h -> Option.isSome h.text)
-    |> List.sortByDescending (fun h -> Ticks.toLong h.asOf)
+    |> List.sortByDescending (fun h -> h.asOf)
     |> List.map (fun h -> Option.get h.text)
     |> List.head
   // The history log including notes (and excluding the final entry for answered requests)
   let log =
-    let toDisp (h : History) = {| asOf = fromJs h.asOf; text = h.text; status = RequestAction.toString h.status |}
+    let toDisp (h : History) = {| asOf = h.asOf; text = h.text; status = RequestAction.toString h.status |}
     let all =
       req.notes
-      |> List.map (fun n -> {| asOf = fromJs n.asOf; text = Some n.notes; status = "Notes" |})
+      |> List.map (fun n -> {| asOf = n.asOf; text = Some n.notes; status = "Notes" |})
       |> List.append (req.history |> List.map toDisp)
       |> List.sortByDescending (fun it -> it.asOf)
     // Skip the first entry for answered requests; that info is already displayed
@@ -112,14 +109,14 @@ let full (req : Request) =
       div [ _class "card-body" ] [
         h6 [ _class "card-subtitle text-muted mb-2"] [
           match answered with
-          | Some ticks ->
+          | Some date ->
               str "Answered "
-              (fromJs ticks).ToString "D" |> str
+              date.ToDateTimeOffset().ToString ("D", null) |> str
               str " ("
-              relativeDate ticks
+              relativeDate date now
               rawText ") &bull; "
           | None -> ()
-          sprintf "Prayed %i times &bull; Open %i days" prayed daysOpen |> rawText
+          sprintf "Prayed %s times &bull; Open %s days" prayed daysOpen |> rawText
           ]
         p [ _class "card-text" ] [ str lastText ]
         ]
@@ -128,7 +125,7 @@ let full (req : Request) =
         p [ _class "m-0" ] [
           str it.status
           rawText "&nbsp; "
-          small [] [ em [] [ it.asOf.ToString "D" |> str ] ]
+          small [] [ em [] [ it.asOf.ToDateTimeOffset().ToString ("D", null) |> str ] ]
           ]
         match it.text with
         | Some txt -> p [ _class "mt-2 mb-0" ] [ str txt ]
@@ -261,8 +258,9 @@ let edit (req : JournalRequest) returnTo isNew =
     ]
 
 /// Display a list of notes for a request
-let notes notes =
-  let toItem (note : Note) = p [] [ small [ _class "text-muted" ] [ relativeDate note.asOf ]; br []; str note.notes ]
+let notes now notes =
+  let toItem (note : Note) =
+    p [] [ small [ _class "text-muted" ] [ relativeDate note.asOf now ]; br []; str note.notes ]
   [ p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
     match notes with
     | [] -> p [ _class "text-center text-muted" ] [ str "There are no prior notes for this request" ]

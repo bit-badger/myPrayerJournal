@@ -7,7 +7,7 @@ open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
 
 /// Display a card for this prayer request
-let journalCard req =
+let journalCard now req =
   let reqId = RequestId.toString req.requestId
   let spacer = span [] [ rawText "&nbsp;" ]
   div [ _class "col" ] [
@@ -48,7 +48,7 @@ let journalCard req =
         p [ _class "request-text" ] [ str req.text ]
         ]
       div [ _class "card-footer text-end text-muted px-1 py-0" ] [
-        em [] [ str "last activity "; relativeDate req.asOf ]
+        em [] [ str "last activity "; relativeDate req.asOf now ]
         ]
       ]
     ]
@@ -113,7 +113,7 @@ let journal user = article [ _class "container-fluid mt-3" ] [
   ]
 
 /// The journal items
-let journalItems items =
+let journalItems now items =
   match items |> List.isEmpty with
   | true ->
       noResults "No Active Requests" "/request/new/edit" "Add a Request" [
@@ -122,7 +122,7 @@ let journalItems items =
         ]
   | false ->
       items
-      |> List.map journalCard
+      |> List.map (journalCard now)
       |> section [
           _id       "journalItems"
           _class    "row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3"
@@ -170,7 +170,7 @@ let snooze requestId =
     _hxSwap   HxSwap.OuterHtml
     ] [
     div [ _class "form-floating pb-3" ] [
-      input [ _type "date"; _id "until"; _name "until"; _class "form-control"; _min today ]
+      input [ _type "date"; _id "until"; _name "until"; _class "form-control"; _min today; _required ]
       label [ _for "until" ] [ str "Until" ]
       ]
     p [ _class "text-end mb-0" ] [ button [ _type "submit"; _class "btn btn-primary" ] [ str "Snooze" ] ]
