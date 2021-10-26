@@ -24,8 +24,8 @@
     <PackageReference Include="NodaTime" Version="3.0.9" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../../Giraffe.Htmx/src/Htmx/Giraffe.Htmx.fsproj" />
-    <ProjectReference Include="../../../../Giraffe.Htmx/src/ViewEngine.Htmx/Giraffe.ViewEngine.Htmx.fsproj" />
+    <ProjectReference Include="../../../Giraffe.Htmx/src/Htmx/Giraffe.Htmx.fsproj" />
+    <ProjectReference Include="../../../Giraffe.Htmx/src/ViewEngine.Htmx/Giraffe.ViewEngine.Htmx.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="wwwroot\" />
