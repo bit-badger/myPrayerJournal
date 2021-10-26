@@ -1,21 +1,20 @@
 {
   "name": "my-prayer-journal",
-  "version": "2.1.5",
-  "private": true,
+  "version": "2.2.0",
   "description": "myPrayerJournal - Front End",
   "author": "Daniel J. Summers <daniel@bitbadger.solutions>",
+  "private": true,
   "scripts": {
     "serve": "vue-cli-service serve --port 8081",
     "build": "vue-cli-service build --modern",
     "lint": "vue-cli-service lint",
     "apistart": "cd ../MyPrayerJournal.Api && dotnet run",
-    "publish": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet publish -c Release -r linux-x64 --self-contained false",
-    "vue": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet run"
+    "vue": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet run",
+    "publish": "vue-cli-service build --modern && cd ../MyPrayerJournal.Api && dotnet publish -c Release -r linux-x64 --self-contained false"
   },
   "dependencies": {
     "auth0-js": "^9.13.2",
     "axios": "^0.21.1",
-    "core-js": "^3.6.5",
     "moment": "^2.18.1",
     "vue": "^2.5.15",
     "vue-material": "^1.0.0-beta-13",
@@ -23,17 +22,10 @@
     "vuex": "^3.0.1"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.11",
-    "@vue/cli-plugin-eslint": "~4.5.11",
-    "@vue/cli-service": "~4.5.11",
-    "@vue/eslint-config-standard": "^5.1.2",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-import": "^2.20.2",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "eslint-plugin-vue": "^6.2.2",
+    "@vue/cli-plugin-babel": "^3.0.0",
+    "@vue/cli-plugin-eslint": "^3.0.0",
+    "@vue/cli-service": "^3.0.0",
+    "@vue/eslint-config-standard": "^4.0.0",
     "node-sass": "^4.12.0",
     "pug": "^3.0.1",
     "pug-plain-loader": "^1.0.0",
