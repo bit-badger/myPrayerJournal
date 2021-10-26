@@ -131,29 +131,29 @@ with
 /// JournalRequest is the form of a prayer request returned for the request journal display. It also contains
 /// properties that may be filled for history and notes.
 [<NoComparison; NoEquality>]
-type JournalRequest =
-  { /// The ID of the request (just the CUID part)
-    requestId    : RequestId
-    /// The ID of the user to whom the request belongs
-    userId       : UserId
-    /// The current text of the request
-    text         : string
-    /// The last time action was taken on the request
-    asOf         : Instant
-    /// The last status for the request
-    lastStatus   : RequestAction
-    /// The time that this request should reappear in the user's journal
-    snoozedUntil : Instant
-    /// The time after which this request should reappear in the user's journal by configured recurrence
-    showAfter    : Instant
-    /// The type of recurrence for this request
-    recurType    : Recurrence
-    /// How many of the recurrence intervals should occur between appearances in the journal
-    recurCount   : int16
-    /// History entries for the request
-    history      : History list
-    /// Note entries for the request
-    notes        : Note list
+type JournalRequest = {
+  /// The ID of the request (just the CUID part)
+  requestId    : RequestId
+  /// The ID of the user to whom the request belongs
+  userId       : UserId
+  /// The current text of the request
+  text         : string
+  /// The last time action was taken on the request
+  asOf         : Instant
+  /// The last status for the request
+  lastStatus   : RequestAction
+  /// The time that this request should reappear in the user's journal
+  snoozedUntil : Instant
+  /// The time after which this request should reappear in the user's journal by configured recurrence
+  showAfter    : Instant
+  /// The type of recurrence for this request
+  recurType    : Recurrence
+  /// How many of the recurrence intervals should occur between appearances in the journal
+  recurCount   : int16
+  /// History entries for the request
+  history      : History list
+  /// Note entries for the request
+  notes        : Note list
   }
 
 /// Functions to manipulate journal requests
