@@ -126,6 +126,12 @@ module Configure =
             ctx.HandleResponse ()
 
             Task.CompletedTask
+          opts.Events.OnRedirectToIdentityProvider <- fun ctx ->
+            let bldr = UriBuilder ctx.ProtocolMessage.RedirectUri
+            bldr.Scheme <- cfg["Scheme"]
+            bldr.Port   <- int cfg["Port"]
+            ctx.ProtocolMessage.RedirectUri <- string bldr
+            Task.CompletedTask
           )
     |> ignore
     let jsonOptions = JsonSerializerOptions ()
@@ -153,12 +159,7 @@ module Configure =
       .UseRouting()
       .UseAuthentication()
       .UseGiraffeErrorHandler(Handlers.Error.error)
-      // .UseAuthorization()
-      .UseEndpoints (fun e ->
-          e.MapGiraffeEndpoints Handlers.routes
-          // TODO: fallback to 404
-          // e.MapFallbackToFile "index.html"
-          |> ignore)
+      .UseEndpoints (fun e -> e.MapGiraffeEndpoints Handlers.routes |> ignore)
     |> ignore
     app
 
