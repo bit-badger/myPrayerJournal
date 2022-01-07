@@ -4,6 +4,7 @@ module MyPrayerJournal.Domain
 
 // fsharplint:disable RecordFieldNames
 
+open System
 open Cuid
 open NodaTime
 
@@ -32,9 +33,9 @@ module UserId =
 /// How frequently a request should reappear after it is marked "Prayed"
 type Recurrence =
   | Immediate
-  | Hours
-  | Days
-  | Weeks
+  | Hours of int16
+  | Days of int16
+  | Weeks of int16
 
 /// Functions to manipulate recurrences
 module Recurrence =
@@ -42,26 +43,31 @@ module Recurrence =
   let toString =
     function
     | Immediate -> "Immediate"
-    | Hours     -> "Hours"
-    | Days      -> "Days"
-    | Weeks     -> "Weeks"
+    | Hours   h -> $"{h} Hours"
+    | Days    d -> $"{d} Days"
+    | Weeks   w -> $"{w} Weeks"
   /// Create a recurrence value from a string
   let ofString =
     function
     | "Immediate" -> Immediate
-    | "Hours"     -> Hours
-    | "Days"      -> Days
-    | "Weeks"     -> Weeks
-    | it          -> invalidOp $"{it} is not a valid recurrence"
+    | it when it.Contains " " ->
+        let parts = it.Split " "
+        let length = Convert.ToInt16 parts[0]
+        match parts[1] with
+        | "Hours" -> Hours length
+        | "Days"  -> Days  length
+        | "Weeks" -> Weeks length
+        | _       -> invalidOp $"{parts[1]} is not a valid recurrence"
+    | it -> invalidOp $"{it} is not a valid recurrence"
   /// An hour's worth of seconds
   let private oneHour = 3_600L
   /// The duration of the recurrence (in milliseconds)
-  let duration x =
-    (match x with
+  let duration =
+    function
     | Immediate -> 0L
-    | Hours     -> oneHour
-    | Days      -> oneHour * 24L
-    | Weeks     -> oneHour * 24L * 7L)
+    | Hours   h -> int64 h * oneHour
+    | Days    d -> int64 d * oneHour * 24L
+    | Weeks   w -> int64 w * oneHour * 24L * 7L
 
 
 /// The action taken on a request as part of a history entry

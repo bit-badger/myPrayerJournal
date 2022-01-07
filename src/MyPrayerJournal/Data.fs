@@ -27,6 +27,31 @@ module Extensions =
 [<RequireQualifiedAccess>]
 module Mapping =
   
+  /// Mapping for NodaTime's Instant type
+  module Instant =
+    let fromBson (value : BsonValue) = Instant.FromUnixTimeMilliseconds value.AsInt64
+    let toBson (value : Instant) : BsonValue = value.ToUnixTimeMilliseconds ()
+  
+  /// Mapping for option types
+  module Option =
+    let stringFromBson (value : BsonValue) = match value.AsString with "" -> None | x -> Some x
+    let stringToBson (value : string option) : BsonValue = match value with Some txt -> txt | None -> ""
+    
+  /// Mapping for RequestAction
+  module RequestAction =
+    let fromBson (value : BsonValue) = RequestAction.ofString value.AsString
+    let toBson (value : RequestAction) : BsonValue = RequestAction.toString value
+  
+  /// Mapping for RequestId
+  module RequestId =
+    let fromBson (value : BsonValue) = RequestId.ofString value.AsString
+    let toBson (value : RequestId) : BsonValue = RequestId.toString value
+  
+  /// Mapping for UserId
+  module UserId =
+    let fromBson (value : BsonValue) = UserId value.AsString
+    let toBson (value : UserId) : BsonValue = UserId.toString value
+    
   /// Map a history entry to BSON
   let historyToBson (hist : History) : BsonValue =
     let doc = BsonDocument ()
@@ -84,8 +109,12 @@ module Mapping =
   
   /// Set up the mapping
   let register () = 
-    BsonMapper.Global.RegisterType<Request>(
-      Func<Request, BsonValue> requestToBson, Func<BsonValue, Request> requestFromBson)
+    BsonMapper.Global.RegisterType<Request>(requestToBson, requestFromBson)
+    BsonMapper.Global.RegisterType<Instant>(Instant.toBson, Instant.fromBson)
+    BsonMapper.Global.RegisterType<RequestAction>(RequestAction.toBson, RequestAction.fromBson)
+    BsonMapper.Global.RegisterType<RequestId>(RequestId.toBson, RequestId.fromBson)
+    BsonMapper.Global.RegisterType<string option>(Option.stringToBson, Option.stringFromBson)
+    BsonMapper.Global.RegisterType<UserId>(UserId.toBson, UserId.fromBson)
 
 /// Code to be run at startup
 module Startup =
