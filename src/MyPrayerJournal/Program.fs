@@ -84,17 +84,17 @@ module Configure =
           opts.OnAppendCookie        <- fun ctx -> sameSite ctx.CookieOptions
           opts.OnDeleteCookie        <- fun ctx -> sameSite ctx.CookieOptions)
       .AddAuthentication(
-        /// Use HTTP "Bearer" authentication with JWTs
+        // Use HTTP "Bearer" authentication with JWTs
         fun opts ->
           opts.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
           opts.DefaultSignInScheme       <- CookieAuthenticationDefaults.AuthenticationScheme
           opts.DefaultChallengeScheme    <- CookieAuthenticationDefaults.AuthenticationScheme)
       .AddCookie()
       .AddOpenIdConnect("Auth0",
-        /// Configure OIDC with Auth0 options from configuration
+        // Configure OIDC with Auth0 options from configuration
         fun opts ->
           let cfg = bldr.Configuration.GetSection "Auth0"
-          opts.Authority    <- sprintf "https://%s/" cfg["Domain"]
+          opts.Authority    <- $"""https://{cfg["Domain"]}/"""
           opts.ClientId     <- cfg["Id"]
           opts.ClientSecret <- cfg["Secret"]
           opts.ResponseType <- OpenIdConnectResponseType.Code
@@ -118,11 +118,10 @@ module Configure =
                     | true ->
                         // transform to absolute
                         let request = ctx.Request
-                        sprintf "%s://%s%s%s" request.Scheme request.Host.Value request.PathBase.Value redirUri
+                        $"{request.Scheme}://{request.Host.Value}{request.PathBase.Value}{redirUri}"
                     | false -> redirUri
-                  Uri.EscapeDataString finalRedirUri |> sprintf "&returnTo=%s"
-            sprintf "https://%s/v2/logout?client_id=%s%s" cfg["Domain"] cfg["Id"] returnTo
-            |> ctx.Response.Redirect
+                  Uri.EscapeDataString $"&returnTo={finalRedirUri}"
+            ctx.Response.Redirect $"""https://{cfg["Domain"]}/v2/logout?client_id={cfg["Id"]}{returnTo}"""
             ctx.HandleResponse ()
 
             Task.CompletedTask
@@ -159,7 +158,7 @@ module Configure =
       .UseRouting()
       .UseAuthentication()
       .UseGiraffeErrorHandler(Handlers.Error.error)
-      .UseEndpoints (fun e -> e.MapGiraffeEndpoints Handlers.routes |> ignore)
+      .UseEndpoints (fun e -> e.MapGiraffeEndpoints Handlers.routes)
     |> ignore
     app
 

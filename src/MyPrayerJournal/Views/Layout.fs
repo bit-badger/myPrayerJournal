@@ -110,11 +110,7 @@ let htmlFoot =
           ]
         ]
       ]
-    script [
-      _src         "https://unpkg.com/htmx.org@1.5.0"
-      _integrity   "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"
-      _crossorigin "anonymous"
-      ] []
+    Htmx.Script.minified
     script [] [
       rawText "if (!htmx) document.write('<script src=\"/script/htmx-1.5.0.min.js\"><\/script>')"
       ]

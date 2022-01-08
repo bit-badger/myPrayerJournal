@@ -1,5 +1,5 @@
-﻿[<AutoOpen>]
-/// The data model for myPrayerJournal
+﻿/// The data model for myPrayerJournal
+[<AutoOpen>]
 module MyPrayerJournal.Domain
 
 // fsharplint:disable RecordFieldNames
@@ -34,7 +34,7 @@ module UserId =
 type Recurrence =
   | Immediate
   | Hours of int16
-  | Days of int16
+  | Days  of int16
   | Weeks of int16
 
 /// Functions to manipulate recurrences
@@ -111,10 +111,8 @@ type Request = {
   snoozedUntil : Instant
   /// The time at which this request should reappear in the user's journal by recurrence
   showAfter    : Instant
-  /// The type of recurrence for this request
-  recurType    : Recurrence
-  /// How many of the recurrence intervals should occur between appearances in the journal
-  recurCount   : int16
+  /// The recurrence for this request
+  recurrence   : Recurrence
   /// The history entries for this request
   history      : History list
   /// The notes for this request
@@ -128,8 +126,7 @@ with
       userId       = UserId ""
       snoozedUntil = Instant.MinValue
       showAfter    = Instant.MinValue
-      recurType    = Immediate
-      recurCount   = 0s
+      recurrence   = Immediate
       history      = []
       notes        = []
       }
@@ -152,10 +149,8 @@ type JournalRequest = {
   snoozedUntil : Instant
   /// The time after which this request should reappear in the user's journal by configured recurrence
   showAfter    : Instant
-  /// The type of recurrence for this request
-  recurType    : Recurrence
-  /// How many of the recurrence intervals should occur between appearances in the journal
-  recurCount   : int16
+  /// The recurrence for this request
+  recurrence   : Recurrence
   /// History entries for the request
   history      : History list
   /// Note entries for the request
@@ -180,8 +175,7 @@ module JournalRequest =
       lastStatus   = match hist with Some h -> h.status | None -> Created
       snoozedUntil = req.snoozedUntil
       showAfter    = req.showAfter
-      recurType    = req.recurType
-      recurCount   = req.recurCount
+      recurrence   = req.recurrence
       history      = []
       notes        = []
       }

@@ -5,7 +5,6 @@ open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
 open NodaTime
-open System
 
 /// Create a request within the list
 let reqListItem now req =
@@ -142,6 +141,14 @@ let edit (req : JournalRequest) returnTo isNew =
     | "active"          -> "/requests/active"
     | "snoozed"         -> "/requests/snoozed"
     | _ (* "journal" *) -> "/journal"
+  let recurCount =
+    match req.recurrence with
+    | Immediate -> None
+    | Hours   h -> Some h
+    | Days    d -> Some d
+    | Weeks   w -> Some w
+    |> Option.map string
+    |> Option.defaultValue ""
   article [ _class "container" ] [
     h2 [ _class "pb-3" ] [ (match isNew with true -> "Add" | false -> "Edit") |> strf "%s Prayer Request" ]
     form [
@@ -202,7 +209,7 @@ let edit (req : JournalRequest) returnTo isNew =
                 _name    "recurType"
                 _value   "Immediate"
                 _onclick "mpj.edit.toggleRecurrence(event)"
-                match req.recurType with Immediate -> _checked | _ -> ()
+                match req.recurrence with Immediate -> _checked | _ -> ()
                 ]
               label [ _for "rI" ] [ str "Immediately" ]
               ]
@@ -214,7 +221,7 @@ let edit (req : JournalRequest) returnTo isNew =
                 _name    "recurType"
                 _value   "Other"
                 _onclick "mpj.edit.toggleRecurrence(event)"
-                match req.recurType with Immediate -> () | _ -> _checked
+                match req.recurrence with Immediate -> () | _ -> _checked
                 ]
               label [ _for "rO" ] [ rawText "Every&hellip;" ]
               ]
@@ -225,10 +232,10 @@ let edit (req : JournalRequest) returnTo isNew =
                 _id          "recurCount"
                 _name        "recurCount"
                 _placeholder "0"
-                _value       (string req.recurCount)
+                _value       recurCount
                 _style       "width:6rem;"
                 _required
-                match req.recurType with Immediate -> _disabled | _ -> ()
+                match req.recurrence with Immediate -> _disabled | _ -> ()
                 ]
               label [ _for "recurCount" ] [ str "Count" ]
               ]
@@ -239,11 +246,11 @@ let edit (req : JournalRequest) returnTo isNew =
                 _name     "recurInterval"
                 _style    "width:6rem;"
                 _required
-                match req.recurType with Immediate -> _disabled | _ -> ()
+                match req.recurrence with Immediate -> _disabled | _ -> ()
                 ] [
-                option [ _value "Hours"; match req.recurType with Hours -> _selected | _ -> () ] [ str "hours" ]
-                option [ _value "Days";  match req.recurType with Days  -> _selected | _ -> () ] [ str "days" ]
-                option [ _value "Weeks"; match req.recurType with Weeks -> _selected | _ -> () ] [ str "weeks" ]
+                option [ _value "Hours"; match req.recurrence with Hours _ -> _selected | _ -> () ] [ str "hours" ]
+                option [ _value "Days";  match req.recurrence with Days  _ -> _selected | _ -> () ] [ str "days" ]
+                option [ _value "Weeks"; match req.recurrence with Weeks _ -> _selected | _ -> () ] [ str "weeks" ]
                 ]
               label [ _form "recurInterval" ] [ str "Interval" ]
               ]

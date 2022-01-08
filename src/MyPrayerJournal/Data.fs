@@ -1,8 +1,8 @@
 ﻿module MyPrayerJournal.Data
 
 open LiteDB
+open MyPrayerJournal
 open NodaTime
-open System
 open System.Threading.Tasks
 
 // fsharplint:disable MemberNames
@@ -36,7 +36,12 @@ module Mapping =
   module Option =
     let stringFromBson (value : BsonValue) = match value.AsString with "" -> None | x -> Some x
     let stringToBson (value : string option) : BsonValue = match value with Some txt -> txt | None -> ""
-    
+  
+  /// Mapping for Recurrence
+  module Recurrence =
+    let fromBson (value : BsonValue) = Recurrence.ofString value
+    let toBson (value : Recurrence) : BsonValue = Recurrence.toString value
+  
   /// Mapping for RequestAction
   module RequestAction =
     let fromBson (value : BsonValue) = RequestAction.ofString value.AsString
@@ -52,65 +57,10 @@ module Mapping =
     let fromBson (value : BsonValue) = UserId value.AsString
     let toBson (value : UserId) : BsonValue = UserId.toString value
     
-  /// Map a history entry to BSON
-  let historyToBson (hist : History) : BsonValue =
-    let doc = BsonDocument ()
-    doc["asOf"]   <- hist.asOf.ToUnixTimeMilliseconds ()
-    doc["status"] <- RequestAction.toString hist.status
-    doc["text"]   <- match hist.text with Some t -> t | None -> ""
-    upcast doc
-
-  /// Map a BSON document to a history entry
-  let historyFromBson (doc : BsonValue) =
-    { asOf   = Instant.FromUnixTimeMilliseconds doc["asOf"].AsInt64
-      status = RequestAction.ofString doc["status"].AsString
-      text   = match doc["text"].AsString with "" -> None | txt -> Some txt
-      }
-
-  /// Map a note entry to BSON
-  let noteToBson (note : Note) : BsonValue =
-    let doc = BsonDocument ()
-    doc["asOf"]  <- note.asOf.ToUnixTimeMilliseconds ()
-    doc["notes"] <- note.notes
-    upcast doc
-
-  /// Map a BSON document to a note entry
-  let noteFromBson (doc : BsonValue) =
-    { asOf  = Instant.FromUnixTimeMilliseconds doc["asOf"].AsInt64
-      notes = doc["notes"].AsString
-      }
-
-  /// Map a request to its BSON representation
-  let requestToBson req : BsonValue =
-    let doc = BsonDocument ()
-    doc["_id"]          <- RequestId.toString req.id
-    doc["enteredOn"]    <- req.enteredOn.ToUnixTimeMilliseconds ()
-    doc["userId"]       <- UserId.toString req.userId
-    doc["snoozedUntil"] <- req.snoozedUntil.ToUnixTimeMilliseconds ()
-    doc["showAfter"]    <- req.showAfter.ToUnixTimeMilliseconds ()
-    doc["recurType"]    <- Recurrence.toString req.recurType
-    doc["recurCount"]   <- BsonValue req.recurCount
-    doc["history"]      <- BsonArray (req.history |> List.map historyToBson |> Seq.ofList)
-    doc["notes"]        <- BsonArray (req.notes   |> List.map noteToBson    |> Seq.ofList)
-    upcast doc
-  
-  /// Map a BSON document to a request
-  let requestFromBson (doc : BsonValue) =
-    { id           = RequestId.ofString doc["_id"].AsString
-      enteredOn    = Instant.FromUnixTimeMilliseconds doc["enteredOn"].AsInt64
-      userId       = UserId doc["userId"].AsString
-      snoozedUntil = Instant.FromUnixTimeMilliseconds doc["snoozedUntil"].AsInt64
-      showAfter    = Instant.FromUnixTimeMilliseconds doc["showAfter"].AsInt64
-      recurType    = Recurrence.ofString doc["recurType"].AsString
-      recurCount   = int16 doc["recurCount"].AsInt32
-      history      = doc["history"].AsArray |> Seq.map historyFromBson |> List.ofSeq
-      notes        = doc["notes"].AsArray   |> Seq.map noteFromBson    |> List.ofSeq
-      }
-  
   /// Set up the mapping
   let register () = 
-    BsonMapper.Global.RegisterType<Request>(requestToBson, requestFromBson)
     BsonMapper.Global.RegisterType<Instant>(Instant.toBson, Instant.fromBson)
+    BsonMapper.Global.RegisterType<Recurrence>(Recurrence.toBson, Recurrence.fromBson)
     BsonMapper.Global.RegisterType<RequestAction>(RequestAction.toBson, RequestAction.fromBson)
     BsonMapper.Global.RegisterType<RequestId>(RequestId.toBson, RequestId.fromBson)
     BsonMapper.Global.RegisterType<string option>(Option.stringToBson, Option.stringFromBson)
@@ -217,9 +167,9 @@ let tryJournalById reqId userId (db : LiteDatabase) = backgroundTask {
   }
     
 /// Update the recurrence for a request
-let updateRecurrence reqId userId recurType recurCount db = backgroundTask {
+let updateRecurrence reqId userId recurType db = backgroundTask {
   match! tryFullRequestById reqId userId db with
-  | Some req -> do! doUpdate db { req with recurType = recurType; recurCount = recurCount }
+  | Some req -> do! doUpdate db { req with recurrence = recurType }
   | None     -> invalidOp $"{RequestId.toString reqId} not found"
   }
 

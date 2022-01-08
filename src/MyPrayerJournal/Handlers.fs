@@ -37,10 +37,10 @@ module Error =
     log.LogError (EventId(), ex, "An unhandled exception has occurred while executing the request.")
     clearResponse
     >=> setStatusCode 500
-    >=> setHttpHeader "X-Toast" (sprintf "error|||%s: %s" (ex.GetType().Name) ex.Message)
+    >=> setHttpHeader "X-Toast" $"error|||{ex.GetType().Name}: {ex.Message}"
     >=> text ex.Message
 
-  /// Handle unauthorized actions, redirecting to log on for GETs, otherwise returning a 401 Not Authorized reponse
+  /// Handle unauthorized actions, redirecting to log on for GETs, otherwise returning a 401 Not Authorized response
   let notAuthorized : HttpHandler =
     fun next ctx ->
       (next, ctx)
@@ -97,7 +97,7 @@ module private Helpers =
   /// Return a 201 CREATED response with the location header set for the created resource
   let createdAt url : HttpHandler =
     fun next ctx ->
-      (sprintf "%s://%s%s" ctx.Request.Scheme ctx.Request.Host.Value url |> setHttpHeader HeaderNames.Location
+      ($"{ctx.Request.Scheme}://{ctx.Request.Host.Value}{url}" |> setHttpHeader HeaderNames.Location
        >=> created) next ctx
   
   /// Return a 303 SEE OTHER response (forces a GET on the redirected URL)
@@ -107,7 +107,7 @@ module private Helpers =
   /// Render a component result
   let renderComponent nodes : HttpHandler =
     noResponseCaching
-    >=> fun next ctx -> backgroundTask {
+    >=> fun _ ctx -> backgroundTask {
       return! ctx.WriteHtmlStringAsync (ViewEngine.RenderView.AsString.htmlNodes nodes)
       }
 
@@ -131,7 +131,7 @@ module private Helpers =
 
   /// Composable handler to write a view to the output
   let writeView view : HttpHandler =
-    fun next ctx -> backgroundTask {
+    fun _ ctx -> backgroundTask {
       return! ctx.WriteHtmlViewAsync view
       }
 
@@ -139,7 +139,7 @@ module private Helpers =
   module Messages =
 
     /// The messages being held
-    let mutable private messages : Map<string, (string * string)> = Map.empty
+    let mutable private messages : Map<string, string * string> = Map.empty
 
     /// Locked update to prevent updates by multiple threads
     let private upd8 = obj ()
@@ -150,7 +150,7 @@ module private Helpers =
 
     /// Add a success message header to the response
     let pushSuccess ctx message url =
-      push ctx (sprintf "success|||%s" message) url
+      push ctx $"success|||{message}" url
     
     /// Pop the messages for the given user
     let pop userId = lock upd8 (fun () ->
@@ -289,7 +289,7 @@ module Journal =
         |> Option.map (fun c -> c.Value)
         |> Option.defaultValue "Your"
       let title = usr |> match usr with "Your" -> sprintf "%s" | _ -> sprintf "%s's"
-      return! partial (sprintf "%s Prayer Journal" title) (Views.Journal.journal usr) next ctx
+      return! partial $"{title} Prayer Journal" (Views.Journal.journal usr) next ctx
     }
 
 
@@ -343,9 +343,9 @@ module Request =
           let now  = now ctx
           do! Data.addHistory reqId usrId { asOf = now; status = Prayed; text = None } db
           let nextShow =
-            match Recurrence.duration req.recurType with
+            match Recurrence.duration req.recurrence with
             | 0L       -> Instant.MinValue
-            | duration -> now.Plus (Duration.FromSeconds (duration * int64 req.recurCount))
+            | duration -> now.Plus (Duration.FromSeconds duration)
           do! Data.updateShowAfter reqId usrId nextShow db
           do! db.saveChanges ()
           return! (withSuccessMessage "Request marked as prayed" >=> Components.journalItems) next ctx
@@ -465,27 +465,25 @@ module Request =
       | None -> return! Error.notFound next ctx
       }
 
-  /// Derive a recurrence and interval from its primitive representation in the form
+  /// Derive a recurrence from its representation in the form
   let private parseRecurrence (form : Models.Request) =
-    (Recurrence.ofString (match form.recurInterval with Some x -> x | _ -> "Immediate"),
-     defaultArg form.recurCount (int16 0))
+    match form.recurInterval with Some x -> $"{defaultArg form.recurCount 0s} {x}" | None -> "Immediate"
+    |> Recurrence.ofString
 
   // POST /request
   let add : HttpHandler =
     requiresAuthentication Error.notAuthorized
     >=> fun next ctx -> backgroundTask {
-      let! form             = ctx.BindModelAsync<Models.Request> ()
-      let  db               = db ctx
-      let  usrId            = userId ctx
-      let  now              = now ctx
-      let (recur, interval) = parseRecurrence form
+      let! form  = ctx.BindModelAsync<Models.Request> ()
+      let  db    = db ctx
+      let  usrId = userId ctx
+      let  now   = now ctx
       let  req   =
         { Request.empty with
             userId     = usrId
             enteredOn  = now
             showAfter  = Instant.MinValue
-            recurType  = recur
-            recurCount = interval
+            recurrence = parseRecurrence form
             history    = [
               { asOf   = now
                 status = Created
@@ -509,11 +507,11 @@ module Request =
       match! Data.tryJournalById (RequestId.ofString form.requestId) usrId db with
       | Some req ->
           // update recurrence if changed
-          let (recur, interval) = parseRecurrence form
-          match recur = req.recurType && interval = req.recurCount with
+          let recur = parseRecurrence form
+          match recur = req.recurrence with
           | true  -> ()
           | false ->
-              do! Data.updateRecurrence req.requestId usrId recur interval db
+              do! Data.updateRecurrence req.requestId usrId recur db
               match recur with
               | Immediate -> do! Data.updateShowAfter req.requestId usrId Instant.MinValue db
               | _         -> ()
