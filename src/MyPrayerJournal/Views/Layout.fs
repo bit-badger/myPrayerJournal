@@ -1,27 +1,25 @@
 /// Layout / home views
 module MyPrayerJournal.Views.Layout
 
-// fsharplint:disable RecordFieldNames
-
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Accessibility
 
 /// The data needed to render a page-level view
 type PageRenderContext =
     {   /// Whether the user is authenticated
-        isAuthenticated : bool
+        IsAuthenticated : bool
         
         /// Whether the user has snoozed requests
-        hasSnoozed      : bool
+        HasSnoozed      : bool
         
         /// The current URL
-        currentUrl      : string
+        CurrentUrl      : string
         
         /// The title for the page to be rendered
-        pageTitle       : string
+        PageTitle       : string
         
         /// The content of the page
-        content         : XmlNode
+        Content         : XmlNode
     }
 
 /// The home page
@@ -51,12 +49,12 @@ let private navBar ctx =
             ]
             seq {
                 let navLink (matchUrl : string) =
-                    match ctx.currentUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
+                    match ctx.CurrentUrl.StartsWith matchUrl with true -> [ _class "is-active-route" ] | false -> []
                     |> pageLink matchUrl
-                if ctx.isAuthenticated then
+                if ctx.IsAuthenticated then
                     li [ _class "nav-item" ] [ navLink "/journal" [ str "Journal" ] ]
                     li [ _class "nav-item" ] [ navLink "/requests/active" [ str "Active" ] ]
-                    if ctx.hasSnoozed then li [ _class "nav-item" ] [ navLink "/requests/snoozed" [ str "Snoozed" ] ]
+                    if ctx.HasSnoozed then li [ _class "nav-item" ] [ navLink "/requests/snoozed" [ str "Snoozed" ] ]
                     li [ _class "nav-item" ] [ navLink "/requests/answered" [ str "Answered" ] ]
                     li [ _class "nav-item" ] [ a [ _href "/user/log-off" ] [ str "Log Off" ] ]
                 else li [ _class "nav-item"] [ a [ _href "/user/log-on" ] [ str "Log On" ] ]
@@ -71,7 +69,7 @@ let private navBar ctx =
 
 /// The title tag with the application name appended
 let titleTag ctx =
-    title [] [ str ctx.pageTitle; rawText " &#xab; myPrayerJournal" ]
+    title [] [ str ctx.PageTitle; rawText " &#xab; myPrayerJournal" ]
 
 /// The HTML `head` element
 let htmlHead ctx =
@@ -136,7 +134,7 @@ let view ctx =
     html [ _lang "en" ] [
         htmlHead ctx
         body [] [
-            section [ _id "top"; _ariaLabel "Top navigation" ] [ navBar ctx; main [ _roleMain ] [ ctx.content ] ]
+            section [ _id "top"; _ariaLabel "Top navigation" ] [ navBar ctx; main [ _roleMain ] [ ctx.Content ] ]
             toaster
             htmlFoot
         ]
@@ -146,5 +144,5 @@ let view ctx =
 let partial ctx =
     html [ _lang "en" ] [
         head [] [ titleTag ctx ]
-        body [] [ navBar ctx; main [ _roleMain ] [ ctx.content ] ]
+        body [] [ navBar ctx; main [ _roleMain ] [ ctx.Content ] ]
     ]

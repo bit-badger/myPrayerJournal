@@ -8,10 +8,11 @@ open NodaTime
 
 /// Create a request within the list
 let reqListItem now req =
+    let isFuture instant = defaultArg (instant |> Option.map (fun it -> it > now)) false
     let reqId      = RequestId.toString req.RequestId
     let isAnswered = req.LastStatus = Answered
-    let isSnoozed  = req.SnoozedUntil > now
-    let isPending  = (not isSnoozed) && req.ShowAfter > now
+    let isSnoozed  = isFuture req.SnoozedUntil
+    let isPending  = (not isSnoozed) && isFuture req.ShowAfter
     let btnClass   = _class "btn btn-light mx-2"
     let restoreBtn (link : string) title =
         button [ btnClass; _hxPatch $"/request/{reqId}/{link}"; _title title ] [ icon "restore" ]
@@ -27,9 +28,9 @@ let reqListItem now req =
             if isSnoozed || isPending || isAnswered then
                 br []
                 small [ _class "text-muted" ] [
-                    if   isSnoozed then   [ str "Snooze expires ";       relativeDate req.SnoozedUntil now ]
-                    elif isPending then   [ str "Request appears next "; relativeDate req.ShowAfter    now ]
-                    else (* isAnswered *) [ str "Answered ";             relativeDate req.AsOf         now ]
+                    if   isSnoozed then   [ str "Snooze expires ";       relativeDate req.SnoozedUntil.Value now ]
+                    elif isPending then   [ str "Request appears next "; relativeDate req.ShowAfter.Value    now ]
+                    else (* isAnswered *) [ str "Answered ";             relativeDate req.AsOf               now ]
                     |> em []
                 ]
           ]
@@ -56,7 +57,7 @@ let answered now reqs =
     article [ _class "container mt-3" ] [
         h2 [ _class "pb-3" ] [ str "Answered Requests" ]
         if List.isEmpty reqs then
-            noResults "No Active Requests" "/journal" "Return to your journal" [
+            noResults "No Answered Requests" "/journal" "Return to your journal" [
                 str "Your prayer journal has no answered requests; once you have marked one as "
                 rawText "&ldquo;Answered&rdquo;, it will appear here"
             ]
@@ -75,29 +76,30 @@ let full (clock : IClock) (req : Request) =
     let now = clock.GetCurrentInstant ()
     let answered =
         req.History
-        |> List.filter History.isAnswered
-        |> List.tryHead
+        |> Array.filter History.isAnswered
+        |> Array.tryHead
         |> Option.map (fun x -> x.AsOf)
-    let prayed = (req.History |> List.filter History.isPrayed |> List.length).ToString "N0"
+    let prayed = (req.History |> Array.filter History.isPrayed |> Array.length).ToString "N0"
     let daysOpen =
         let asOf = defaultArg answered now
-        ((asOf - (req.History |> List.filter History.isCreated |> List.head).AsOf).TotalDays |> int).ToString "N0"
+        ((asOf - (req.History |> Array.filter History.isCreated |> Array.head).AsOf).TotalDays |> int).ToString "N0"
     let lastText =
         req.History
-        |> List.filter (fun h -> Option.isSome h.Text)
-        |> List.sortByDescending (fun h -> h.AsOf)
-        |> List.map (fun h -> Option.get h.Text)
-        |> List.head
+        |> Array.filter (fun h -> Option.isSome h.Text)
+        |> Array.sortByDescending (fun h -> h.AsOf)
+        |> Array.map (fun h -> Option.get h.Text)
+        |> Array.head
     // The history log including notes (and excluding the final entry for answered requests)
     let log =
         let toDisp (h : History) = {| asOf = h.AsOf; text = h.Text; status = RequestAction.toString h.Status |}
         let all =
             req.Notes
-            |> List.map (fun n -> {| asOf = n.AsOf; text = Some n.Notes; status = "Notes" |})
-            |> List.append (req.History |> List.map toDisp)
-            |> List.sortByDescending (fun it -> it.asOf)
+            |> Array.map (fun n -> {| asOf = n.AsOf; text = Some n.Notes; status = "Notes" |})
+            |> Array.append (req.History |> Array.map toDisp)
+            |> Array.sortByDescending (fun it -> it.asOf)
+            |> List.ofArray
         // Skip the first entry for answered requests; that info is already displayed
-        match answered with Some _ -> all |> List.skip 1 | None -> all
+        match answered with Some _ -> all.Tail | None -> all
     article [ _class "container mt-3" ] [
         div [_class "card" ] [
             h5 [ _class "card-header" ] [ str "Full Prayer Request" ]
@@ -111,7 +113,7 @@ let full (clock : IClock) (req : Request) =
                         relativeDate date now
                         rawText ") &bull; "
                     | None -> ()
-                    sprintf "Prayed %s times &bull; Open %s days" prayed daysOpen |> rawText
+                    rawText $"Prayed %s{prayed} times &bull; Open %s{daysOpen} days"
                 ]
                 p [ _class "card-text" ] [ str lastText ]
             ]

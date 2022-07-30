@@ -81,13 +81,19 @@ let convertNote (old : OldNote) =
         Notes = old.notes
     }
 
+/// Convert items that may be Instant.MinValue or Instant(0) to None
+let noneIfOld ms =
+    match Instant.FromUnixTimeMilliseconds ms with
+    | instant when instant > Instant.FromUnixTimeMilliseconds 0 -> Some instant
+    | _ -> None
+    
 /// Map the old request to the new request
 let convert old =
     {   Id           = old.id
         EnteredOn    = Instant.FromUnixTimeMilliseconds old.enteredOn
         UserId       = old.userId
-        SnoozedUntil = Instant.FromUnixTimeMilliseconds old.snoozedUntil
-        ShowAfter    = Instant.FromUnixTimeMilliseconds old.showAfter
+        SnoozedUntil = noneIfOld old.snoozedUntil
+        ShowAfter    = noneIfOld old.showAfter
         Recurrence   = mapRecurrence old
         History      = old.history |> Array.map convertHistory |> List.ofArray
         Notes        = old.notes   |> Array.map convertNote    |> List.ofArray
@@ -95,8 +101,8 @@ let convert old =
 
 /// Remove the old request, add the converted one (removes recurType / recurCount fields)
 let replace (req : Request) =
-    db.requests.Delete (Mapping.RequestId.toBson req.Id) |> ignore
-    db.requests.Insert req |> ignore
+    db.Requests.Delete (Mapping.RequestId.toBson req.Id) |> ignore
+    db.Requests.Insert req |> ignore
     db.Checkpoint ()
 
 db.GetCollection<OldRequest>("request").FindAll ()
