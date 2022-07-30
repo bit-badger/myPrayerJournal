@@ -27,5 +27,5 @@ let noResults heading link buttonText text =
     ]
 
 /// Create a date with a span tag, displaying the relative date with the full date/time in the tooltip
-let relativeDate (date : Instant) now =
-    span [ _title (date.ToDateTimeOffset().ToString ("f", null)) ] [ Dates.formatDistance now date |> str ]
+let relativeDate (date : Instant) now (tz : DateTimeZone) =
+    span [ _title (date.InZone(tz).ToDateTimeOffset().ToString ("f", null)) ] [ Dates.formatDistance now date |> str ]

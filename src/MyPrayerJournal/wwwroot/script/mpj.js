@@ -1,7 +1,7 @@
 "use strict"
 
 /** myPrayerJournal script */
-const mpj = {
+this.mpj = {
   /**
    * Show a message via toast
    * @param {string} message The message to show
@@ -66,6 +66,19 @@ const mpj = {
       const isDisabled = target.value === "Immediate"
       ;["recurCount", "recurInterval"].forEach(it => document.getElementById(it).disabled = isDisabled)
     }
+  },
+  /**
+   * The time zone of the current browser
+   * @type {string}
+   **/
+  timeZone: undefined,
+  /**
+   * Derive the time zone from the current browser
+   */
+  deriveTimeZone () {
+    try {
+      this.timeZone = (new Intl.DateTimeFormat()).resolvedOptions().timeZone
+    } catch (_) { }
   }
 }
 
@@ -80,3 +93,12 @@ htmx.on("htmx:afterOnLoad", function (evt) {
     document.getElementById(evt.detail.xhr.getResponseHeader("x-hide-modal") + "Dismiss").click()
   }
 })
+
+htmx.on("htmx:configRequest", function (evt) {
+  // Send the user's current time zone so that we can display local time
+  if (mpj.timeZone) {
+    evt.detail.headers["X-Time-Zone"] = mpj.timeZone
+  }
+})
+
+mpj.deriveTimeZone()

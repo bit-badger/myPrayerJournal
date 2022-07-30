@@ -72,6 +72,15 @@ type HttpContext with
     
     /// Get the current instant from the system clock
     member this.Now = this.Clock.GetCurrentInstant
+    
+    /// Get the time zone from the X-Time-Zone header (default UTC)
+    member this.TimeZone =
+        match this.TryGetRequestHeader "X-Time-Zone" with
+        | Some tz ->
+            match this.GetService<IDateTimeZoneProvider>().GetZoneOrNull tz with
+            | null -> DateTimeZone.Utc
+            | zone -> zone
+        | None -> DateTimeZone.Utc
 
 
 /// Handler helpers
@@ -247,13 +256,13 @@ module Components =
             | _, _ -> false
         let! journal = Data.journalByUserId ctx.UserId ctx.Db
         let  shown   = journal |> List.filter shouldBeShown
-        return! renderComponent [ Views.Journal.journalItems now shown ] next ctx
+        return! renderComponent [ Views.Journal.journalItems now ctx.TimeZone shown ] next ctx
     }
   
     // GET /components/request-item/[req-id]
     let requestItem reqId : HttpHandler = requireUser >=> fun next ctx -> task {
         match! Data.tryJournalById (RequestId.ofString reqId) ctx.UserId ctx.Db with
-        | Some req -> return! renderComponent [ Views.Request.reqListItem (ctx.Now ()) req ] next ctx
+        | Some req -> return! renderComponent [ Views.Request.reqListItem (ctx.Now ()) ctx.TimeZone req ] next ctx
         | None     -> return! Error.notFound next ctx
     }
 
@@ -264,7 +273,7 @@ module Components =
     // GET /components/request/[req-id]/notes
     let notes requestId : HttpHandler = requireUser >=> fun next ctx -> task {
         let! notes = Data.notesById (RequestId.ofString requestId) ctx.UserId ctx.Db
-        return! renderComponent (Views.Request.notes (ctx.Now ()) (List.ofArray notes)) next ctx
+        return! renderComponent (Views.Request.notes (ctx.Now ()) ctx.TimeZone (List.ofArray notes)) next ctx
     }
   
     // GET /components/request/[req-id]/snooze
@@ -367,7 +376,7 @@ module Request =
     // GET /requests/active
     let active : HttpHandler = requireUser >=> fun next ctx -> task {
         let! reqs = Data.journalByUserId ctx.UserId ctx.Db
-        return! partial "Active Requests" (Views.Request.active (ctx.Now ()) reqs) next ctx
+        return! partial "Active Requests" (Views.Request.active (ctx.Now ()) ctx.TimeZone reqs) next ctx
     }
   
     // GET /requests/snoozed
@@ -376,19 +385,19 @@ module Request =
         let  now     = ctx.Now ()
         let  snoozed = reqs
                        |> List.filter (fun it -> defaultArg (it.SnoozedUntil |> Option.map (fun it -> it > now)) false)
-        return! partial "Snoozed Requests" (Views.Request.snoozed now snoozed) next ctx
+        return! partial "Snoozed Requests" (Views.Request.snoozed now ctx.TimeZone snoozed) next ctx
     }
 
     // GET /requests/answered
     let answered : HttpHandler = requireUser >=> fun next ctx -> task {
         let! reqs = Data.answeredRequests ctx.UserId ctx.Db
-        return! partial "Answered Requests" (Views.Request.answered (ctx.Now ()) reqs) next ctx
+        return! partial "Answered Requests" (Views.Request.answered (ctx.Now ()) ctx.TimeZone reqs) next ctx
     }
   
     // GET /request/[req-id]/full
     let getFull requestId : HttpHandler = requireUser >=> fun next ctx -> task {
         match! Data.tryFullRequestById (RequestId.ofString requestId) ctx.UserId ctx.Db with
-        | Some req -> return! partial "Prayer Request" (Views.Request.full ctx.Clock req) next ctx
+        | Some req -> return! partial "Prayer Request" (Views.Request.full ctx.Clock ctx.TimeZone req) next ctx
         | None     -> return! Error.notFound next ctx
     }
   

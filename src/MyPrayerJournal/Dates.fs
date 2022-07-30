@@ -46,16 +46,14 @@ let twoMonths   = 86_400.
 
 open System
 
-/// Convert from a JavaScript "ticks" value to a date/time
-let fromJs ticks = DateTime.UnixEpoch + TimeSpan.FromTicks (ticks * 10_000L)
-
-let formatDistance (startDate : Instant) (endDate : Instant) =
+/// Format the distance between two instants in approximate English terms
+let formatDistance (startOn : Instant) (endOn : Instant) =
     let format (token, number) locale =
         let labels = locales |> Map.find locale
         match number with 1 -> fst labels[token] | _ -> sprintf (snd labels[token]) number
     let round (it : float) = Math.Round it |> int
 
-    let diff        = startDate - endDate
+    let diff        = startOn - endOn
     let minutes     = Math.Abs diff.TotalMinutes
     let formatToken =
         let months = minutes / aMonth |> round
@@ -74,5 +72,5 @@ let formatDistance (startDate : Instant) (endDate : Instant) =
         | _                            -> AlmostXYears, years + 1
   
     format formatToken "en-US"
-    |> match startDate > endDate with true -> sprintf "%s ago" | false -> sprintf "in %s"
+    |> match startOn > endOn with true -> sprintf "%s ago" | false -> sprintf "in %s"
 

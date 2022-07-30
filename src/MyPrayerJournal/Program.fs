@@ -74,7 +74,8 @@ module Configure =
 
         let _ = bldr.Services.AddRouting ()
         let _ = bldr.Services.AddGiraffe ()
-        let _ = bldr.Services.AddSingleton<IClock>(SystemClock.Instance)
+        let _ = bldr.Services.AddSingleton<IClock> SystemClock.Instance
+        let _ = bldr.Services.AddSingleton<IDateTimeZoneProvider> DateTimeZoneProviders.Tzdb
         
         let _ =
             bldr.Services.Configure<CookiePolicyOptions>(fun (opts : CookiePolicyOptions) ->

@@ -7,7 +7,7 @@ open MyPrayerJournal
 open NodaTime
 
 /// Create a request within the list
-let reqListItem now req =
+let reqListItem now tz req =
     let isFuture instant = defaultArg (instant |> Option.map (fun it -> it > now)) false
     let reqId      = RequestId.toString req.RequestId
     let isAnswered = req.LastStatus = Answered
@@ -28,32 +28,32 @@ let reqListItem now req =
             if isSnoozed || isPending || isAnswered then
                 br []
                 small [ _class "text-muted" ] [
-                    if   isSnoozed then   [ str "Snooze expires ";       relativeDate req.SnoozedUntil.Value now ]
-                    elif isPending then   [ str "Request appears next "; relativeDate req.ShowAfter.Value    now ]
-                    else (* isAnswered *) [ str "Answered ";             relativeDate req.AsOf               now ]
+                    if   isSnoozed then   [ str "Snooze expires ";       relativeDate req.SnoozedUntil.Value now tz ]
+                    elif isPending then   [ str "Request appears next "; relativeDate req.ShowAfter.Value    now tz ]
+                    else (* isAnswered *) [ str "Answered ";             relativeDate req.AsOf               now tz ]
                     |> em []
                 ]
           ]
     ]
 
 /// Create a list of requests
-let reqList now reqs =
+let reqList now tz reqs =
     reqs
-    |> List.map (reqListItem now)
+    |> List.map (reqListItem now tz)
     |> div [ _class "list-group" ]
 
 /// View for Active Requests page
-let active now reqs =
+let active now tz reqs =
     article [ _class "container mt-3" ] [
         h2 [ _class "pb-3" ] [ str "Active Requests" ]
         if List.isEmpty reqs then
             noResults "No Active Requests" "/journal" "Return to your journal"
                 [ str "Your prayer journal has no active requests" ]
-        else reqList now reqs
+        else reqList now tz reqs
     ]
 
 /// View for Answered Requests page
-let answered now reqs =
+let answered now tz reqs =
     article [ _class "container mt-3" ] [
         h2 [ _class "pb-3" ] [ str "Answered Requests" ]
         if List.isEmpty reqs then
@@ -61,18 +61,18 @@ let answered now reqs =
                 str "Your prayer journal has no answered requests; once you have marked one as "
                 rawText "&ldquo;Answered&rdquo;, it will appear here"
             ]
-        else reqList now reqs
+        else reqList now tz reqs
     ]
 
 /// View for Snoozed Requests page
-let snoozed now reqs =
+let snoozed now tz reqs =
     article [ _class "container mt-3" ] [
         h2 [ _class "pb-3" ] [ str "Snoozed Requests" ]
-        reqList now reqs
+        reqList now tz reqs
     ]
 
 /// View for Full Request page
-let full (clock : IClock) (req : Request) =
+let full (clock : IClock) tz (req : Request) =
     let now = clock.GetCurrentInstant ()
     let answered =
         req.History
@@ -110,7 +110,7 @@ let full (clock : IClock) (req : Request) =
                         str "Answered "
                         date.ToDateTimeOffset().ToString ("D", null) |> str
                         str " ("
-                        relativeDate date now
+                        relativeDate date now tz
                         rawText ") &bull; "
                     | None -> ()
                     rawText $"Prayed %s{prayed} times &bull; Open %s{daysOpen} days"
@@ -259,9 +259,9 @@ let edit (req : JournalRequest) returnTo isNew =
     ]
 
 /// Display a list of notes for a request
-let notes now notes =
+let notes now tz notes =
     let toItem (note : Note) =
-        p [] [ small [ _class "text-muted" ] [ relativeDate note.AsOf now ]; br []; str note.Notes ]
+        p [] [ small [ _class "text-muted" ] [ relativeDate note.AsOf now tz ]; br []; str note.Notes ]
     [   p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
         match notes with
         | [] -> p [ _class "text-center text-muted" ] [ str "There are no prior notes for this request" ]

@@ -7,7 +7,7 @@ open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
 
 /// Display a card for this prayer request
-let journalCard now req =
+let journalCard now tz req =
     let reqId = RequestId.toString req.RequestId
     let spacer = span [] [ rawText "&nbsp;" ]
     div [ _class "col" ] [
@@ -50,8 +50,8 @@ let journalCard now req =
             div [ _class "card-footer text-end text-muted px-1 py-0" ] [
                 em [] [
                     match req.LastPrayed with
-                    | Some dt -> str "last prayed ";   relativeDate dt       now
-                    | None    -> str "last activity "; relativeDate req.AsOf now
+                    | Some dt -> str "last prayed ";   relativeDate dt       now tz
+                    | None    -> str "last activity "; relativeDate req.AsOf now tz
                 ]
             ]
         ]
@@ -120,7 +120,7 @@ let journal user =
     ]
 
 /// The journal items
-let journalItems now items =
+let journalItems now tz items =
     match items |> List.isEmpty with
     | true ->
         noResults "No Active Requests" "/request/new/edit" "Add a Request" [
@@ -129,7 +129,7 @@ let journalItems now items =
         ]
     | false ->
         items
-        |> List.map (journalCard now)
+        |> List.map (journalCard now tz)
         |> section [ _id        "journalItems"
                      _class     "row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3"
                      _hxTarget  "this"
