@@ -48,7 +48,11 @@ let journalCard now req =
                 p [ _class "request-text" ] [ str req.Text ]
             ]
             div [ _class "card-footer text-end text-muted px-1 py-0" ] [
-                em [] [ str "last activity "; relativeDate req.AsOf now ]
+                em [] [
+                    match req.LastPrayed with
+                    | Some dt -> str "last prayed ";   relativeDate dt       now
+                    | None    -> str "last activity "; relativeDate req.AsOf now
+                ]
             ]
         ]
     ]
@@ -126,10 +130,11 @@ let journalItems now items =
     | false ->
         items
         |> List.map (journalCard now)
-        |> section [ _id       "journalItems"
-                     _class    "row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3"
-                     _hxTarget "this"
-                     _hxSwap   HxSwap.OuterHtml ]
+        |> section [ _id        "journalItems"
+                     _class     "row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3"
+                     _hxTarget  "this"
+                     _hxSwap    HxSwap.OuterHtml
+                     _ariaLabel "Prayer Requests" ]
 
 /// The notes edit modal body
 let notesEdit requestId =

@@ -207,6 +207,9 @@ type JournalRequest =
         /// The last time action was taken on the request
         AsOf : Instant
         
+        /// The last time a request was marked as prayed
+        LastPrayed : Instant option
+        
         /// The last status for the request
         LastStatus : RequestAction
         
@@ -233,25 +236,24 @@ module JournalRequest =
     let ofRequestLite (req : Request) =
         let lastHistory = req.History |> Array.sortByDescending (fun it -> it.AsOf) |> Array.tryHead
         // Requests are sorted by the "as of" field in this record; for sorting to work properly, we will put the
-        // larger of either the last prayed date or the "show after" date; if neither of those are filled, we will use
-        // the last activity date. This will mean that:
+        // largest of the last prayed date, the "snoozed until". or the "show after" date; if none of those are filled,
+        // we will use the last activity date. This will mean that:
         //  - Immediately shown requests will be at the top of the list, in order from least recently prayed to most.
         //  - Non-immediate requests will enter the list as if they were marked as prayed at that time; this will put
         //    them at the bottom of the list.
+        //  - Snoozed requests will reappear at the bottom of the list when they return.
         //  - New requests will go to the bottom of the list, but will rise as others are marked as prayed.
         let lastActivity = lastHistory |> Option.map (fun it -> it.AsOf) |> Option.defaultValue Instant.MinValue
-        let lastPrayed =
+        let showAfter    = defaultArg req.ShowAfter    Instant.MinValue
+        let snoozedUntil = defaultArg req.SnoozedUntil Instant.MinValue
+        let lastPrayed   =
             req.History
             |> Array.sortByDescending (fun it -> it.AsOf)
             |> Array.filter History.isPrayed
             |> Array.tryHead
             |> Option.map (fun it -> it.AsOf)
             |> Option.defaultValue Instant.MinValue
-        let showAfter = defaultArg req.ShowAfter Instant.MinValue
-        let asOf =
-            if lastPrayed > showAfter then lastPrayed
-            elif showAfter > lastPrayed then showAfter
-            else lastActivity
+        let asOf = List.max [ lastPrayed; showAfter; snoozedUntil ]
         {   RequestId    = req.Id
             UserId       = req.UserId
             Text         = req.History
@@ -260,14 +262,15 @@ module JournalRequest =
                            |> Array.tryHead
                            |> Option.map (fun h -> Option.get h.Text)
                            |> Option.defaultValue ""
-            AsOf         = asOf
+            AsOf         = if asOf > Instant.MinValue then asOf else lastActivity
+            LastPrayed   = if lastPrayed = Instant.MinValue then None else Some lastPrayed
             LastStatus   = match lastHistory with Some h -> h.Status | None -> Created
             SnoozedUntil = req.SnoozedUntil
             ShowAfter    = req.ShowAfter
             Recurrence   = req.Recurrence
             History      = []
             Notes        = []
-          }
+        }
 
     /// Same as `ofRequestLite`, but with notes and history
     let ofRequestFull req =
