@@ -4,6 +4,7 @@ open LiteDB
 open MyPrayerJournal
 open NodaTime
 open System.Threading.Tasks
+open NodaTime.Text
 
 // fsharplint:disable MemberNames
 
@@ -28,11 +29,14 @@ module Extensions =
 //  It does mapping, but since we're so DU-heavy, this gives us control over the JSON representation
 [<RequireQualifiedAccess>]
 module Mapping =
-  
+    
+    /// A NodaTime instant pattern to use for parsing instants from the database
+    let instantPattern = InstantPattern.CreateWithInvariantCulture "g"
+    
     /// Mapping for NodaTime's Instant type
     module Instant =
-        let fromBson (value : BsonValue) = Instant.FromUnixTimeMilliseconds value.AsInt64
-        let toBson (value : Instant) : BsonValue = value.ToUnixTimeMilliseconds ()
+        let fromBson (value : BsonValue) = (instantPattern.Parse value.AsString).Value
+        let toBson (value : Instant) : BsonValue = value.ToString ("g", null)
     
     /// Mapping for option types
     module Option =
@@ -73,7 +77,7 @@ module Startup =
   
     /// Ensure the database is set up
     let ensureDb (db : LiteDatabase) =
-        db.requests.EnsureIndex (fun it -> it.userId) |> ignore
+        db.requests.EnsureIndex (fun it -> it.UserId) |> ignore
         Mapping.register ()
 
 
@@ -100,20 +104,20 @@ module private Helpers =
 /// Retrieve a request, including its history and notes, by its ID and user ID
 let tryFullRequestById reqId userId (db : LiteDatabase) = backgroundTask {
     let! req = db.requests.Find (Query.EQ ("_id", RequestId.toString reqId)) |> firstAsync
-    return match box req with null -> None | _ when req.userId = userId -> Some req | _ -> None
+    return match box req with null -> None | _ when req.UserId = userId -> Some req | _ -> None
 }
 
 /// Add a history entry
 let addHistory reqId userId hist db = backgroundTask {
     match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with history = hist :: req.history }
+    | Some req -> do! doUpdate db { req with History = hist :: req.History }
     | None     -> invalidOp $"{RequestId.toString reqId} not found"
 }
 
 /// Add a note
 let addNote reqId userId note db = backgroundTask {
     match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with notes = note :: req.notes }
+    | Some req -> do! doUpdate db { req with Notes = note :: req.Notes }
     | None     -> invalidOp $"{RequestId.toString reqId} not found"
 }
 
@@ -129,8 +133,8 @@ let answeredRequests userId (db : LiteDatabase) = backgroundTask {
     return
         reqs
         |> Seq.map JournalRequest.ofRequestFull
-        |> Seq.filter (fun it -> it.lastStatus = Answered)
-        |> Seq.sortByDescending (fun it -> it.asOf)
+        |> Seq.filter (fun it -> it.LastStatus = Answered)
+        |> Seq.sortByDescending (fun it -> it.AsOf)
         |> List.ofSeq
 }
 
@@ -140,26 +144,26 @@ let journalByUserId userId (db : LiteDatabase) = backgroundTask {
     return
         jrnl
         |> Seq.map JournalRequest.ofRequestLite
-        |> Seq.filter (fun it -> it.lastStatus <> Answered)
-        |> Seq.sortBy (fun it -> it.asOf)
+        |> Seq.filter (fun it -> it.LastStatus <> Answered)
+        |> Seq.sortBy (fun it -> it.AsOf)
         |> List.ofSeq
 }
 
 /// Does the user have any snoozed requests?
 let hasSnoozed userId now (db : LiteDatabase) = backgroundTask {
     let! jrnl = journalByUserId userId db
-    return jrnl |> List.exists (fun r -> r.snoozedUntil > now)
+    return jrnl |> List.exists (fun r -> r.SnoozedUntil > now)
 }
 
 /// Retrieve a request by its ID and user ID (without notes and history)
 let tryRequestById reqId userId db = backgroundTask {
     let! req = tryFullRequestById reqId userId db
-    return req |> Option.map (fun r -> { r with history = []; notes = [] })
+    return req |> Option.map (fun r -> { r with History = []; Notes = [] })
 }
 
 /// Retrieve notes for a request by its ID and user ID
 let notesById reqId userId (db : LiteDatabase) = backgroundTask {
-    match! tryFullRequestById reqId userId db with | Some req -> return req.notes | None -> return []
+    match! tryFullRequestById reqId userId db with | Some req -> return req.Notes | None -> return []
 }
     
 /// Retrieve a journal request by its ID and user ID
@@ -171,20 +175,20 @@ let tryJournalById reqId userId (db : LiteDatabase) = backgroundTask {
 /// Update the recurrence for a request
 let updateRecurrence reqId userId recurType db = backgroundTask {
     match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with recurrence = recurType }
+    | Some req -> do! doUpdate db { req with Recurrence = recurType }
     | None     -> invalidOp $"{RequestId.toString reqId} not found"
 }
 
 /// Update a snoozed request
 let updateSnoozed reqId userId until db = backgroundTask {
     match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with snoozedUntil = until; showAfter = until }
+    | Some req -> do! doUpdate db { req with SnoozedUntil = until; ShowAfter = until }
     | None     -> invalidOp $"{RequestId.toString reqId} not found"
 }
 
 /// Update the "show after" timestamp for a request
 let updateShowAfter reqId userId showAfter db = backgroundTask {
     match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with showAfter = showAfter }
+    | Some req -> do! doUpdate db { req with ShowAfter = showAfter }
     | None     -> invalidOp $"{RequestId.toString reqId} not found"
 }

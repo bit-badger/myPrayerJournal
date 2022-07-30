@@ -237,7 +237,7 @@ module Components =
     let journalItems : HttpHandler = requiresAuthentication Error.notAuthorized >=> fun next ctx -> backgroundTask {
         let  now   = now ctx
         let! jrnl  = Data.journalByUserId (userId ctx) (db ctx)
-        let  shown = jrnl |> List.filter (fun it -> now > it.snoozedUntil && now > it.showAfter)
+        let  shown = jrnl |> List.filter (fun it -> now > it.SnoozedUntil && now > it.ShowAfter)
         return! renderComponent [ Views.Journal.journalItems now shown ] next ctx
     }
   
@@ -332,9 +332,9 @@ module Request =
         match! Data.tryRequestById reqId usrId db with
         | Some req ->
             let now  = now ctx
-            do! Data.addHistory reqId usrId { asOf = now; status = Prayed; text = None } db
+            do! Data.addHistory reqId usrId { AsOf = now; Status = Prayed; Text = None } db
             let nextShow =
-                match Recurrence.duration req.recurrence with
+                match Recurrence.duration req.Recurrence with
                 | 0L       -> Instant.MinValue
                 | duration -> now.Plus (Duration.FromSeconds duration)
             do! Data.updateShowAfter reqId usrId nextShow db
@@ -351,7 +351,7 @@ module Request =
         match! Data.tryRequestById reqId usrId db with
         | Some _ ->
             let! notes = ctx.BindFormAsync<Models.NoteEntry> ()
-            do! Data.addNote reqId usrId { asOf = now ctx; notes = notes.notes } db
+            do! Data.addNote reqId usrId { AsOf = now ctx; Notes = notes.notes } db
             do! db.saveChanges ()
             return! (withSuccessMessage "Added Notes" >=> hideModal "notes" >=> created) next ctx
         | None -> return! Error.notFound next ctx
@@ -367,7 +367,7 @@ module Request =
     let snoozed : HttpHandler = requiresAuthentication Error.notAuthorized >=> fun next ctx -> backgroundTask {
         let! reqs    = Data.journalByUserId (userId ctx) (db ctx)
         let  now     = now ctx
-        let  snoozed = reqs |> List.filter (fun it -> it.snoozedUntil > now)
+        let  snoozed = reqs |> List.filter (fun it -> it.SnoozedUntil > now)
         return! partial "Active Requests" (Views.Request.snoozed now snoozed) next ctx
     }
 
@@ -444,14 +444,14 @@ module Request =
         let  now   = now ctx
         let  req   =
             { Request.empty with
-                userId     = usrId
-                enteredOn  = now
-                showAfter  = Instant.MinValue
-                recurrence = parseRecurrence form
-                history    = [
-                    {   asOf   = now
-                        status = Created
-                        text   = Some form.requestText
+                UserId     = usrId
+                EnteredOn  = now
+                ShowAfter  = Instant.MinValue
+                Recurrence = parseRecurrence form
+                History    = [
+                    {   AsOf   = now
+                        Status = Created
+                        Text   = Some form.requestText
                     }      
                 ]
             }
@@ -470,18 +470,18 @@ module Request =
         | Some req ->
             // update recurrence if changed
             let recur = parseRecurrence form
-            match recur = req.recurrence with
+            match recur = req.Recurrence with
             | true  -> ()
             | false ->
-                do! Data.updateRecurrence req.requestId usrId recur db
+                do! Data.updateRecurrence req.RequestId usrId recur db
                 match recur with
-                | Immediate -> do! Data.updateShowAfter req.requestId usrId Instant.MinValue db
+                | Immediate -> do! Data.updateShowAfter req.RequestId usrId Instant.MinValue db
                 | _         -> ()
             // append history
             let upd8Text = form.requestText.Trim ()
-            let text     = match upd8Text = req.text with true -> None | false -> Some upd8Text
-            do! Data.addHistory req.requestId usrId
-                    { asOf = now ctx; status = (Option.get >> RequestAction.ofString) form.status; text = text } db
+            let text     = match upd8Text = req.Text with true -> None | false -> Some upd8Text
+            do! Data.addHistory req.RequestId usrId
+                    { AsOf = now ctx; Status = (Option.get >> RequestAction.ofString) form.status; Text = text } db
             do! db.saveChanges ()
             let nextUrl =
                 match form.returnTo with

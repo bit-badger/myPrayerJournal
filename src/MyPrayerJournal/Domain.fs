@@ -2,8 +2,6 @@
 [<AutoOpen>]
 module MyPrayerJournal.Domain
 
-// fsharplint:disable RecordFieldNames
-
 open System
 open Cuid
 open NodaTime
@@ -33,12 +31,16 @@ module UserId =
 
 /// How frequently a request should reappear after it is marked "Prayed"
 type Recurrence =
+    
     /// A request should reappear immediately at the bottom of the list
     | Immediate
+    
     /// A request should reappear in the given number of hours
     | Hours of int16
+    
     /// A request should reappear in the given number of days
     | Days  of int16
+    
     /// A request should reappear in the given number of weeks (7-day increments)
     | Weeks of int16
 
@@ -86,142 +88,6 @@ type RequestAction =
     | Updated
     | Answered
 
-
-/// History is a record of action taken on a prayer request, including updates to its text
-[<CLIMutable; NoComparison; NoEquality>]
-type History =
-    {   /// The time when this history entry was made
-        asOf   : Instant
-        
-        /// The status for this history entry
-        status : RequestAction
-        
-        /// The text of the update, if applicable
-        text   : string option
-    }
-
-
-/// Note is a note regarding a prayer request that does not result in an update to its text
-[<CLIMutable; NoComparison; NoEquality>]
-type Note =
-    {   /// The time when this note was made
-        asOf  : Instant
-        
-        /// The text of the notes
-        notes : string
-    }
-
-
-/// Request is the identifying record for a prayer request
-[<CLIMutable; NoComparison; NoEquality>]
-type Request =
-    {   /// The ID of the request
-        id           : RequestId
-        
-        /// The time this request was initially entered
-        enteredOn    : Instant
-        
-        /// The ID of the user to whom this request belongs ("sub" from the JWT)
-        userId       : UserId
-        
-        /// The time at which this request should reappear in the user's journal by manual user choice
-        snoozedUntil : Instant
-        
-        /// The time at which this request should reappear in the user's journal by recurrence
-        showAfter    : Instant
-        
-        /// The recurrence for this request
-        recurrence   : Recurrence
-        
-        /// The history entries for this request
-        history      : History list
-        
-        /// The notes for this request
-        notes        : Note list
-    }
-
-/// Functions to support requests
-module Request =
-    
-    /// An empty request
-    let empty =
-        {   id           = Cuid.generate () |> RequestId
-            enteredOn    = Instant.MinValue
-            userId       = UserId ""
-            snoozedUntil = Instant.MinValue
-            showAfter    = Instant.MinValue
-            recurrence   = Immediate
-            history      = []
-            notes        = []
-        }
-
-
-/// JournalRequest is the form of a prayer request returned for the request journal display. It also contains
-/// properties that may be filled for history and notes.
-[<NoComparison; NoEquality>]
-type JournalRequest =
-    {   /// The ID of the request (just the CUID part)
-        requestId    : RequestId
-        
-        /// The ID of the user to whom the request belongs
-        userId       : UserId
-        
-        /// The current text of the request
-        text         : string
-        
-        /// The last time action was taken on the request
-        asOf         : Instant
-        
-        /// The last status for the request
-        lastStatus   : RequestAction
-        
-        /// The time that this request should reappear in the user's journal
-        snoozedUntil : Instant
-        
-        /// The time after which this request should reappear in the user's journal by configured recurrence
-        showAfter    : Instant
-        
-        /// The recurrence for this request
-        recurrence   : Recurrence
-        
-        /// History entries for the request
-        history      : History list
-        
-        /// Note entries for the request
-        notes        : Note list
-    }
-
-/// Functions to manipulate journal requests
-module JournalRequest =
-
-    /// Convert a request to the form used for the journal (precomputed values, no notes or history)
-    let ofRequestLite (req : Request) =
-        let hist = req.history |> List.sortByDescending (fun it -> it.asOf) |> List.tryHead
-        {   requestId    = req.id
-            userId       = req.userId
-            text         = req.history
-                           |> List.filter (fun it -> Option.isSome it.text)
-                           |> List.sortByDescending (fun it -> it.asOf)
-                           |> List.tryHead
-                           |> Option.map (fun h -> Option.get h.text)
-                           |> Option.defaultValue ""
-            asOf         = match hist with Some h -> h.asOf   | None -> Instant.MinValue
-            lastStatus   = match hist with Some h -> h.status | None -> Created
-            snoozedUntil = req.snoozedUntil
-            showAfter    = req.showAfter
-            recurrence   = req.recurrence
-            history      = []
-            notes        = []
-          }
-
-    /// Same as `ofRequestLite`, but with notes and history
-    let ofRequestFull req =
-        { ofRequestLite req with 
-            history = req.history
-            notes   = req.notes
-        }
-
-
 /// Functions to manipulate request actions
 module RequestAction =
   
@@ -242,11 +108,150 @@ module RequestAction =
         | "Answered" -> Answered
         | it         -> invalidOp $"Bad request action {it}"
     
+
+
+/// History is a record of action taken on a prayer request, including updates to its text
+[<CLIMutable; NoComparison; NoEquality>]
+type History =
+    {   /// The time when this history entry was made
+        AsOf : Instant
+        
+        /// The status for this history entry
+        Status : RequestAction
+        
+        /// The text of the update, if applicable
+        Text : string option
+    }
+
+/// Functions to manipulate history entries
+module History =
+  
     /// Determine if a history's status is `Created`
-    let isCreated hist = hist.status = Created
+    let isCreated hist = hist.Status = Created
     
     /// Determine if a history's status is `Prayed`
-    let isPrayed hist = hist.status = Prayed
+    let isPrayed hist = hist.Status = Prayed
     
     /// Determine if a history's status is `Answered`
-    let isAnswered hist = hist.status = Answered
+    let isAnswered hist = hist.Status = Answered
+
+
+/// Note is a note regarding a prayer request that does not result in an update to its text
+[<CLIMutable; NoComparison; NoEquality>]
+type Note =
+    {   /// The time when this note was made
+        AsOf : Instant
+        
+        /// The text of the notes
+        Notes : string
+    }
+
+
+/// Request is the identifying record for a prayer request
+[<CLIMutable; NoComparison; NoEquality>]
+type Request =
+    {   /// The ID of the request
+        Id : RequestId
+        
+        /// The time this request was initially entered
+        EnteredOn : Instant
+        
+        /// The ID of the user to whom this request belongs ("sub" from the JWT)
+        UserId : UserId
+        
+        /// The time at which this request should reappear in the user's journal by manual user choice
+        SnoozedUntil : Instant
+        
+        /// The time at which this request should reappear in the user's journal by recurrence
+        ShowAfter : Instant
+        
+        /// The recurrence for this request
+        Recurrence : Recurrence
+        
+        /// The history entries for this request
+        History : History list
+        
+        /// The notes for this request
+        Notes : Note list
+    }
+
+/// Functions to support requests
+module Request =
+    
+    /// An empty request
+    let empty =
+        {   Id           = Cuid.generate () |> RequestId
+            EnteredOn    = Instant.MinValue
+            UserId       = UserId ""
+            SnoozedUntil = Instant.MinValue
+            ShowAfter    = Instant.MinValue
+            Recurrence   = Immediate
+            History      = []
+            Notes        = []
+        }
+
+
+/// JournalRequest is the form of a prayer request returned for the request journal display. It also contains
+/// properties that may be filled for history and notes.
+[<NoComparison; NoEquality>]
+type JournalRequest =
+    {   /// The ID of the request (just the CUID part)
+        RequestId : RequestId
+        
+        /// The ID of the user to whom the request belongs
+        UserId : UserId
+        
+        /// The current text of the request
+        Text : string
+        
+        /// The last time action was taken on the request
+        AsOf : Instant
+        
+        /// The last status for the request
+        LastStatus : RequestAction
+        
+        /// The time that this request should reappear in the user's journal
+        SnoozedUntil : Instant
+        
+        /// The time after which this request should reappear in the user's journal by configured recurrence
+        ShowAfter : Instant
+        
+        /// The recurrence for this request
+        Recurrence : Recurrence
+        
+        /// History entries for the request
+        History : History list
+        
+        /// Note entries for the request
+        Notes : Note list
+    }
+
+/// Functions to manipulate journal requests
+module JournalRequest =
+
+    /// Convert a request to the form used for the journal (precomputed values, no notes or history)
+    let ofRequestLite (req : Request) =
+        let hist = req.History |> List.sortByDescending (fun it -> it.AsOf) |> List.tryHead
+        {   RequestId    = req.Id
+            UserId       = req.UserId
+            Text         = req.History
+                           |> List.filter (fun it -> Option.isSome it.Text)
+                           |> List.sortByDescending (fun it -> it.AsOf)
+                           |> List.tryHead
+                           |> Option.map (fun h -> Option.get h.Text)
+                           |> Option.defaultValue ""
+            AsOf         = match hist with Some h -> h.AsOf   | None -> Instant.MinValue
+            LastStatus   = match hist with Some h -> h.Status | None -> Created
+            SnoozedUntil = req.SnoozedUntil
+            ShowAfter    = req.ShowAfter
+            Recurrence   = req.Recurrence
+            History      = []
+            Notes        = []
+          }
+
+    /// Same as `ofRequestLite`, but with notes and history
+    let ofRequestFull req =
+        { ofRequestLite req with 
+            History = req.History
+            Notes   = req.Notes
+        }

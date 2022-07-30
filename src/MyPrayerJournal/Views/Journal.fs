@@ -8,7 +8,7 @@ open MyPrayerJournal
 
 /// Display a card for this prayer request
 let journalCard now req =
-    let reqId = RequestId.toString req.requestId
+    let reqId = RequestId.toString req.RequestId
     let spacer = span [] [ rawText "&nbsp;" ]
     div [ _class "col" ] [
         div [ _class "card h-100" ] [
@@ -45,10 +45,10 @@ let journalCard now req =
                 ]
             ]
             div [ _class "card-body" ] [
-                p [ _class "request-text" ] [ str req.text ]
+                p [ _class "request-text" ] [ str req.Text ]
             ]
             div [ _class "card-footer text-end text-muted px-1 py-0" ] [
-                em [] [ str "last activity "; relativeDate req.asOf now ]
+                em [] [ str "last activity "; relativeDate req.AsOf now ]
             ]
         ]
     ]

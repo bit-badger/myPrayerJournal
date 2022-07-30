@@ -8,10 +8,10 @@ open NodaTime
 
 /// Create a request within the list
 let reqListItem now req =
-    let reqId      = RequestId.toString req.requestId
-    let isAnswered = req.lastStatus = Answered
-    let isSnoozed  = req.snoozedUntil > now
-    let isPending  = (not isSnoozed) && req.showAfter > now
+    let reqId      = RequestId.toString req.RequestId
+    let isAnswered = req.LastStatus = Answered
+    let isSnoozed  = req.SnoozedUntil > now
+    let isPending  = (not isSnoozed) && req.ShowAfter > now
     let btnClass   = _class "btn btn-light mx-2"
     let restoreBtn (link : string) title =
         button [ btnClass; _hxPatch $"/request/{reqId}/{link}"; _title title ] [ icon "restore" ]
@@ -23,13 +23,13 @@ let reqListItem now req =
         if   isSnoozed then restoreBtn "cancel-snooze" "Cancel Snooze"
         elif isPending then restoreBtn "show"          "Show Now"
         p [ _class "request-text mb-0" ] [
-            str req.text
+            str req.Text
             if isSnoozed || isPending || isAnswered then
                 br []
                 small [ _class "text-muted" ] [
-                    if   isSnoozed then   [ str "Snooze expires ";       relativeDate req.snoozedUntil now ]
-                    elif isPending then   [ str "Request appears next "; relativeDate req.showAfter    now ]
-                    else (* isAnswered *) [ str "Answered ";             relativeDate req.asOf         now ]
+                    if   isSnoozed then   [ str "Snooze expires ";       relativeDate req.SnoozedUntil now ]
+                    elif isPending then   [ str "Request appears next "; relativeDate req.ShowAfter    now ]
+                    else (* isAnswered *) [ str "Answered ";             relativeDate req.AsOf         now ]
                     |> em []
                 ]
           ]
@@ -74,27 +74,27 @@ let snoozed now reqs =
 let full (clock : IClock) (req : Request) =
     let now = clock.GetCurrentInstant ()
     let answered =
-        req.history
-        |> List.filter RequestAction.isAnswered
+        req.History
+        |> List.filter History.isAnswered
         |> List.tryHead
-        |> Option.map (fun x -> x.asOf)
-    let prayed = (req.history |> List.filter RequestAction.isPrayed |> List.length).ToString "N0"
+        |> Option.map (fun x -> x.AsOf)
+    let prayed = (req.History |> List.filter History.isPrayed |> List.length).ToString "N0"
     let daysOpen =
         let asOf = defaultArg answered now
-        ((asOf - (req.history |> List.filter RequestAction.isCreated |> List.head).asOf).TotalDays |> int).ToString "N0"
+        ((asOf - (req.History |> List.filter History.isCreated |> List.head).AsOf).TotalDays |> int).ToString "N0"
     let lastText =
-        req.history
-        |> List.filter (fun h -> Option.isSome h.text)
-        |> List.sortByDescending (fun h -> h.asOf)
-        |> List.map (fun h -> Option.get h.text)
+        req.History
+        |> List.filter (fun h -> Option.isSome h.Text)
+        |> List.sortByDescending (fun h -> h.AsOf)
+        |> List.map (fun h -> Option.get h.Text)
         |> List.head
     // The history log including notes (and excluding the final entry for answered requests)
     let log =
-        let toDisp (h : History) = {| asOf = h.asOf; text = h.text; status = RequestAction.toString h.status |}
+        let toDisp (h : History) = {| asOf = h.AsOf; text = h.Text; status = RequestAction.toString h.Status |}
         let all =
-            req.notes
-            |> List.map (fun n -> {| asOf = n.asOf; text = Some n.notes; status = "Notes" |})
-            |> List.append (req.history |> List.map toDisp)
+            req.Notes
+            |> List.map (fun n -> {| asOf = n.AsOf; text = Some n.Notes; status = "Notes" |})
+            |> List.append (req.History |> List.map toDisp)
             |> List.sortByDescending (fun it -> it.asOf)
         // Skip the first entry for answered requests; that info is already displayed
         match answered with Some _ -> all |> List.skip 1 | None -> all
@@ -139,7 +139,7 @@ let edit (req : JournalRequest) returnTo isNew =
         | "snoozed"         -> "/requests/snoozed"
         | _ (* "journal" *) -> "/journal"
     let recurCount =
-        match req.recurrence with
+        match req.Recurrence with
         | Immediate -> None
         | Hours   h -> Some h
         | Days    d -> Some d
@@ -154,7 +154,7 @@ let edit (req : JournalRequest) returnTo isNew =
                "/request" |> match isNew with true -> _hxPost | false -> _hxPatch ] [
             input [ _type  "hidden"
                     _name  "requestId"
-                    _value (match isNew with true -> "new" | false -> RequestId.toString req.requestId) ]
+                    _value (match isNew with true -> "new" | false -> RequestId.toString req.RequestId) ]
             input [ _type "hidden"; _name "returnTo"; _value returnTo ]
             div [ _class "form-floating pb-3" ] [
                 textarea [ _id          "requestText"
@@ -162,7 +162,7 @@ let edit (req : JournalRequest) returnTo isNew =
                            _class       "form-control"
                            _style       "min-height: 8rem;"
                            _placeholder "Enter the text of the request"
-                           _autofocus;  _required ] [ str req.text ]
+                           _autofocus;  _required ] [ str req.Text ]
                 label [ _for "requestText" ] [ str "Prayer Request" ]
             ]
             br []
@@ -202,7 +202,7 @@ let edit (req : JournalRequest) returnTo isNew =
                                     _name    "recurType"
                                     _value   "Immediate"
                                     _onclick "mpj.edit.toggleRecurrence(event)"
-                                    match req.recurrence with Immediate -> _checked | _ -> () ]
+                                    match req.Recurrence with Immediate -> _checked | _ -> () ]
                             label [ _for "rI" ] [ str "Immediately" ]
                         ]
                         div [ _class "form-check mx-2"] [
@@ -212,7 +212,7 @@ let edit (req : JournalRequest) returnTo isNew =
                                     _name    "recurType"
                                     _value   "Other"
                                     _onclick "mpj.edit.toggleRecurrence(event)"
-                                    match req.recurrence with Immediate -> () | _ -> _checked ]
+                                    match req.Recurrence with Immediate -> () | _ -> _checked ]
                             label [ _for "rO" ] [ rawText "Every&hellip;" ]
                         ]
                         div [ _class "form-floating mx-2"] [
@@ -224,7 +224,7 @@ let edit (req : JournalRequest) returnTo isNew =
                                     _value       recurCount
                                     _style       "width:6rem;"
                                     _required
-                                    match req.recurrence with Immediate -> _disabled | _ -> () ]
+                                    match req.Recurrence with Immediate -> _disabled | _ -> () ]
                             label [ _for "recurCount" ] [ str "Count" ]
                         ]
                         div [ _class "form-floating mx-2" ] [
@@ -233,14 +233,14 @@ let edit (req : JournalRequest) returnTo isNew =
                                      _name     "recurInterval"
                                      _style    "width:6rem;"
                                      _required
-                                     match req.recurrence with Immediate -> _disabled | _ -> () ] [
-                                option [ _value "Hours"; match req.recurrence with Hours _ -> _selected | _ -> () ] [
+                                     match req.Recurrence with Immediate -> _disabled | _ -> () ] [
+                                option [ _value "Hours"; match req.Recurrence with Hours _ -> _selected | _ -> () ] [
                                     str "hours"
                                 ]
-                                option [ _value "Days";  match req.recurrence with Days  _ -> _selected | _ -> () ] [
+                                option [ _value "Days";  match req.Recurrence with Days  _ -> _selected | _ -> () ] [
                                     str "days"
                                 ]
-                                option [ _value "Weeks"; match req.recurrence with Weeks _ -> _selected | _ -> () ] [
+                                option [ _value "Weeks"; match req.Recurrence with Weeks _ -> _selected | _ -> () ] [
                                     str "weeks"
                                 ]
                             ]
@@ -259,7 +259,7 @@ let edit (req : JournalRequest) returnTo isNew =
 /// Display a list of notes for a request
 let notes now notes =
     let toItem (note : Note) =
-        p [] [ small [ _class "text-muted" ] [ relativeDate note.asOf now ]; br []; str note.notes ]
+        p [] [ small [ _class "text-muted" ] [ relativeDate note.AsOf now ]; br []; str note.Notes ]
     [   p [ _class "text-center" ] [ strong [] [ str "Prior Notes for This Request" ] ]
         match notes with
         | [] -> p [ _class "text-center text-muted" ] [ str "There are no prior notes for this request" ]
