@@ -2,6 +2,7 @@
 [<AutoOpen>]
 module private MyPrayerJournal.Views.Helpers
   
+open Giraffe.Htmx
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
@@ -10,7 +11,7 @@ open NodaTime
 /// Create a link that targets the `#top` element and pushes a URL to history
 let pageLink href attrs =
     attrs
-    |> List.append [ _href href; _hxBoost; _hxTarget "#top"; _hxSwap HxSwap.InnerHtml; _hxPushUrl ]
+    |> List.append [ _href href; _hxBoost; _hxTarget "#top"; _hxSwap HxSwap.InnerHtml; _hxPushUrl "true" ]
     |> a
 
 /// Create a Material icon

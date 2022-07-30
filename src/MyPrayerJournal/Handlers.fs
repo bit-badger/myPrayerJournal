@@ -177,7 +177,7 @@ module private Helpers =
             ||> match ctx.CurrentUser with
                 | Some _ ->
                     match Messages.pop ctx.UserId with
-                    | Some (msg, url) -> setHttpHeader "X-Toast" msg >=> withHxPush url >=> writeView view
+                    | Some (msg, url) -> setHttpHeader "X-Toast" msg >=> withHxPushUrl url >=> writeView view
                     | None -> writeView view
                 | None -> writeView view
     }

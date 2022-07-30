@@ -1,6 +1,7 @@
 /// Views for journal pages and components
 module MyPrayerJournal.Views.Journal
 
+open Giraffe.Htmx
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Accessibility
 open Giraffe.ViewEngine.Htmx

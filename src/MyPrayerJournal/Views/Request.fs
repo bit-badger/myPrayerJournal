@@ -1,6 +1,7 @@
 /// Views for request pages and components
 module MyPrayerJournal.Views.Request
 
+open Giraffe.Htmx
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Htmx
 open MyPrayerJournal
@@ -151,8 +152,8 @@ let edit (req : JournalRequest) returnTo isNew =
     article [ _class "container" ] [
         h2 [ _class "pb-3" ] [ (match isNew with true -> "Add" | false -> "Edit") |> strf "%s Prayer Request" ]
         form [ _hxBoost
-               _hxTarget "#top"
-               _hxPushUrl
+               _hxTarget  "#top"
+               _hxPushUrl "true"
                "/request" |> match isNew with true -> _hxPost | false -> _hxPatch ] [
             input [ _type  "hidden"
                     _name  "requestId"

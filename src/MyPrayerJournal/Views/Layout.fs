@@ -77,9 +77,9 @@ let htmlHead ctx =
         meta [ _name "viewport"; _content "width=device-width, initial-scale=1" ]
         meta [ _name "description"; _content "Online prayer journal - free w/Google or Microsoft account" ]
         titleTag ctx
-        link [ _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        link [ _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"
                _rel         "stylesheet"
-               _integrity   "sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+               _integrity   "sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx"
                _crossorigin "anonymous" ]
         link [ _href "https://fonts.googleapis.com/icon?family=Material+Icons"; _rel "stylesheet" ]
         link [ _href "/style/style.css"; _rel "stylesheet" ]
@@ -95,7 +95,7 @@ let toaster =
 let htmlFoot =
     footer [ _class "container-fluid" ] [
         p [ _class "text-muted text-end" ] [
-            str "myPrayerJournal v3"
+            str "myPrayerJournal v3.1"
             br []
             em [] [
                 small [] [
@@ -115,11 +115,11 @@ let htmlFoot =
         ]
         Htmx.Script.minified
         script [] [
-            rawText "if (!htmx) document.write('<script src=\"/script/htmx-1.5.0.min.js\"><\/script>')"
+            rawText "if (!htmx) document.write('<script src=\"/script/htmx.min.js\"><\/script>')"
         ]
         script [ _async
-                 _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-                 _integrity   "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+                 _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+                 _integrity   "sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
                  _crossorigin "anonymous" ] []
         script [] [
             rawText "setTimeout(function () { "
