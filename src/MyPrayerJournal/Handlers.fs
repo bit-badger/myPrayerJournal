@@ -318,7 +318,9 @@ module Legal =
 
 /// /api/request and /request(s) URLs
 module Request =
-
+    
+    open Cuid
+    
     // GET /request/[req-id]/edit  
     let edit requestId : HttpHandler = requireUser >=> fun next ctx -> task {
         let returnTo =
@@ -461,6 +463,7 @@ module Request =
         let  now    = ctx.Now ()
         let  req    =
             { Request.empty with
+                Id         = Cuid.generate () |> RequestId
                 UserId     = userId
                 EnteredOn  = now
                 ShowAfter  = None

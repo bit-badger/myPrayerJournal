@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Version>3.1.0</Version>
+    <Version>3.1.1</Version>
     <NoWarn>3391</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -23,8 +23,9 @@
     <PackageReference Include="Giraffe.Htmx" Version="1.8.0" />
     <PackageReference Include="Giraffe.ViewEngine.Htmx" Version="1.8.0" />
     <PackageReference Include="LiteDB" Version="5.0.12" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.7" />
-    <PackageReference Include="NodaTime" Version="3.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.8" />
+    <PackageReference Include="NodaTime" Version="3.1.2" />
+    <PackageReference Update="FSharp.Core" Version="6.0.5" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="wwwroot\" />

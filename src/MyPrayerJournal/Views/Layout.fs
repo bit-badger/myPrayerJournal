@@ -95,7 +95,7 @@ let toaster =
 let htmlFoot =
     footer [ _class "container-fluid" ] [
         p [ _class "text-muted text-end" ] [
-            str "myPrayerJournal v3.1"
+            str "myPrayerJournal v3.1.1"
             br []
             em [] [
                 small [] [
