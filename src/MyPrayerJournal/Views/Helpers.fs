@@ -30,3 +30,13 @@ let noResults heading link buttonText text =
 /// Create a date with a span tag, displaying the relative date with the full date/time in the tooltip
 let relativeDate (date : Instant) now (tz : DateTimeZone) =
     span [ _title (date.InZone(tz).ToDateTimeOffset().ToString ("f", null)) ] [ Dates.formatDistance now date |> str ]
+
+/// The version of myPrayerJournal
+let version =
+    let v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version
+    seq {
+        string v.Major
+        if v.Minor > 0 then
+            $".{v.Minor}"
+            if v.Revision > 0 then $".{v.Revision}"
+    } |> Seq.reduce (+)
