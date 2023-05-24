@@ -22,7 +22,7 @@
     <PackageReference Include="Giraffe" Version="6.0.0" />
     <PackageReference Include="Giraffe.Htmx" Version="1.8.0" />
     <PackageReference Include="Giraffe.ViewEngine.Htmx" Version="1.8.0" />
-    <PackageReference Include="LiteDB" Version="5.0.12" />
+    <PackageReference Include="LiteDB" Version="5.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.8" />
     <PackageReference Include="NodaTime" Version="3.1.2" />
     <PackageReference Update="FSharp.Core" Version="6.0.5" />
