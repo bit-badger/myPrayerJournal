@@ -254,3 +254,6 @@ paket-files/
 
 # Ionide VSCode extension
 .ionide
+
+# in-progress: PHP version
+src/app/vendor

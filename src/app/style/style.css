@@ -1,0 +1,60 @@
+
+nav {
+  background-color: green;
+  
+  & .m {
+    font-weight: 100;
+  }
+  & .p {
+    font-weight: 400;
+  }
+  & .j {
+    font-weight: 700;
+  }
+}
+.nav-item {
+  & a:link,
+  & a:visited {
+    padding: .5rem 1rem;
+    margin: 0 .5rem;
+    border-radius: .5rem;
+    color: white;
+    text-decoration: none;
+  }
+  & a:hover {
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, .2);
+  }
+  & a.is-active-route {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-top: solid 4px rgba(255, 255, 255, .3);
+  }
+}
+form {
+  max-width: 60rem;
+  margin: auto;
+}
+.action-cell .material-icons {
+  font-size: 1.1rem ;
+}
+.material-icons {
+  vertical-align: bottom;
+}
+#toastHost {
+  position: sticky;
+  bottom: 0;
+}
+.request-text {
+  white-space: pre-line
+}
+  
+footer {
+  border-top: solid 1px lightgray;
+  margin: 1rem -1rem 0;
+  padding: 0 1rem;
+  
+  & p {
+    margin: 0;
+  }
+}

@@ -1,0 +1,16 @@
+{
+    "require": {
+        "leafs/leaf": "^3.0",
+        "leafs/bareui": "^1.1",
+        "leafs/db": "^2.1",
+        "netresearch/jsonmapper": "^4.2",
+        "visus/cuid2": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "BitBadger\\PgSQL\\Documents\\": [ "./documents" ],
+            "MyPrayerJournal\\": [ "." ],
+            "MyPrayerJournal\\Domain\\": [ "./domain" ]
+        }
+    }
+}
