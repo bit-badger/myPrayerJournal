@@ -8,8 +8,7 @@ namespace MyPrayerJournal\Domain;
  */
 class Note
 {
-    /** The date/time this note was entered */
-    public \DateTimeImmutable $asOf;
+    use AsOf;
 
     /** The note */
     public string $notes = '';

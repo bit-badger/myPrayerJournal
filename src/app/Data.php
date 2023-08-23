@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace MyPrayerJournal;
 
 use BitBadger\PgSQL\Documents\{ Configuration, Definition, Document, DocumentIndex, Query };
-use MyPrayerJournal\Domain\{ History, JournalRequest, Note, Request, RequestAction };
+use MyPrayerJournal\Domain\{ AsOf, History, JournalRequest, Note, Request, RequestAction };
 
 class Data
 {
@@ -114,8 +114,7 @@ class Data
     public static function getAnsweredRequests(string $userId): array
     {
         $answered = Data::getJournalByAnswered($userId, '==');
-        usort($answered,
-            fn (JournalRequest $a, JournalRequest $b) => $a->asOf == $b->asOf ? 0 : ($a->asOf > $b->asOf ? -1 : 1));
+        usort($answered, AsOf::newestToOldest(...));
         return $answered;
     }
 
@@ -128,8 +127,7 @@ class Data
     public static function getJournal(string $userId): array
     {
         $reqs = data::getJournalByAnswered($userId, '<>');
-        usort($reqs,
-            fn (JournalRequest $a, JournalRequest $b) => $a->asOf == $b->asOf ? 0 : ($a->asOf < $b->asOf ? -1 : 1));
+        usort($reqs, AsOf::oldestToNewest(...));
         return $reqs;
     }
 }

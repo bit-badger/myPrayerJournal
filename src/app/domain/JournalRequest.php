@@ -8,6 +8,8 @@ namespace MyPrayerJournal\Domain;
  */
 class JournalRequest
 {
+    use AsOf;
+
     /** The ID of the prayer request */
     public string $id = '';
 
@@ -16,9 +18,6 @@ class JournalRequest
 
     /** The current text of the request */
     public string $text = '';
-
-    /** The date/time this request was last updated */
-    public \DateTimeImmutable $asOf;
 
     /** The date/time this request was last marked as prayed */
     public \DateTimeImmutable $lastPrayed;
@@ -69,18 +68,15 @@ class JournalRequest
             $this->recurrenceType = $req->recurrenceType;
             $this->recurrence     = $req->recurrence;
 
-            usort($req->history,
-                fn (History $a, History $b) => $a->asOf == $b->asOf ? 0 : ($a->asOf > $b->asOf ? -1 : 1));
-            $this->asOf = $req->history[0]->asOf;
-            $this->lastPrayed =
-                array_values(array_filter($req->history, fn (History $it) => $it->action == RequestAction::Prayed))[0]
-                ?->asOf;
+            usort($req->history, AsOf::newestToOldest(...));
+            $this->asOf       = $req->history[0]->asOf;
+            $this->lastPrayed = array_values(
+                array_filter($req->history, fn (History $it) => $it->isPrayed()))[0]?->asOf;
             
             if ($full) {
-                usort($req->notes,
-                    fn (Note $a, Note $b) => $a->asOf == $b->asOf ? 0 : ($a->asOf > $b->asOf ? -1 : 1));
+                usort($req->notes, AsOf::newestToOldest(...));
                 $this->history = $req->history;
-                $this->notes = $req->notes;
+                $this->notes   = $req->notes;
             }
         }
     }
