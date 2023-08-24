@@ -85,7 +85,7 @@ class Query
      */
     public static function countAll(string $tableName): string
     {
-        return "SELECT COUNT(id) AS it FROM $tableName";
+        return "SELECT COUNT(*) AS it FROM $tableName";
     }
     
     /**
@@ -96,7 +96,7 @@ class Query
      */
     public static function countByContains(string $tableName): string
     {
-        return "SELECT COUNT(id) AS it FROM $tableName WHERE " . Query::whereDataContains('@criteria');
+        return "SELECT COUNT(*) AS it FROM $tableName WHERE " . self::whereDataContains('@criteria');
     }
     
     /**
@@ -107,7 +107,7 @@ class Query
      */
     public static function countByJsonPath(string $tableName): string
     {
-        return "SELECT COUNT(id) AS it FROM $tableName WHERE " . Query::whereJsonPathMatches('@path');
+        return "SELECT COUNT(*) AS it FROM $tableName WHERE " . self::whereJsonPathMatches('@path');
     }
     
     /**
@@ -129,7 +129,7 @@ class Query
      */
     public static function existsByContains(string $tableName): string
     {
-        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE " . Query::whereDataContains('@criteria') . ' AS it';
+        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE " . self::whereDataContains('@criteria') . ' AS it';
     }
     
     /**
@@ -140,7 +140,7 @@ class Query
      */
     public static function existsByJsonPath(string $tableName): string
     {
-        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE " . Query::whereJsonPathMatches('@path') . ' AS it';
+        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE " . self::whereJsonPathMatches('@path') . ' AS it';
     }
     
     /**
@@ -151,7 +151,7 @@ class Query
      */
     public static function findById(string $tableName): string
     {
-        return Query::selectFromTable($tableName) . ' WHERE id = :id';
+        return self::selectFromTable($tableName) . ' WHERE id = :id';
     }
     
     /**
@@ -162,7 +162,7 @@ class Query
      */
     public static function findByContains(string $tableName): string
     {
-        return Query::selectFromTable($tableName) . ' WHERE ' . Query::whereDataContains('@criteria');
+        return self::selectFromTable($tableName) . ' WHERE ' . self::whereDataContains('@criteria');
     }
     
     /**
@@ -173,7 +173,7 @@ class Query
      */
     public static function findByJsonPath(string $tableName): string
     {
-        return Query::selectFromTable($tableName) . ' WHERE ' . Query::whereJsonPathMatches('@path');
+        return self::selectFromTable($tableName) . ' WHERE ' . self::whereJsonPathMatches('@path');
     }
     
     /**
@@ -206,7 +206,7 @@ class Query
      */
     public static function updatePartialByContains(string $tableName): string
     {
-        return "UPDATE $tableName SET data = data || @data WHERE " . Query::whereDataContains('@criteria');
+        return "UPDATE $tableName SET data = data || @data WHERE " . self::whereDataContains('@criteria');
     }
 
     /**
@@ -217,7 +217,7 @@ class Query
      */
     public static function updatePartialByJsonPath(string $tableName): string
     {
-        return "UPDATE $tableName SET data = data || @data WHERE " . Query::whereJsonPathMatches('@path');
+        return "UPDATE $tableName SET data = data || @data WHERE " . self::whereJsonPathMatches('@path');
     }
 
     /**
@@ -239,7 +239,7 @@ class Query
      */
     public static function deleteByContains(string $tableName): string
     {
-        return "DELETE FROM $tableName WHERE " . Query::whereDataContains('@criteria');
+        return "DELETE FROM $tableName WHERE " . self::whereDataContains('@criteria');
     }
 
     /**
@@ -250,6 +250,6 @@ class Query
      */
     public static function deleteByJsonPath(string $tableName): string
     {
-        return "DELETE FROM $tableName WHERE " . Query::whereJsonPathMatches('@path');
+        return "DELETE FROM $tableName WHERE " . self::whereJsonPathMatches('@path');
     }
 }

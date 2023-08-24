@@ -21,12 +21,12 @@ class Document
      */
     public static function mapDocFromJson(string $columnName, array $result, string $className): mixed
     {
-        if (is_null(Document::$mapper)) {
-            Document::$mapper = new \JsonMapper();
+        if (is_null(self::$mapper)) {
+            self::$mapper = new \JsonMapper();
         }
 
         $mapped = new $className();
-        Document::$mapper->map(json_decode($result[$columnName]), $mapped);
+        self::$mapper->map(json_decode($result[$columnName]), $mapped);
         return $mapped;
     }
 
@@ -39,7 +39,7 @@ class Document
      */
     public static function mapFromJson(array $result, string $className): mixed
     {
-        return Document::mapDocFromJson('data', $result, $className);
+        return self::mapDocFromJson('data', $result, $className);
     }
 
     /**
@@ -66,7 +66,7 @@ class Document
      */
     public static function insert(string $tableName, string $docId, array|object $document)
     {
-        Document::executeNonQuery(Query::insert($tableName), $docId, $document);
+        self::executeNonQuery(Query::insert($tableName), $docId, $document);
     }
 
     /**
@@ -78,7 +78,7 @@ class Document
      */
     public static function save(string $tableName, string $docId, array|object $document)
     {
-        Document::executeNonQuery(Query::save($tableName), $docId, $document);
+        self::executeNonQuery(Query::save($tableName), $docId, $document);
     }
 
     /**
@@ -182,7 +182,7 @@ class Document
      */
     private static function mapResults(\PDOStatement $stmt, string $className): array
     {
-        return array_map(fn ($it) => Document::mapFromJson($it, $className), $stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(fn ($it) => self::mapFromJson($it, $className), $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -194,7 +194,7 @@ class Document
      */
     public static function findAll(string $tableName, string $className): array
     {
-        return Document::mapResults(pdo()->query(Query::selectFromTable($tableName)), $className);
+        return self::mapResults(pdo()->query(Query::selectFromTable($tableName)), $className);
     }
 
     /**
@@ -211,7 +211,7 @@ class Document
         $query->bindParam(':id', $docId);
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
-        return $result ? Document::mapFromJson($result, $className) : null;
+        return $result ? self::mapFromJson($result, $className) : null;
     }
 
     /**
@@ -239,7 +239,7 @@ class Document
      */
     public static function findByContains(string $tableName, array|object $criteria, string $className): array
     {
-        return Document::mapResults(Document::queryByContains($tableName, $criteria), $className);
+        return self::mapResults(self::queryByContains($tableName, $criteria), $className);
     }
 
     /**
@@ -252,9 +252,9 @@ class Document
      */
     public static function findFirstByContains(string $tableName, array|object $criteria, string $className): mixed
     {
-        $query = Document::queryByContains($tableName, $criteria);
+        $query = self::queryByContains($tableName, $criteria);
         $result = $query->fetch(\PDO::FETCH_ASSOC);
-        return $result ? Document::mapFromJson($result, $className) : null;
+        return $result ? self::mapFromJson($result, $className) : null;
     }
 
     /**
@@ -282,7 +282,7 @@ class Document
      */
     public static function findByJsonPath(string $tableName, string $jsonPath, string $className): array
     {
-        return Document::mapResults(Document::queryByJsonPath($tableName, $jsonPath), $className);
+        return self::mapResults(self::queryByJsonPath($tableName, $jsonPath), $className);
     }
 
     /**
@@ -295,9 +295,9 @@ class Document
      */
     public static function findFirstByJsonPath(string $tableName, string $jsonPath, string $className): mixed
     {
-        $query = Document::queryByJsonPath($tableName, $jsonPath);
+        $query = self::queryByJsonPath($tableName, $jsonPath);
         $result = $query->fetch(\PDO::FETCH_ASSOC);
-        return $result ? Document::mapFromJson($result, $className) : null;
+        return $result ? self::mapFromJson($result, $className) : null;
     }
 
     /**
@@ -309,7 +309,7 @@ class Document
      */
     public static function updateFull(string $tableName, string $docId, array|object $document)
     {
-        Document::executeNonQuery(Query::updateFull($tableName), $docId, $document);
+        self::executeNonQuery(Query::updateFull($tableName), $docId, $document);
     }
 
     /**
@@ -321,7 +321,7 @@ class Document
      */
     public static function updatePartialById(string $tableName, string $docId, array|object $document)
     {
-        Document::executeNonQuery(Query::updatePartialById($tableName), $docId, $document);
+        self::executeNonQuery(Query::updatePartialById($tableName), $docId, $document);
     }
 
     /**
@@ -362,7 +362,7 @@ class Document
      */
     public static function deleteById(string $tableName, string $docId)
     {
-        Document::executeNonQuery(Query::deleteById($tableName), $docId, []);
+        self::executeNonQuery(Query::deleteById($tableName), $docId, []);
     }
 
     /**
@@ -423,7 +423,7 @@ class Document
     {
         return array_map(
             fn ($it) => $mapFunc($it, $className),
-            Document::createCustomQuery($sql, $params)->fetchAll(\PDO::FETCH_ASSOC));
+            self::createCustomQuery($sql, $params)->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -437,7 +437,7 @@ class Document
      */
     public static function customSingle(string $sql, array $params, string $className, callable $mapFunc): mixed
     {
-        $result = Document::createCustomQuery($sql, $params)->fetch(\PDO::FETCH_ASSOC);
+        $result = self::createCustomQuery($sql, $params)->fetch(\PDO::FETCH_ASSOC);
         return $result ? $mapFunc($result, $className) : null;
     }
 
@@ -449,6 +449,6 @@ class Document
      */
     public static function customNonQuery(string $sql, array $params)
     {
-        Document::createCustomQuery($sql, $params);
+        self::createCustomQuery($sql, $params);
     }
 }

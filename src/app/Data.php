@@ -17,8 +17,8 @@ class Data
     public static function startUp()
     {
         Configuration::$connectionString = "pgsql:host=localhost;port=5432;dbname=leafjson;user=leaf;password=leaf";
-        Definition::ensureTable(Data::REQ_TABLE);
-        Definition::ensureIndex(Data::REQ_TABLE, DocumentIndex::Optimized);
+        Definition::ensureTable(self::REQ_TABLE);
+        Definition::ensureIndex(self::REQ_TABLE, DocumentIndex::Optimized);
     }
 
     /**
@@ -30,7 +30,7 @@ class Data
      */
     public static function findFullRequestById(string $reqId, string $userId): ?Request
     {
-        $req = Document::findById(Data::REQ_TABLE, $reqId, Request::class);
+        $req = Document::findById(self::REQ_TABLE, $reqId, Request::class);
         return is_null($req) || $req->userId != $userId ? null : $req;
     }
 
@@ -43,10 +43,10 @@ class Data
      */
     public static function addHistory(string $reqId, string $userId, History $history)
     {
-        $req = Data::findFullRequestById($reqId, $userId);
+        $req = self::findFullRequestById($reqId, $userId);
         if (is_null($req)) throw new \InvalidArgumentException("$reqId not found");
         array_unshift($req->history, $history);
-        Document::updateFull(Data::REQ_TABLE, $reqId, $req);
+        Document::updateFull(self::REQ_TABLE, $reqId, $req);
     }
 
     /**
@@ -58,10 +58,10 @@ class Data
      */
     public static function addNote(string $reqId, string $userId, Note $note)
     {
-        $req = Data::findFullRequestById($reqId, $userId);
+        $req = self::findFullRequestById($reqId, $userId);
         if (is_null($req)) throw new \InvalidArgumentException("$reqId not found");
         array_unshift($req->notes, $note);
-        Document::updateFull(Data::REQ_TABLE, $reqId, $req);
+        Document::updateFull(self::REQ_TABLE, $reqId, $req);
     }
 
     /**
@@ -71,7 +71,7 @@ class Data
      */
     public static function addRequest(Request $req)
     {
-        Document::insert(Data::REQ_TABLE, $req->id, $req);
+        Document::insert(self::REQ_TABLE, $req->id, $req);
     }
 
     /**
@@ -95,13 +95,13 @@ class Data
      */
     private static function getJournalByAnswered(string $userId, string $op): array
     {
-        $sql = Query::selectFromTable(Data::REQ_TABLE)
+        $sql = Query::selectFromTable(self::REQ_TABLE)
             . ' WHERE ' . Query::whereDataContains(':criteria') . ' AND ' . Query::whereJsonPathMatches(':path');
         $params = [
             ':criteria' => Query::jsonbDocParam([ 'userId' => $userId ]),
             ':path'     => '$.history[*].action (@ ' . $op . ' "' . RequestAction::Answered->name . '")'
         ];
-        return Data::mapToJournalRequest(
+        return self::mapToJournalRequest(
             Document::customList($sql, $params, Request::class, Document::mapFromJson(...)), true);
     }
     
@@ -113,7 +113,7 @@ class Data
      */
     public static function getAnsweredRequests(string $userId): array
     {
-        $answered = Data::getJournalByAnswered($userId, '==');
+        $answered = self::getJournalByAnswered($userId, '==');
         usort($answered, AsOf::newestToOldest(...));
         return $answered;
     }
@@ -126,7 +126,7 @@ class Data
      */
     public static function getJournal(string $userId): array
     {
-        $reqs = data::getJournalByAnswered($userId, '<>');
+        $reqs = self::getJournalByAnswered($userId, '<>');
         usort($reqs, AsOf::oldestToNewest(...));
         return $reqs;
     }

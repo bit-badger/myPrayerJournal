@@ -21,10 +21,10 @@ class Configuration
      */
     public static function getConn(): \PDO
     {
-        if (is_null(Configuration::$conn)) {
-            Configuration::$conn = new \PDO(Configuration::$connectionString);
+        if (is_null(self::$conn)) {
+            self::$conn = new \PDO(self::$connectionString);
         }
-        return Configuration::$conn;
+        return self::$conn;
     }
 }
 

@@ -41,7 +41,7 @@ class Definition
      */
     public static function ensureTable(string $name)
     {
-        pdo()->query(Definition::createTable($name))->execute();
+        pdo()->query(self::createTable($name))->execute();
     }
 
     /**
@@ -52,6 +52,6 @@ class Definition
      */
     public static function ensureIndex(string $name, DocumentIndex $type)
     {
-        pdo()->query(Definition::createIndex($name, $type))->execute();
+        pdo()->query(self::createIndex($name, $type))->execute();
     }
 }
