@@ -12,11 +12,19 @@ class Data
     const REQ_TABLE = 'prayer_request';
 
     /**
+     * Configure the data connection
+     */
+    public static function configure()
+    {
+        Configuration::$connectionString = 'pgsql:host=localhost;port=5432;dbname=leafjson;user=leaf;password=leaf';
+        //Configuration::$startUp          = '\MyPrayerJournal\Data::startUp';
+    }
+
+    /**
      * Ensure the table and index exist
      */
     public static function startUp()
     {
-        Configuration::$connectionString = "pgsql:host=localhost;port=5432;dbname=leafjson;user=leaf;password=leaf";
         Definition::ensureTable(self::REQ_TABLE);
         Definition::ensureIndex(self::REQ_TABLE, DocumentIndex::Optimized);
     }
@@ -96,10 +104,10 @@ class Data
     private static function getJournalByAnswered(string $userId, string $op): array
     {
         $sql = Query::selectFromTable(self::REQ_TABLE)
-            . ' WHERE ' . Query::whereDataContains(':criteria') . ' AND ' . Query::whereJsonPathMatches(':path');
+            . ' WHERE ' . Query::whereDataContains('$1') . ' AND ' . Query::whereJsonPathMatches('$2');
         $params = [
-            ':criteria' => Query::jsonbDocParam([ 'userId' => $userId ]),
-            ':path'     => '$.history[*].action (@ ' . $op . ' "' . RequestAction::Answered->name . '")'
+            Query::jsonbDocParam([ 'userId' => $userId ]),
+            '$.history[*].action (@ ' . $op . ' "' . RequestAction::Answered->name . '")'
         ];
         return self::mapToJournalRequest(
             Document::customList($sql, $params, Request::class, Document::mapFromJson(...)), true);

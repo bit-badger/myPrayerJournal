@@ -4,11 +4,14 @@ require __DIR__ . '/vendor/autoload.php';
 
 use MyPrayerJournal\Data;
 
-Data::startUp();
+Data::configure();
+//Data::findFullRequestById('abc', 'def');
+//echo "Returned from req\n";
+
+//Data::getAnsweredRequests('abc');
 
 app()->template->config('path', './pages');
 app()->template->config('params', [
-    // 'app'       => function () { return app(); },
     'page_link' => function (string $url, bool $checkActive = false) {
        echo 'href="'. $url . '" hx-get="' . $url . '"';
        if ($checkActive && str_starts_with($_SERVER['REQUEST_URI'], $url)) {
@@ -34,8 +37,10 @@ function renderPage(string $template, array $params, string $pageTitle)
     response()->markup(app()->template->render('layout/full', $params));
 }
 
+Data::getAnsweredRequests('abc');
 app()->get('/', function () {
-    renderPage('home', [], 'Welcome');
+    phpinfo();
+    //renderPage('home', [], 'Welcome');
 });
 
 app()->get('/legal/privacy-policy', function () {

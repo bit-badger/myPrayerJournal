@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BitBadger\PgSQL\Documents;
 
 use PDOStatement;
+use PgSql\Result;
 
 /** Document manipulation functions */
 class Document
@@ -402,8 +403,14 @@ class Document
      */
     private static function createCustomQuery(string $sql, array $params): PDOStatement
     {
+        $result = pg_query_params(pgconn(), $sql, $params);
+        echo "Preparing statement for $sql\n";
+        foreach ($params as $name => $value) {
+            echo "Binding $name to $value\n";
+        }
         $query = pdo()->prepare($sql);
         foreach ($params as $name => $value) {
+            echo "Binding $name to $value\n";
             $query->bindParam($name, $value);
         }
         $query->execute();
@@ -421,9 +428,14 @@ class Document
      */
     public static function customList(string $sql, array $params, string $className, callable $mapFunc): array
     {
-        return array_map(
-            fn ($it) => $mapFunc($it, $className),
-            self::createCustomQuery($sql, $params)->fetchAll(\PDO::FETCH_ASSOC));
+        $data   = pg_query_params(pgconn(), $sql, $params);
+        $result = [];
+        if (!$data) return $result;
+        while ($row = pg_fetch_array($data, mode: PGSQL_ASSOC)) {
+            array_push($result, $mapFunc($row, $className));
+        }
+        pg_free_result($data);
+        return $result;
     }
 
     /**
