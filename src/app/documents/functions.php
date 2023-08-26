@@ -13,14 +13,3 @@ if (!function_exists('pdo')) {
         return Configuration::getConn();
     }
 }
-if (!function_exists('pgconn')) {
-    /**
-     * Return the active PostgreSQL connection
-     * 
-     * @return \PgSql\Connection The open PostgreSQL connection
-     */
-    function pgconn()
-    {
-        return Configuration::getRawConn();
-    }
-}

@@ -28,8 +28,8 @@ class Definition
      */
     public static function createIndex(string $name, DocumentIndex $type): string
     {
-        $extraOps       = $type == DocumentIndex::Full ? "" : " jsonb_path_ops";
-        $schemaAndTable = explode(".", $name);
+        $extraOps       = $type == DocumentIndex::Full ? '' : ' jsonb_path_ops';
+        $schemaAndTable = explode('.', $name);
         $tableName      = end($schemaAndTable);
         return "CREATE INDEX IF NOT EXISTS idx_$tableName ON $name USING GIN (data$extraOps)";
     }

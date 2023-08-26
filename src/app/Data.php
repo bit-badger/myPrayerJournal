@@ -17,7 +17,7 @@ class Data
     public static function configure()
     {
         Configuration::$connectionString = 'pgsql:host=localhost;port=5432;dbname=leafjson;user=leaf;password=leaf';
-        //Configuration::$startUp          = '\MyPrayerJournal\Data::startUp';
+        Configuration::$startUp          = '\MyPrayerJournal\Data::startUp';
     }
 
     /**
@@ -103,12 +103,12 @@ class Data
      */
     private static function getJournalByAnswered(string $userId, string $op): array
     {
-        $sql = Query::selectFromTable(self::REQ_TABLE)
-            . ' WHERE ' . Query::whereDataContains('$1') . ' AND ' . Query::whereJsonPathMatches('$2');
-        $params = [
-            Query::jsonbDocParam([ 'userId' => $userId ]),
-            '$.history[*].action (@ ' . $op . ' "' . RequestAction::Answered->name . '")'
-        ];
+        $isAnswered = str_replace(':path',
+            "'$.history[*].action ? (@ $op \"" . RequestAction::Answered->name . "\")'",
+            Query::whereJsonPathMatches(':path'));
+        $sql = sprintf("%s WHERE %s AND $isAnswered", Query::selectFromTable(self::REQ_TABLE),
+            Query::whereDataContains(':criteria'));
+        $params = [ ':criteria' => Query::jsonbDocParam([ 'userId' => $userId ]) ];
         return self::mapToJournalRequest(
             Document::customList($sql, $params, Request::class, Document::mapFromJson(...)), true);
     }

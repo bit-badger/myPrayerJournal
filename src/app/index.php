@@ -5,10 +5,6 @@ require __DIR__ . '/vendor/autoload.php';
 use MyPrayerJournal\Data;
 
 Data::configure();
-//Data::findFullRequestById('abc', 'def');
-//echo "Returned from req\n";
-
-//Data::getAnsweredRequests('abc');
 
 app()->template->config('path', './pages');
 app()->template->config('params', [
@@ -37,10 +33,8 @@ function renderPage(string $template, array $params, string $pageTitle)
     response()->markup(app()->template->render('layout/full', $params));
 }
 
-Data::getAnsweredRequests('abc');
 app()->get('/', function () {
-    phpinfo();
-    //renderPage('home', [], 'Welcome');
+    renderPage('home', [], 'Welcome');
 });
 
 app()->get('/legal/privacy-policy', function () {

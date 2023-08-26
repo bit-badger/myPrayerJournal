@@ -4,13 +4,15 @@ declare(strict_types=1);
 namespace BitBadger\PgSQL\Documents;
 
 use PDOStatement;
-use PgSql\Result;
 
 /** Document manipulation functions */
 class Document
 {
     /** JSON Mapper instance to use for creating a domain type instance from a document */
     private static ?\JsonMapper $mapper = null;
+
+    /** Attribute that prevents PDO from attempting its own PREPARE on a query */
+    private const NO_PREPARE = [ \PDO::ATTR_EMULATE_PREPARES => false ];
 
     /**
      * Map a domain type from the JSON document retrieved
@@ -52,9 +54,9 @@ class Document
      */
     private static function executeNonQuery(string $query, string $docId, array|object $document)
     {
-        $nonQuery = pdo()->prepare($query);
-        $nonQuery->bindParam('@id', $docId);
-        $nonQuery->bindParam('@data', Query::jsonbDocParam($document));
+        $nonQuery = pdo()->prepare($query, self::NO_PREPARE);
+        $nonQuery->bindParam(':id', $docId);
+        $nonQuery->bindParam(':data', Query::jsonbDocParam($document));
         $nonQuery->execute();
     }
 
@@ -103,8 +105,8 @@ class Document
      */
     public static function countByContains(string $tableName, array|object $criteria): int
     {
-        $query = pdo()->prepare(Query::countByContains($tableName));
-        $query->bindParam('@criteria', Query::jsonbDocParam($criteria));
+        $query = pdo()->prepare(Query::countByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':criteria', Query::jsonbDocParam($criteria));
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
         return intval($result['it']);
@@ -119,8 +121,8 @@ class Document
      */
     public static function countByJsonPath(string $tableName, string $jsonPath): int
     {
-        $query = pdo()->prepare(Query::countByContains($tableName));
-        $query->bindParam('@path', $jsonPath);
+        $query = pdo()->prepare(Query::countByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':path', $jsonPath);
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
         return intval($result['it']);
@@ -135,8 +137,8 @@ class Document
      */
     public static function existsById(string $tableName, string $docId): bool
     {
-        $query = pdo()->prepare(Query::existsById($tableName));
-        $query->bindParam('@id', $docId);
+        $query = pdo()->prepare(Query::existsById($tableName), self::NO_PREPARE);
+        $query->bindParam(':id', $docId);
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
         return boolval($result['it']);
@@ -151,8 +153,8 @@ class Document
      */
     public static function existsByContains(string $tableName, array|object $criteria): bool
     {
-        $query = pdo()->prepare(Query::existsByContains($tableName));
-        $query->bindParam('@criteria', Query::jsonbDocParam($criteria));
+        $query = pdo()->prepare(Query::existsByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':criteria', Query::jsonbDocParam($criteria));
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
         return boolval($result['it']);
@@ -167,8 +169,8 @@ class Document
      */
     public static function existsByJsonPath(string $tableName, string $jsonPath): bool
     {
-        $query = pdo()->prepare(Query::existsByJsonPath($tableName));
-        $query->bindParam('@path', $jsonPath);
+        $query = pdo()->prepare(Query::existsByJsonPath($tableName), self::NO_PREPARE);
+        $query->bindParam(':path', $jsonPath);
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
         return boolval($result['it']);
@@ -208,7 +210,7 @@ class Document
      */
     public static function findById(string $tableName, string $docId, string $className): mixed
     {
-        $query = pdo()->prepare(Query::findById($tableName));
+        $query = pdo()->prepare(Query::findById($tableName), self::NO_PREPARE);
         $query->bindParam(':id', $docId);
         $query->execute();
         $result = $query->fetch(\PDO::FETCH_ASSOC);
@@ -224,8 +226,8 @@ class Document
      */
     private static function queryByContains(string $tableName, array|object $criteria): \PDOStatement
     {
-        $query = pdo()->prepare(Query::findByContains($tableName));
-        $query->bindParam('@criteria', Query::jsonbDocParam($criteria));
+        $query = pdo()->prepare(Query::findByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':criteria', Query::jsonbDocParam($criteria));
         $query->execute();
         return $query;
     }
@@ -267,8 +269,8 @@ class Document
      */
     private static function queryByJsonPath(string $tableName, string $jsonPath): \PDOStatement
     {
-        $query = pdo()->prepare(Query::findByJsonPath($tableName));
-        $query->bindParam('@path', $jsonPath);
+        $query = pdo()->prepare(Query::findByJsonPath($tableName), self::NO_PREPARE);
+        $query->bindParam(':path', $jsonPath);
         $query->execute();
         return $query;
     }
@@ -334,9 +336,9 @@ class Document
      */
     public static function updatePartialByContains(string $tableName, array|object $criteria, array|object $document)
     {
-        $query = pdo()->prepare(Query::updatePartialByContains($tableName));
-        $query->bindParam('@data', Query::jsonbDocParam($document));
-        $query->bindParam('@criteria', Query::jsonbDocParam($criteria));
+        $query = pdo()->prepare(Query::updatePartialByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':data', Query::jsonbDocParam($document));
+        $query->bindParam(':criteria', Query::jsonbDocParam($criteria));
         $query->execute();
     }
 
@@ -349,9 +351,9 @@ class Document
      */
     public static function updatePartialByJsonPath(string $tableName, string $jsonPath, array|object $document)
     {
-        $query = pdo()->prepare(Query::updatePartialByContains($tableName));
-        $query->bindParam('@data', Query::jsonbDocParam($document));
-        $query->bindParam('@path', $jsonPath);
+        $query = pdo()->prepare(Query::updatePartialByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':data', Query::jsonbDocParam($document));
+        $query->bindParam(':path', $jsonPath);
         $query->execute();
     }
 
@@ -374,8 +376,8 @@ class Document
      */
     public static function deleteByContains(string $tableName, array|object $criteria)
     {
-        $query = pdo()->prepare(Query::deleteByContains($tableName));
-        $query->bindParam('@criteria', Query::jsonbDocParam($criteria));
+        $query = pdo()->prepare(Query::deleteByContains($tableName), self::NO_PREPARE);
+        $query->bindParam(':criteria', Query::jsonbDocParam($criteria));
         $query->execute();
     }
 
@@ -387,8 +389,8 @@ class Document
      */
     public static function deleteByJsonPath(string $tableName, string $jsonPath)
     {
-        $query = pdo()->prepare(Query::deleteByJsonPath($tableName));
-        $query->bindParam('@path', $jsonPath);
+        $query = pdo()->prepare(Query::deleteByJsonPath($tableName), self::NO_PREPARE);
+        $query->bindParam(':path', $jsonPath);
         $query->execute();
     }
 
@@ -403,16 +405,8 @@ class Document
      */
     private static function createCustomQuery(string $sql, array $params): PDOStatement
     {
-        $result = pg_query_params(pgconn(), $sql, $params);
-        echo "Preparing statement for $sql\n";
-        foreach ($params as $name => $value) {
-            echo "Binding $name to $value\n";
-        }
-        $query = pdo()->prepare($sql);
-        foreach ($params as $name => $value) {
-            echo "Binding $name to $value\n";
-            $query->bindParam($name, $value);
-        }
+        $query = pdo()->prepare($sql, self::NO_PREPARE);
+        array_walk($params, fn ($value, $name) => $query->bindParam($name, $value));
         $query->execute();
         return $query;
     }
@@ -428,14 +422,9 @@ class Document
      */
     public static function customList(string $sql, array $params, string $className, callable $mapFunc): array
     {
-        $data   = pg_query_params(pgconn(), $sql, $params);
-        $result = [];
-        if (!$data) return $result;
-        while ($row = pg_fetch_array($data, mode: PGSQL_ASSOC)) {
-            array_push($result, $mapFunc($row, $className));
-        }
-        pg_free_result($data);
-        return $result;
+        return array_map(
+            fn ($it) => $mapFunc($it, $className),
+            Document::createCustomQuery($sql, $params)->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
