@@ -95,4 +95,27 @@ class AppUser
     {
         return self::auth0Instance()->getCredentials();
     }
+
+    /**
+     * Require that there be a user logged on
+     * 
+     * @return void This will not return if there is not a user logged on
+     */
+    public static function require()
+    {
+        if (is_null(self::current())) {
+            // TODO: get the current URL to specify for redirection
+            self::logOn();
+        }
+    }
+
+    /**
+     * Get the ID (`sub`) for the current user
+     * 
+     * @return string The ID of the user (blank string if there is no current user)
+     */
+    public static function currentId(): string
+    {
+        return self::auth0Instance()->getCredentials()?->user['sub'] ?? '';
+    }
 }

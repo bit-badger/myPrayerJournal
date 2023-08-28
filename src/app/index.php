@@ -19,19 +19,24 @@ app()->template->config('params', [
     'version' => 'v4',
 ]);
 
-
 app()->get('/', fn () => Handlers::render('home', 'Welcome'));
 
-app()->get('/components/journal-items', Handlers::journalItems(...));
-
+app()->group('/components', function () {
+    app()->get('/journal-items', Handlers::journalItems(...));
+});
 app()->get('/journal', Handlers::journal(...));
-
-app()->get('/legal/privacy-policy',   fn () => Handlers::render('legal/privacy-policy',   'Privacy Policy'));
-app()->get('/legal/terms-of-service', fn () => Handlers::render('legal/terms-of-service', 'Terms of Service'));
-
-app()->get('/user/log-on',         AppUser::logOn(...));
-app()->get('/user/log-on/success', AppUser::processLogOn(...));
-app()->get('/user/log-off',        AppUser::logOff(...));
+app()->group('/legal', function () {
+    app()->get('/privacy-policy',   fn () => Handlers::render('legal/privacy-policy',   'Privacy Policy'));
+    app()->get('/terms-of-service', fn () => Handlers::render('legal/terms-of-service', 'Terms of Service'));
+});
+app()->group('/request', function () {
+    app()->get('/{reqId}/edit', Handlers::requestEdit(...));
+});
+app()->group('/user', function () {
+    app()->get('/log-on',         AppUser::logOn(...));
+    app()->get('/log-on/success', AppUser::processLogOn(...));
+    app()->get('/log-off',        AppUser::logOff(...));
+});
 
 // TODO: remove before go-live
 $stdOut = fopen('php://stdout', 'w');

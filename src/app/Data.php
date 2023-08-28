@@ -137,4 +137,17 @@ class Data
         usort($reqs, AsOf::oldestToNewest(...));
         return $reqs;
     }
+
+    /**
+     * Try to obtain a journal request by its ID
+     * 
+     * @param string $reqId The request ID
+     * @param string $userId The ID of the currently logged-on user
+     * @return ?JournalRequest The request, or null if it is not found
+     */
+    public static function tryJournalById(string $reqId, string $userId): ?JournalRequest
+    {
+        $req = self::findFullRequestById($reqId, $userId);
+        return is_null($req) ? null : new JournalRequest($req);
+    }
 }
