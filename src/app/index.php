@@ -1,14 +1,15 @@
 <?php
 
 require __DIR__ . '/vendor/autoload.php';
+(Dotenv\Dotenv::createImmutable(__DIR__))->load();
 
-use MyPrayerJournal\Data;
+use MyPrayerJournal\{ AppUser, Data, Handlers };
 
 Data::configure();
 
 app()->template->config('path', './pages');
 app()->template->config('params', [
-    'page_link' => function (string $url, bool $checkActive = false) {
+    'page_link'  => function (string $url, bool $checkActive = false) {
        echo 'href="'. $url . '" hx-get="' . $url . '"';
        if ($checkActive && str_starts_with($_SERVER['REQUEST_URI'], $url)) {
            echo ' class="is-active-route"';
@@ -18,31 +19,26 @@ app()->template->config('params', [
     'version' => 'v4',
 ]);
 
-function renderPage(string $template, array $params, string $pageTitle)
+
+app()->get('/', fn () => Handlers::render('home', 'Welcome'));
+
+app()->get('/components/journal-items', Handlers::journalItems(...));
+
+app()->get('/journal', Handlers::journal(...));
+
+app()->get('/legal/privacy-policy',   fn () => Handlers::render('legal/privacy-policy',   'Privacy Policy'));
+app()->get('/legal/terms-of-service', fn () => Handlers::render('legal/terms-of-service', 'Terms of Service'));
+
+app()->get('/user/log-on',         AppUser::logOn(...));
+app()->get('/user/log-on/success', AppUser::processLogOn(...));
+app()->get('/user/log-off',        AppUser::logOff(...));
+
+// TODO: remove before go-live
+$stdOut = fopen('php://stdout', 'w');
+function stdout(string $msg)
 {
-    if (is_null($params)) {
-        $params = [];
-    }
-    $params['pageTitle'] = $pageTitle;
-    $params['isHtmx'] =
-        array_key_exists('HTTP_HX_REQUEST', $_SERVER)
-            && (!array_key_exists('HTTP_HX_HISTORY_RESTORE_REQUEST', $_SERVER));
-    $params['userId'] = false;
-    $params['pageContent'] = app()->template->render($template, $params);
-    // TODO: make the htmx distinction here
-    response()->markup(app()->template->render('layout/full', $params));
+    global $stdOut;
+    fwrite($stdOut, $msg . "\n");
 }
-
-app()->get('/', function () {
-    renderPage('home', [], 'Welcome');
-});
-
-app()->get('/legal/privacy-policy', function () {
-    renderPage('legal/privacy-policy', [], 'Privacy Policy');
-});
-
-app()->get('/legal/terms-of-service', function () {
-    renderPage('legal/terms-of-service', [], 'Terms of Service');
-});
 
 app()->run();

@@ -28,7 +28,7 @@ class Configuration
             $db   = $_ENV['PGDOC_DB']   ?? 'postgres';
             $user = $_ENV['PGDOC_USER'] ?? 'postgres';
             $pass = $_ENV['PGDOC_PASS'] ?? 'postgres';
-            self::$connectionString = "pgsql:host=$host;port=$port;dbname=$db;user=$user;pass=$pass";
+            self::$connectionString = "pgsql:host=$host;port=$port;dbname=$db;user=$user;password=$pass";
         }
     }
 

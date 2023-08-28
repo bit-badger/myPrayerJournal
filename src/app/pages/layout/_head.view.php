@@ -1,5 +1,5 @@
 <head>
-    <title><?php echo htmlentities($pageTitle); ?> &#xab; myPrayerJournal</title><?php
+    <title><?php echo $pageTitle; ?> &#xab; myPrayerJournal</title><?php
     if (!$isHtmx) { ?>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="Online prayer journal - free w/Google or Microsoft account">

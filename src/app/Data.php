@@ -16,8 +16,7 @@ class Data
      */
     public static function configure()
     {
-        Configuration::$connectionString = 'pgsql:host=localhost;port=5432;dbname=leafjson;user=leaf;password=leaf';
-        Configuration::$startUp          = '\MyPrayerJournal\Data::startUp';
+        Configuration::$startUp = '\MyPrayerJournal\Data::startUp';
     }
 
     /**

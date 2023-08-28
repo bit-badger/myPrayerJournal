@@ -405,7 +405,7 @@ class Document
      */
     private static function createCustomQuery(string $sql, array $params): PDOStatement
     {
-        $query = pdo()->prepare($sql, self::NO_PREPARE);
+        $query = pdo()->prepare($sql, [ \PDO::ATTR_EMULATE_PREPARES => false ]);
         array_walk($params, fn ($value, $name) => $query->bindParam($name, $value));
         $query->execute();
         return $query;

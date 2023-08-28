@@ -257,3 +257,4 @@ paket-files/
 
 # in-progress: PHP version
 src/app/vendor
+**/.env

@@ -4,13 +4,23 @@
         "leafs/bareui": "^1.1",
         "leafs/db": "^2.1",
         "netresearch/jsonmapper": "^4.2",
-        "visus/cuid2": "^3.0"
+        "visus/cuid2": "^3.0",
+        "guzzlehttp/guzzle": "^7.8",
+        "guzzlehttp/psr7": "^2.6",
+        "http-interop/http-factory-guzzle": "^1.2",
+        "auth0/auth0-php": "^8.7",
+        "vlucas/phpdotenv": "^5.5"
     },
     "autoload": {
         "psr-4": {
             "BitBadger\\PgSQL\\Documents\\": [ "./documents" ],
             "MyPrayerJournal\\": [ "." ],
             "MyPrayerJournal\\Domain\\": [ "./domain" ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
         }
     }
 }

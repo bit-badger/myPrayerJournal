@@ -4,7 +4,7 @@
             <span class="m">my</span><span class="p">Prayer</span><span class="j">Journal</span>
         </a>
         <ul class="navbar-nav me-auto d-flex flex-row"><?php
-            if ($userId) { ?>
+            if ($user) { ?>
                 <li class="nav-item"><a <?php $page_link('/journal', true); ?>>Journal</a></li>
                 <li class="nav-item"><a <?php $page_link('/requests/active', true); ?>>Active</a></li><?php
                 if ($hasSnoozed) { ?>
