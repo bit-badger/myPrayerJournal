@@ -8,51 +8,36 @@
     <p hx-get="/components/journal-items" hx-swap="outerHTML" hx-trigger="load">
         Loading your prayer journal&hellip;
     </p>
-    <!--
-    div [ _id             "notesModal"
-            _class          "modal fade"
-            _tabindex       "-1"
-            _ariaLabelledBy "nodesModalLabel"
-            _ariaHidden     "true" ] [
-        div [ _class "modal-dialog modal-dialog-scrollable" ] [
-            div [ _class "modal-content" ] [
-                div [ _class "modal-header" ] [
-                    h5 [ _class "modal-title"; _id "nodesModalLabel" ] [ str "Add Notes to Prayer Request" ]
-                    button [ _type "button"; _class "btn-close"; _data "bs-dismiss" "modal"; _ariaLabel "Close" ] []
-                ]
-                div [ _class "modal-body"; _id "notesBody" ] [ ]
-                div [ _class "modal-footer" ] [
-                    button [ _type  "button"
-                                _id    "notesDismiss"
-                                _class "btn btn-secondary"
-                                _data  "bs-dismiss" "modal" ] [
-                        str "Close"
-                    ]
-                ]
-            ]
-        ]
-    ]
-    div [ _id             "snoozeModal"
-            _class          "modal fade"
-            _tabindex       "-1"
-            _ariaLabelledBy "snoozeModalLabel"
-            _ariaHidden     "true" ] [
-        div [ _class "modal-dialog modal-sm" ] [
-            div [ _class "modal-content" ] [
-                div [ _class "modal-header" ] [
-                    h5 [ _class "modal-title"; _id "snoozeModalLabel" ] [ str "Snooze Prayer Request" ]
-                    button [ _type "button"; _class "btn-close"; _data "bs-dismiss" "modal"; _ariaLabel "Close" ] []
-                ]
-                div [ _class "modal-body"; _id "snoozeBody" ] [ ]
-                div [ _class "modal-footer" ] [
-                    button [ _type "button"
-                                _id "snoozeDismiss"
-                                _class "btn btn-secondary"
-                                _data "bs-dismiss" "modal" ] [
-                        str "Close"
-                    ]
-                    ]
-            ]
-        ]
-    ] -->
+    <div id="notesModal" class="modal fade" tabindex="-1" aria-labelled-by="nodesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nodesModalLabel">Add Notes to Prayer Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+                </div>
+                <div class="modal-body" id="notesBody"></div>
+                <div class="modal-footer">
+                    <button type="button" id="notesDismiss" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="snoozeModal" class="modal fade" tabindex="-1" aria-labelled-by="snoozeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="snoozeModalLabel">Snooze Prayer Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+                </div>
+                <div class="modal-body" id="snoozeBody"></div>
+                <div class="modal-footer">
+                    <button type="button" id="snoozeDismiss" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </article>
