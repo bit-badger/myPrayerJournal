@@ -5,7 +5,7 @@
             <span class="material-icons">add_box</span> Add a Prayer Request
         </a>
     </p>
-    <p hx-get="/components/journal-items" hx-swap="outerHTML" hx-trigger="load">
+    <p hx-get="/components/journal-items" hx-swap="outerHTML" hx-trigger="load delay:.25s">
         Loading your prayer journal&hellip;
     </p>
     <div id="notesModal" class="modal fade" tabindex="-1" aria-labelled-by="nodesModalLabel" aria-hidden="true">

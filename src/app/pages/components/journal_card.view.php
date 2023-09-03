@@ -1,5 +1,18 @@
 <?php
-$spacer = '<span>&nbsp;</span>'; ?>
+use MyPrayerJournal\Dates;
+
+$spacer = '<span>&nbsp;</span>';
+/**
+ * Format the activity and relative time
+ * 
+ * @param string $activity The activity performed (activity or prayed)
+ * @param \DateTimeImmutable $asOf The date/time the activity was performed
+ */
+function formatActivity(string $activity, \DateTimeImmutable $asOf)
+{
+    echo "last $activity <span title=\"" . $asOf->setTimezone($_REQUEST['USER_TIME_ZONE'])->format('l, F jS, Y/g:ia T')
+        . '">' . Dates::formatDistance(Dates::now(), $asOf) . '</span>';
+} ?>
 <div class="col">
     <div class="card h-100">
         <div class="card-header p-0 d-flex" role="tool-bar">
@@ -27,13 +40,10 @@ $spacer = '<span>&nbsp;</span>'; ?>
         </div>
         <div class="card-footer text-end text-muted px-1 py-0">
             <em><?php
-                // TODO: relative time, time zone handling, etc.
-                if (is_null($request->lastPrayed)) {
-                    echo "last activity {$request->asOf}";
-
-                } else {
-                    echo "last prayed {$request->lastPrayed}";
-                } ?>
+                [ $activity, $asOf ] = is_null($request->lastPrayed)
+                    ? [ 'activity', $request->asOf ]
+                    : [ 'prayed',   $request->lastPrayed ];
+                formatActivity($activity, $asOf); ?>
             </em>
         </div>
     </div>
