@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="Domain.fs" />
     <Compile Include="LiteData.fs" />
+    <Compile Include="Data.fs" />
     <Compile Include="Dates.fs" />
     <Compile Include="Views/Helpers.fs" />
     <Compile Include="Views/Journal.fs" />
@@ -19,6 +20,7 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="BitBadger.Npgsql.FSharp.Documents" Version="1.0.0-beta3" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.1.23" />
     <PackageReference Include="FunctionalCuid" Version="1.0.0" />
     <PackageReference Include="Giraffe" Version="6.0.0" />
