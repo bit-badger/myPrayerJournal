@@ -20,7 +20,7 @@ module Configure =
             .SetBasePath(bldr.Environment.ContentRootPath)
             .AddJsonFile("appsettings.json", optional = false, reloadOnChange = true)
             .AddJsonFile($"appsettings.{bldr.Environment.EnvironmentName}.json", optional = true, reloadOnChange = true)
-            .AddEnvironmentVariables ()
+            .AddEnvironmentVariables "MPJ_"
         |> ignore
         bldr
 
@@ -53,16 +53,15 @@ module Configure =
 
 
     open Giraffe
-    open LiteDB
     open Microsoft.AspNetCore.Authentication.Cookies
     open Microsoft.AspNetCore.Authentication.OpenIdConnect
     open Microsoft.AspNetCore.Http
     open Microsoft.Extensions.DependencyInjection
     open Microsoft.IdentityModel.Protocols.OpenIdConnect
+    open MyPrayerJournal.Data
     open NodaTime
     open System
     open System.Text.Json
-    open System.Text.Json.Serialization
     open System.Threading.Tasks
 
     /// Configure dependency injection
@@ -128,13 +127,9 @@ module Configure =
                         ctx.ProtocolMessage.RedirectUri <- string bldr
                         Task.CompletedTask)
         
-        let jsonOptions = JsonSerializerOptions ()
-        jsonOptions.Converters.Add (JsonFSharpConverter ())
-        let db = new LiteDatabase (bldr.Configuration.GetConnectionString "db")
-        LiteData.Startup.ensureDb db
-        let _ = bldr.Services.AddSingleton jsonOptions
-        let _ = bldr.Services.AddSingleton<Json.ISerializer, SystemTextJson.Serializer> ()
-        let _ = bldr.Services.AddSingleton<LiteDatabase> db
+        let _ = bldr.Services.AddSingleton<JsonSerializerOptions> Json.options
+        let _ = bldr.Services.AddSingleton<Json.ISerializer> (SystemTextJson.Serializer Json.options)
+        let _ = Connection.setUp bldr.Configuration |> Async.AwaitTask |> Async.RunSynchronously
         
         bldr.Build ()
   
