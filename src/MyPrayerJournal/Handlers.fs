@@ -127,7 +127,7 @@ module private Helpers =
     let pageContext (ctx : HttpContext) pageTitle content = backgroundTask {
         let! hasSnoozed =
             match ctx.CurrentUser with
-            | Some _ -> Data.hasSnoozed ctx.UserId (ctx.Now ()) ctx.Db
+            | Some _ -> LiteData.hasSnoozed ctx.UserId (ctx.Now ()) ctx.Db
             | None   -> Task.FromResult false
         return
             {   IsAuthenticated = Option.isSome ctx.CurrentUser
@@ -238,7 +238,7 @@ module Models =
         }
 
 
-open MyPrayerJournal.Data.Extensions
+open MyPrayerJournal.LiteData.Extensions
 open NodaTime.Text
 
 /// Handlers for less-than-full-page HTML requests
@@ -254,14 +254,14 @@ module Components =
             | Some snooze, _ when snooze < now -> true
             | _, Some hide when hide < now -> true
             | _, _ -> false
-        let! journal = Data.journalByUserId ctx.UserId ctx.Db
+        let! journal = LiteData.journalByUserId ctx.UserId ctx.Db
         let  shown   = journal |> List.filter shouldBeShown
         return! renderComponent [ Views.Journal.journalItems now ctx.TimeZone shown ] next ctx
     }
   
     // GET /components/request-item/[req-id]
     let requestItem reqId : HttpHandler = requireUser >=> fun next ctx -> task {
-        match! Data.tryJournalById (RequestId.ofString reqId) ctx.UserId ctx.Db with
+        match! LiteData.tryJournalById (RequestId.ofString reqId) ctx.UserId ctx.Db with
         | Some req -> return! renderComponent [ Views.Request.reqListItem (ctx.Now ()) ctx.TimeZone req ] next ctx
         | None     -> return! Error.notFound next ctx
     }
@@ -272,7 +272,7 @@ module Components =
 
     // GET /components/request/[req-id]/notes
     let notes requestId : HttpHandler = requireUser >=> fun next ctx -> task {
-        let! notes = Data.notesById (RequestId.ofString requestId) ctx.UserId ctx.Db
+        let! notes = LiteData.notesById (RequestId.ofString requestId) ctx.UserId ctx.Db
         return! renderComponent (Views.Request.notes (ctx.Now ()) ctx.TimeZone (List.ofArray notes)) next ctx
     }
   
@@ -333,7 +333,7 @@ module Request =
             return! partial "Add Prayer Request"
                         (Views.Request.edit (JournalRequest.ofRequestLite Request.empty) returnTo true) next ctx
         | _     ->
-            match! Data.tryJournalById (RequestId.ofString requestId) ctx.UserId ctx.Db with
+            match! LiteData.tryJournalById (RequestId.ofString requestId) ctx.UserId ctx.Db with
             | Some req ->
                 debug ctx "Found - sending view"
                 return! partial "Edit Prayer Request" (Views.Request.edit req returnTo false) next ctx
@@ -347,15 +347,15 @@ module Request =
         let db     = ctx.Db
         let userId = ctx.UserId
         let reqId  = RequestId.ofString requestId
-        match! Data.tryRequestById reqId userId db with
+        match! LiteData.tryRequestById reqId userId db with
         | Some req ->
             let now  = ctx.Now ()
-            do! Data.addHistory reqId userId { AsOf = now; Status = Prayed; Text = None } db
+            do! LiteData.addHistory reqId userId { AsOf = now; Status = Prayed; Text = None } db
             let nextShow =
                 match Recurrence.duration req.Recurrence with
                 | 0L       -> None
                 | duration -> Some <| now.Plus (Duration.FromSeconds duration)
-            do! Data.updateShowAfter reqId userId nextShow db
+            do! LiteData.updateShowAfter reqId userId nextShow db
             do! db.SaveChanges ()
             return! (withSuccessMessage "Request marked as prayed" >=> Components.journalItems) next ctx
         | None -> return! Error.notFound next ctx
@@ -366,10 +366,10 @@ module Request =
         let db     = ctx.Db
         let userId = ctx.UserId
         let reqId  = RequestId.ofString requestId
-        match! Data.tryRequestById reqId userId db with
+        match! LiteData.tryRequestById reqId userId db with
         | Some _ ->
             let! notes = ctx.BindFormAsync<Models.NoteEntry> ()
-            do! Data.addNote reqId userId { AsOf = ctx.Now (); Notes = notes.notes } db
+            do! LiteData.addNote reqId userId { AsOf = ctx.Now (); Notes = notes.notes } db
             do! db.SaveChanges ()
             return! (withSuccessMessage "Added Notes" >=> hideModal "notes" >=> created) next ctx
         | None -> return! Error.notFound next ctx
@@ -377,13 +377,13 @@ module Request =
           
     // GET /requests/active
     let active : HttpHandler = requireUser >=> fun next ctx -> task {
-        let! reqs = Data.journalByUserId ctx.UserId ctx.Db
+        let! reqs = LiteData.journalByUserId ctx.UserId ctx.Db
         return! partial "Active Requests" (Views.Request.active (ctx.Now ()) ctx.TimeZone reqs) next ctx
     }
   
     // GET /requests/snoozed
     let snoozed : HttpHandler = requireUser >=> fun next ctx -> task {
-        let! reqs    = Data.journalByUserId ctx.UserId ctx.Db
+        let! reqs    = LiteData.journalByUserId ctx.UserId ctx.Db
         let  now     = ctx.Now ()
         let  snoozed = reqs
                        |> List.filter (fun it -> defaultArg (it.SnoozedUntil |> Option.map (fun it -> it > now)) false)
@@ -392,13 +392,13 @@ module Request =
 
     // GET /requests/answered
     let answered : HttpHandler = requireUser >=> fun next ctx -> task {
-        let! reqs = Data.answeredRequests ctx.UserId ctx.Db
+        let! reqs = LiteData.answeredRequests ctx.UserId ctx.Db
         return! partial "Answered Requests" (Views.Request.answered (ctx.Now ()) ctx.TimeZone reqs) next ctx
     }
   
     // GET /request/[req-id]/full
     let getFull requestId : HttpHandler = requireUser >=> fun next ctx -> task {
-        match! Data.tryFullRequestById (RequestId.ofString requestId) ctx.UserId ctx.Db with
+        match! LiteData.tryFullRequestById (RequestId.ofString requestId) ctx.UserId ctx.Db with
         | Some req -> return! partial "Prayer Request" (Views.Request.full ctx.Clock ctx.TimeZone req) next ctx
         | None     -> return! Error.notFound next ctx
     }
@@ -408,9 +408,9 @@ module Request =
         let db     = ctx.Db
         let userId = ctx.UserId
         let reqId  = RequestId.ofString requestId
-        match! Data.tryRequestById reqId userId db with
+        match! LiteData.tryRequestById reqId userId db with
         | Some _ ->
-            do! Data.updateShowAfter reqId userId None db
+            do! LiteData.updateShowAfter reqId userId None db
             do! db.SaveChanges ()
             return! (withSuccessMessage "Request now shown" >=> Components.requestItem requestId) next ctx
         | None -> return! Error.notFound next ctx
@@ -421,14 +421,14 @@ module Request =
         let db     = ctx.Db
         let userId = ctx.UserId
         let reqId  = RequestId.ofString requestId
-        match! Data.tryRequestById reqId userId db with
+        match! LiteData.tryRequestById reqId userId db with
         | Some _ ->
             let! until = ctx.BindFormAsync<Models.SnoozeUntil> ()
             let date =
                 LocalDatePattern.CreateWithInvariantCulture("yyyy-MM-dd").Parse(until.until).Value
                     .AtStartOfDayInZone(DateTimeZone.Utc)
                     .ToInstant ()
-            do! Data.updateSnoozed reqId userId (Some date) db
+            do! LiteData.updateSnoozed reqId userId (Some date) db
             do! db.SaveChanges ()
             return!
                 (withSuccessMessage $"Request snoozed until {until.until}"
@@ -442,9 +442,9 @@ module Request =
         let db     = ctx.Db
         let userId = ctx.UserId
         let reqId  = RequestId.ofString requestId
-        match! Data.tryRequestById reqId userId db with
+        match! LiteData.tryRequestById reqId userId db with
         | Some _ ->
-            do! Data.updateSnoozed reqId userId None db
+            do! LiteData.updateSnoozed reqId userId None db
             do! db.SaveChanges ()
             return! (withSuccessMessage "Request unsnoozed" >=> Components.requestItem requestId) next ctx
         | None -> return! Error.notFound next ctx
@@ -475,7 +475,7 @@ module Request =
                     }      
                 |]
             }
-        Data.addRequest req db
+        LiteData.addRequest req db
         do! db.SaveChanges ()
         Messages.pushSuccess ctx "Added prayer request" "/journal"
         return! seeOther "/journal" next ctx
@@ -486,21 +486,21 @@ module Request =
         let! form   = ctx.BindModelAsync<Models.Request> ()
         let  db     = ctx.Db
         let  userId = ctx.UserId
-        match! Data.tryJournalById (RequestId.ofString form.requestId) userId db with
+        match! LiteData.tryJournalById (RequestId.ofString form.requestId) userId db with
         | Some req ->
             // update recurrence if changed
             let recur = parseRecurrence form
             match recur = req.Recurrence with
             | true  -> ()
             | false ->
-                do! Data.updateRecurrence req.RequestId userId recur db
+                do! LiteData.updateRecurrence req.RequestId userId recur db
                 match recur with
-                | Immediate -> do! Data.updateShowAfter req.RequestId userId None db
+                | Immediate -> do! LiteData.updateShowAfter req.RequestId userId None db
                 | _         -> ()
             // append history
             let upd8Text = form.requestText.Trim ()
             let text     = if upd8Text = req.Text then None else Some upd8Text
-            do! Data.addHistory req.RequestId userId
+            do! LiteData.addHistory req.RequestId userId
                     { AsOf = ctx.Now (); Status = (Option.get >> RequestAction.ofString) form.status; Text = text } db
             do! db.SaveChanges ()
             let nextUrl =

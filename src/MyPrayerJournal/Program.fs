@@ -131,7 +131,7 @@ module Configure =
         let jsonOptions = JsonSerializerOptions ()
         jsonOptions.Converters.Add (JsonFSharpConverter ())
         let db = new LiteDatabase (bldr.Configuration.GetConnectionString "db")
-        Data.Startup.ensureDb db
+        LiteData.Startup.ensureDb db
         let _ = bldr.Services.AddSingleton jsonOptions
         let _ = bldr.Services.AddSingleton<Json.ISerializer, SystemTextJson.Serializer> ()
         let _ = bldr.Services.AddSingleton<LiteDatabase> db

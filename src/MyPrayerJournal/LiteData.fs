@@ -1,4 +1,4 @@
-﻿module MyPrayerJournal.Data
+﻿module MyPrayerJournal.LiteData
 
 open LiteDB
 open MyPrayerJournal
