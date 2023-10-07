@@ -169,10 +169,10 @@ type Request =
         Recurrence : Recurrence
         
         /// The history entries for this request
-        History : History[]
+        History : History list
         
         /// The notes for this request
-        Notes : Note[]
+        Notes : Note list
     }
 
 /// Functions to support requests
@@ -186,8 +186,8 @@ module Request =
             SnoozedUntil = None
             ShowAfter    = None
             Recurrence   = Immediate
-            History      = [||]
-            Notes        = [||]
+            History      = []
+            Notes        = []
         }
 
 
@@ -234,7 +234,8 @@ module JournalRequest =
 
     /// Convert a request to the form used for the journal (precomputed values, no notes or history)
     let ofRequestLite (req : Request) =
-        let lastHistory = req.History |> Array.sortByDescending (fun it -> it.AsOf) |> Array.tryHead
+        let history = Seq.ofList req.History
+        let lastHistory = Seq.tryHead history
         // Requests are sorted by the "as of" field in this record; for sorting to work properly, we will put the
         // largest of the last prayed date, the "snoozed until". or the "show after" date; if none of those are filled,
         // we will use the last activity date. This will mean that:
@@ -247,19 +248,17 @@ module JournalRequest =
         let showAfter    = defaultArg req.ShowAfter    Instant.MinValue
         let snoozedUntil = defaultArg req.SnoozedUntil Instant.MinValue
         let lastPrayed   =
-            req.History
-            |> Array.sortByDescending (fun it -> it.AsOf)
-            |> Array.filter History.isPrayed
-            |> Array.tryHead
+            history
+            |> Seq.filter History.isPrayed
+            |> Seq.tryHead
             |> Option.map (fun it -> it.AsOf)
             |> Option.defaultValue Instant.MinValue
         let asOf = List.max [ lastPrayed; showAfter; snoozedUntil ]
         {   RequestId    = req.Id
             UserId       = req.UserId
-            Text         = req.History
-                           |> Array.filter (fun it -> Option.isSome it.Text)
-                           |> Array.sortByDescending (fun it -> it.AsOf)
-                           |> Array.tryHead
+            Text         = history
+                           |> Seq.filter (fun it -> Option.isSome it.Text)
+                           |> Seq.tryHead
                            |> Option.map (fun h -> Option.get h.Text)
                            |> Option.defaultValue ""
             AsOf         = if asOf > Instant.MinValue then asOf else lastActivity
@@ -275,6 +274,6 @@ module JournalRequest =
     /// Same as `ofRequestLite`, but with notes and history
     let ofRequestFull req =
         { ofRequestLite req with 
-            History = List.ofArray req.History
-            Notes   = List.ofArray req.Notes
+            History = req.History
+            Notes   = req.Notes
         }

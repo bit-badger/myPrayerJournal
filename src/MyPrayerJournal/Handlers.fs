@@ -270,7 +270,7 @@ module Components =
     // GET /components/request/[req-id]/notes
     let notes requestId : HttpHandler = requireUser >=> fun next ctx -> task {
         let! notes = Note.byRequestId (RequestId.ofString requestId) ctx.UserId
-        return! renderComponent (Views.Request.notes (ctx.Now ()) ctx.TimeZone (List.ofArray notes)) next ctx
+        return! renderComponent (Views.Request.notes (ctx.Now ()) ctx.TimeZone notes) next ctx
     }
   
     // GET /components/request/[req-id]/snooze
@@ -454,12 +454,12 @@ module Request =
                 EnteredOn  = now
                 ShowAfter  = None
                 Recurrence = parseRecurrence form
-                History    = [|
+                History    = [
                     {   AsOf   = now
                         Status = Created
                         Text   = Some form.requestText
                     }      
-                |]
+                ]
             }
         do! Request.add req
         Messages.pushSuccess ctx "Added prayer request" "/journal"

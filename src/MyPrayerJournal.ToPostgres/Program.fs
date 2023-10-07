@@ -1,2 +1,9 @@
-﻿// For more information see https://aka.ms/fsharp-console-apps
-printfn "Hello from F#"
+﻿open LiteDB
+open MyPrayerJournal.Domain
+open MyPrayerJournal.LiteData
+
+
+let lite = new LiteDatabase "Filename=./mpj.db"
+Startup.ensureDb lite
+
+

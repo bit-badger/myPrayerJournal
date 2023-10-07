@@ -97,7 +97,7 @@ module Request =
     /// Retrieve a request by its ID and user ID (excludes history and notes)
     let tryById reqId userId = backgroundTask {
         match! tryByIdFull reqId userId with
-        | Some req -> return Some { req with History = [||]; Notes = [||] }
+        | Some req -> return Some { req with History = []; Notes = [] }
         | None -> return None
     }
 
@@ -134,7 +134,9 @@ module History =
     let add reqId userId hist = backgroundTask {
         let dbId = RequestId.toString reqId
         match! Request.tryByIdFull reqId userId with
-        | Some req -> do! Update.partialById Table.Request dbId {| History = Array.append [| hist |] req.History |}
+        | Some req ->
+            do! Update.partialById Table.Request dbId
+                                   {| History = (hist :: req.History) |> List.sortByDescending (fun it -> it.AsOf) |}
         | None -> invalidOp $"Request ID {dbId} not found"
     }
 
@@ -189,11 +191,13 @@ module Note =
     let add reqId userId note = backgroundTask {
         let dbId = RequestId.toString reqId
         match! Request.tryByIdFull reqId userId with
-        | Some req -> do! Update.partialById Table.Request dbId {| Notes = Array.append [| note |] req.Notes |}
+        | Some req ->
+            do! Update.partialById Table.Request dbId
+                                   {| Notes = (note :: req.Notes) |> List.sortByDescending (fun it -> it.AsOf) |}
         | None -> invalidOp $"Request ID {dbId} not found"
     }
 
     /// Retrieve notes for a request by the request ID
     let byRequestId reqId userId = backgroundTask {
-        match! Request.tryByIdFull reqId userId with Some req -> return req.Notes | None -> return [||]
+        match! Request.tryByIdFull reqId userId with Some req -> return req.Notes | None -> return []
     }

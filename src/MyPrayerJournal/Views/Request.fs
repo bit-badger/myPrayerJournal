@@ -77,28 +77,31 @@ let full (clock : IClock) tz (req : Request) =
     let now = clock.GetCurrentInstant ()
     let answered =
         req.History
-        |> Array.filter History.isAnswered
-        |> Array.tryHead
+        |> Seq.ofList
+        |> Seq.filter History.isAnswered
+        |> Seq.tryHead
         |> Option.map (fun x -> x.AsOf)
-    let prayed = (req.History |> Array.filter History.isPrayed |> Array.length).ToString "N0"
+    let prayed = (req.History |> List.filter History.isPrayed |> List.length).ToString "N0"
     let daysOpen =
         let asOf = defaultArg answered now
-        ((asOf - (req.History |> Array.filter History.isCreated |> Array.head).AsOf).TotalDays |> int).ToString "N0"
+        ((asOf - (req.History |> List.filter History.isCreated |> List.head).AsOf).TotalDays |> int).ToString "N0"
     let lastText =
         req.History
-        |> Array.filter (fun h -> Option.isSome h.Text)
-        |> Array.sortByDescending (fun h -> h.AsOf)
-        |> Array.map (fun h -> Option.get h.Text)
-        |> Array.head
+        |> Seq.ofList
+        |> Seq.filter (fun h -> Option.isSome h.Text)
+        |> Seq.sortByDescending (fun h -> h.AsOf)
+        |> Seq.map (fun h -> Option.get h.Text)
+        |> Seq.head
     // The history log including notes (and excluding the final entry for answered requests)
     let log =
         let toDisp (h : History) = {| asOf = h.AsOf; text = h.Text; status = RequestAction.toString h.Status |}
         let all =
             req.Notes
-            |> Array.map (fun n -> {| asOf = n.AsOf; text = Some n.Notes; status = "Notes" |})
-            |> Array.append (req.History |> Array.map toDisp)
-            |> Array.sortByDescending (fun it -> it.asOf)
-            |> List.ofArray
+            |> Seq.ofList
+            |> Seq.map (fun n -> {| asOf = n.AsOf; text = Some n.Notes; status = "Notes" |})
+            |> Seq.append (req.History |> List.map toDisp)
+            |> Seq.sortByDescending (fun it -> it.asOf)
+            |> List.ofSeq
         // Skip the first entry for answered requests; that info is already displayed
         match answered with Some _ -> all.Tail | None -> all
     article [ _class "container mt-3" ] [
