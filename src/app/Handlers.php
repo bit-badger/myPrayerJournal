@@ -107,4 +107,24 @@ class Handlers
             }
         }
     }
+
+    /** POST|PATCH /request */
+    public static function requestSave()
+    {
+        AppUser::require();
+
+        $form = request()->validate([
+            'requestId'     => ['required', 'text'],
+            'requestText'   => ['required', 'text'],
+            'status'        => ['required', 'textOnly'],
+            'recurType'     => ['required', 'textOnly'],
+            'recurCount'    => 'number',
+            'recurInterval' => 'textOnly',
+        ]);
+        if ($form) {
+            // valid
+        } else {
+            // errors
+        }
+    }
 }

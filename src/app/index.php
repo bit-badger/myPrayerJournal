@@ -30,7 +30,9 @@ app()->group('/legal', function () {
     app()->get('/terms-of-service', fn () => Handlers::render('legal/terms-of-service', 'Terms of Service'));
 });
 app()->group('/request', function () {
-    app()->get('/{reqId}/edit', Handlers::requestEdit(...));
+    app()->get(  '/{reqId}/edit', Handlers::requestEdit(...));
+    app()->post( '/request',      Handlers::requestSave(...));
+    app()->patch('/request',      Handlers::requestSave(...));
 });
 app()->group('/user', function () {
     app()->get('/log-on',         AppUser::logOn(...));
