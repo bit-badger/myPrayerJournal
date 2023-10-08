@@ -36,7 +36,8 @@ module Json =
         ]
         |> List.iter opts.Converters.Add
         let _ = opts.ConfigureForNodaTime NodaTime.DateTimeZoneProviders.Tzdb
-        opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
+        opts.PropertyNamingPolicy   <- JsonNamingPolicy.CamelCase
+        opts.DefaultIgnoreCondition <- JsonIgnoreCondition.WhenWritingNull
         opts
 
 
@@ -165,9 +166,9 @@ module Journal =
         return
             reqs
             |> Seq.ofList
-            |> Seq.map JournalRequest.ofRequestFull
-            |> Seq.filter (fun it -> it.LastStatus = Answered)
-            |> Seq.sortByDescending (fun it -> it.AsOf)
+            |> Seq.map JournalRequest.ofRequestLite
+            |> Seq.filter (fun it -> it.LastStatus <> Answered)
+            |> Seq.sortBy (fun it -> it.AsOf)
             |> List.ofSeq
     }
 
