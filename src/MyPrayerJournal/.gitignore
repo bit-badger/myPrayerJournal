@@ -1,5 +1,2 @@
-## LiteDB database file
-*.db
-
 ## Development settings
 appsettings.Development.json

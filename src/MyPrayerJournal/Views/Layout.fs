@@ -77,9 +77,9 @@ let htmlHead ctx =
         meta [ _name "viewport"; _content "width=device-width, initial-scale=1" ]
         meta [ _name "description"; _content "Online prayer journal - free w/Google or Microsoft account" ]
         titleTag ctx
-        link [ _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"
+        link [ _href        "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
                _rel         "stylesheet"
-               _integrity   "sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx"
+               _integrity   "sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
                _crossorigin "anonymous" ]
         link [ _href "https://fonts.googleapis.com/icon?family=Material+Icons"; _rel "stylesheet" ]
         link [ _href "/style/style.css"; _rel "stylesheet" ]
@@ -118,8 +118,8 @@ let htmlFoot =
             rawText "if (!htmx) document.write('<script src=\"/script/htmx.min.js\"><\/script>')"
         ]
         script [ _async
-                 _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
-                 _integrity   "sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
+                 _src         "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+                 _integrity   "sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
                  _crossorigin "anonymous" ] []
         script [] [
             rawText "setTimeout(function () { "
