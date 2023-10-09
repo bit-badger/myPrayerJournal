@@ -21,10 +21,10 @@
     <PackageReference Include="BitBadger.Npgsql.FSharp.Documents" Version="1.0.0-beta3" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.2.42" />
     <PackageReference Include="FunctionalCuid" Version="1.0.0" />
-    <PackageReference Include="Giraffe" Version="6.0.0" />
+    <PackageReference Include="Giraffe" Version="6.2.0" />
     <PackageReference Include="Giraffe.Htmx" Version="1.9.6" />
     <PackageReference Include="Giraffe.ViewEngine.Htmx" Version="1.9.6" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="7.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="7.0.11" />
     <PackageReference Include="NodaTime.Serialization.SystemTextJson" Version="1.1.2" />
     <PackageReference Include="Npgsql.NodaTime" Version="7.0.6" />
     <PackageReference Update="FSharp.Core" Version="7.0.400" />
