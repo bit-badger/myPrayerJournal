@@ -88,20 +88,13 @@ module Request =
     let existsById (reqId : RequestId) (userId : UserId) =
         Exists.byContains Table.Request {| Id = reqId; UserId = userId |}
     
-    /// Retrieve a request by its ID and user ID (includes history and notes)
-    let tryByIdFull reqId userId = backgroundTask {
+    /// Retrieve a request by its ID and user ID
+    let tryById reqId userId = backgroundTask {
         match! Find.byId<Request> Table.Request (RequestId.toString reqId) with
         | Some req when req.UserId = userId -> return Some req
         | _ -> return None
     }
     
-    /// Retrieve a request by its ID and user ID (excludes history and notes)
-    let tryById reqId userId = backgroundTask {
-        match! tryByIdFull reqId userId with
-        | Some req -> return Some { req with History = []; Notes = [] }
-        | None -> return None
-    }
-
     /// Update recurrence for a request
     let updateRecurrence reqId userId (recurType : Recurrence) = backgroundTask {
         let dbId = RequestId.toString reqId
@@ -134,7 +127,7 @@ module History =
     /// Add a history entry
     let add reqId userId hist = backgroundTask {
         let dbId = RequestId.toString reqId
-        match! Request.tryByIdFull reqId userId with
+        match! Request.tryById reqId userId with
         | Some req ->
             do! Update.partialById Table.Request dbId
                                    {| History = (hist :: req.History) |> List.sortByDescending (fun it -> it.AsOf) |}
@@ -147,22 +140,30 @@ module History =
 module Journal =
 
     /// Retrieve a user's answered requests
-    let answered userId = backgroundTask {
-        // TODO: only retrieve answered requests
-        let! reqs = Find.byContains<Request> Table.Request {| UserId = UserId.toString userId |}
+    let answered (userId : UserId) = backgroundTask {
+        let! reqs =
+            Custom.list
+                $"""{Query.Find.byContains Table.Request} AND {Query.whereJsonPathMatches "@stat"}"""
+                [   "@criteria", Query.jsonbDocParam {| UserId = userId |}
+                    "@stat",     Sql.string """$.history[0].status ? (@ == "Answered")"""
+                ] fromData<Request>
         return
             reqs
             |> Seq.ofList
-            |> Seq.map JournalRequest.ofRequestFull
+            |> Seq.map JournalRequest.ofRequestLite
             |> Seq.filter (fun it -> it.LastStatus = Answered)
             |> Seq.sortByDescending (fun it -> it.AsOf)
             |> List.ofSeq
     }
 
     /// Retrieve a user's current prayer journal (includes snoozed and non-immediate recurrence)
-    let forUser userId = backgroundTask {
-        // TODO: only retrieve unanswered requests
-        let! reqs = Find.byContains<Request> Table.Request {| UserId = UserId.toString userId |}
+    let forUser (userId : UserId) = backgroundTask {
+        let! reqs =
+            Custom.list
+                $"""{Query.Find.byContains Table.Request} AND {Query.whereJsonPathMatches "@stat"}"""
+                [   "@criteria", Query.jsonbDocParam {| UserId = userId |}
+                    "@stat",     Sql.string """$.history[0].status ? (@ <> "Answered")"""
+                ] fromData<Request>
         return
             reqs
             |> Seq.ofList
@@ -191,7 +192,7 @@ module Note =
     /// Add a note
     let add reqId userId note = backgroundTask {
         let dbId = RequestId.toString reqId
-        match! Request.tryByIdFull reqId userId with
+        match! Request.tryById reqId userId with
         | Some req ->
             do! Update.partialById Table.Request dbId
                                    {| Notes = (note :: req.Notes) |> List.sortByDescending (fun it -> it.AsOf) |}
@@ -200,5 +201,5 @@ module Note =
 
     /// Retrieve notes for a request by the request ID
     let byRequestId reqId userId = backgroundTask {
-        match! Request.tryByIdFull reqId userId with Some req -> return req.Notes | None -> return []
+        match! Request.tryById reqId userId with Some req -> return req.Notes | None -> return []
     }

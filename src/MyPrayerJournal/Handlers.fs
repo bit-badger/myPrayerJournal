@@ -391,7 +391,7 @@ module Request =
   
     // GET /request/[req-id]/full
     let getFull requestId : HttpHandler = requireUser >=> fun next ctx -> task {
-        match! Request.tryByIdFull (RequestId.ofString requestId) ctx.UserId with
+        match! Request.tryById (RequestId.ofString requestId) ctx.UserId with
         | Some req -> return! partial "Prayer Request" (Views.Request.full ctx.Clock ctx.TimeZone req) next ctx
         | None     -> return! Error.notFound next ctx
     }
