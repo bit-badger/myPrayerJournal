@@ -4,6 +4,8 @@
     <Version>3.3</Version>
     <DebugType>embedded</DebugType>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Domain.fs" />
