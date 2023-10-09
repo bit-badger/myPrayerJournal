@@ -1,4 +1,4 @@
-﻿/// HTTP handlers for the myPrayerJournal API
+/// HTTP handlers for the myPrayerJournal API
 [<RequireQualifiedAccess>]
 module MyPrayerJournal.Handlers
 

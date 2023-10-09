@@ -1,4 +1,4 @@
-﻿/// The data model for myPrayerJournal
+/// The data model for myPrayerJournal
 [<AutoOpen>]
 module MyPrayerJournal.Domain
 
