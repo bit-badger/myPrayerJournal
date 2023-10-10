@@ -254,3 +254,5 @@ paket-files/
 
 # Ionide VSCode extension
 .ionide
+
+src/environment.txt

@@ -1,199 +1,205 @@
-﻿module MyPrayerJournal.Data
+module MyPrayerJournal.Data
 
-open LiteDB
-open MyPrayerJournal
-open System.Threading.Tasks
+/// Table(!) used by myPrayerJournal
+module Table =
 
-/// LiteDB extensions
-[<AutoOpen>]
-module Extensions =
-  
-    /// Extensions on the LiteDatabase class
-    type LiteDatabase with
-        
-        /// The Request collection
-        member this.Requests = this.GetCollection<Request> "request"
-        
-        /// Async version of the checkpoint command (flushes log)
-        member this.SaveChanges () =
-            this.Checkpoint ()
-            Task.CompletedTask
+    /// Requests
+    [<Literal>]
+    let Request = "mpj.request"
 
 
-/// Map domain to LiteDB
-//  It does mapping, but since we're so DU-heavy, this gives us control over the JSON representation
+/// JSON serialization customizations
 [<RequireQualifiedAccess>]
-module Mapping =
+module Json =
+
+    open System.Text.Json.Serialization
+
+    /// Convert a wrapped DU to/from its string representation
+    type WrappedJsonConverter<'T> (wrap : string -> 'T, unwrap : 'T -> string) =
+        inherit JsonConverter<'T> ()
+        override _.Read(reader, _, _) =
+            wrap (reader.GetString ()) 
+        override _.Write(writer, value, _) =
+            writer.WriteStringValue (unwrap value)
+    
+    open System.Text.Json
+    open NodaTime.Serialization.SystemTextJson
+
+    /// JSON serializer options to support the target domain
+    let options =
+        let opts = JsonSerializerOptions ()
+        [   WrappedJsonConverter (Recurrence.ofString,    Recurrence.toString) :> JsonConverter
+            WrappedJsonConverter (RequestAction.ofString, RequestAction.toString)
+            WrappedJsonConverter (RequestId.ofString,     RequestId.toString)
+            WrappedJsonConverter (UserId,                 UserId.toString)
+            JsonFSharpConverter  ()
+        ]
+        |> List.iter opts.Converters.Add
+        let _ = opts.ConfigureForNodaTime NodaTime.DateTimeZoneProviders.Tzdb
+        opts.PropertyNamingPolicy   <- JsonNamingPolicy.CamelCase
+        opts.DefaultIgnoreCondition <- JsonIgnoreCondition.WhenWritingNull
+        opts
+
+
+open BitBadger.Npgsql.FSharp.Documents
+
+/// Connection 
+[<RequireQualifiedAccess>]
+module Connection =
+
+    open BitBadger.Npgsql.Documents
+    open Microsoft.Extensions.Configuration
+    open Npgsql
+    open System.Text.Json
+
+    /// Ensure the database is ready to use
+    let private ensureDb () = backgroundTask {
+        do! Custom.nonQuery "CREATE SCHEMA IF NOT EXISTS mpj" []
+        do! Definition.ensureTable Table.Request
+        do! Definition.ensureIndex Table.Request Optimized
+    }
+
+    /// Set up the data environment
+    let setUp (cfg : IConfiguration) = backgroundTask {
+        let builder = NpgsqlDataSourceBuilder (cfg.GetConnectionString "mpj")
+        let _ = builder.UseNodaTime ()
+        Configuration.useDataSource (builder.Build ())
+        Configuration.useSerializer
+            { new IDocumentSerializer with
+                member _.Serialize<'T>   (it : 'T)     = JsonSerializer.Serialize       (it, Json.options)
+                member _.Deserialize<'T> (it : string) = JsonSerializer.Deserialize<'T> (it, Json.options)
+            }
+        do! ensureDb ()
+    }
+
+
+/// Data access functions for requests
+[<RequireQualifiedAccess>]
+module Request =
     
     open NodaTime
-    open NodaTime.Text
+
+    /// Add a request
+    let add req = backgroundTask {
+        do! insert Table.Request (RequestId.toString req.Id) req
+    }
+
+    /// Does a request exist for the given request ID and user ID?
+    let existsById (reqId : RequestId) (userId : UserId) =
+        Exists.byContains Table.Request {| Id = reqId; UserId = userId |}
     
-    /// A NodaTime instant pattern to use for parsing instants from the database
-    let instantPattern = InstantPattern.CreateWithInvariantCulture "g"
+    /// Retrieve a request by its ID and user ID
+    let tryById reqId userId = backgroundTask {
+        match! Find.byId<Request> Table.Request (RequestId.toString reqId) with
+        | Some req when req.UserId = userId -> return Some req
+        | _ -> return None
+    }
     
-    /// Mapping for NodaTime's Instant type
-    module Instant =
-        let fromBson (value : BsonValue) = (instantPattern.Parse value.AsString).Value
-        let toBson (value : Instant) : BsonValue = value.ToString ("g", null)
-    
-    /// Mapping for option types
-    module Option =
-        let instantFromBson (value : BsonValue) = if value.IsNull then None else Some (Instant.fromBson value)
-        let instantToBson (value : Instant option) = match value with Some it -> Instant.toBson it | None -> null
-        
-        let stringFromBson (value : BsonValue) = match value.AsString with "" -> None | x -> Some x
-        let stringToBson (value : string option) : BsonValue = match value with Some txt -> txt | None -> ""
-    
-    /// Mapping for Recurrence
-    module Recurrence =
-        let fromBson (value : BsonValue) = Recurrence.ofString value
-        let toBson (value : Recurrence) : BsonValue = Recurrence.toString value
-    
-    /// Mapping for RequestAction
-    module RequestAction =
-        let fromBson (value : BsonValue) = RequestAction.ofString value.AsString
-        let toBson (value : RequestAction) : BsonValue = RequestAction.toString value
-    
-    /// Mapping for RequestId
-    module RequestId =
-        let fromBson (value : BsonValue) = RequestId.ofString value.AsString
-        let toBson (value : RequestId) : BsonValue = RequestId.toString value
-    
-    /// Mapping for UserId
-    module UserId =
-        let fromBson (value : BsonValue) = UserId value.AsString
-        let toBson (value : UserId) : BsonValue = UserId.toString value
-    
-    /// Set up the mapping
-    let register () = 
-        BsonMapper.Global.RegisterType<Instant>(Instant.toBson, Instant.fromBson)
-        BsonMapper.Global.RegisterType<Instant option>(Option.instantToBson, Option.instantFromBson)
-        BsonMapper.Global.RegisterType<Recurrence>(Recurrence.toBson, Recurrence.fromBson)
-        BsonMapper.Global.RegisterType<RequestAction>(RequestAction.toBson, RequestAction.fromBson)
-        BsonMapper.Global.RegisterType<RequestId>(RequestId.toBson, RequestId.fromBson)
-        BsonMapper.Global.RegisterType<string option>(Option.stringToBson, Option.stringFromBson)
-        BsonMapper.Global.RegisterType<UserId>(UserId.toBson, UserId.fromBson)
+    /// Update recurrence for a request
+    let updateRecurrence reqId userId (recurType : Recurrence) = backgroundTask {
+        let dbId = RequestId.toString reqId
+        match! existsById reqId userId with
+        | true -> do! Update.partialById Table.Request dbId {| Recurrence = recurType |}
+        | false -> invalidOp "Request ID {dbId} not found"
+    }
 
-/// Code to be run at startup
-module Startup =
-  
-    /// Ensure the database is set up
-    let ensureDb (db : LiteDatabase) =
-        db.Requests.EnsureIndex (fun it -> it.UserId) |> ignore
-        Mapping.register ()
+    /// Update the show-after time for a request
+    let updateShowAfter reqId userId (showAfter : Instant option) = backgroundTask {
+        let dbId = RequestId.toString reqId
+        match! existsById reqId userId with
+        | true -> do! Update.partialById Table.Request dbId {| ShowAfter = showAfter |}
+        | false -> invalidOp "Request ID {dbId} not found"
+    }
+
+    /// Update the snoozed and show-after values for a request
+    let updateSnoozed reqId userId (until : Instant option) = backgroundTask {
+        let dbId = RequestId.toString reqId
+        match! existsById reqId userId with
+        | true -> do! Update.partialById Table.Request dbId {| SnoozedUntil = until; ShowAfter = until |}
+        | false -> invalidOp "Request ID {dbId} not found"
+    }
 
 
-/// Async wrappers for LiteDB, and request -> journal mappings
-[<AutoOpen>]
-module private Helpers =
-    
-    open System.Linq
+/// Specific manipulation of history entries
+[<RequireQualifiedAccess>]
+module History =
 
-    /// Convert a sequence to a list asynchronously (used for LiteDB IO)
-    let toListAsync<'T> (q : 'T seq) =
-        (q.ToList >> Task.FromResult) ()
-
-    /// Convert a sequence to a list asynchronously (used for LiteDB IO)
-    let firstAsync<'T> (q : 'T seq) =
-        q.FirstOrDefault () |> Task.FromResult
-
-    /// Async wrapper around a request update
-    let doUpdate (db : LiteDatabase) (req : Request) =
-        db.Requests.Update req |> ignore
-        Task.CompletedTask
+    /// Add a history entry
+    let add reqId userId hist = backgroundTask {
+        let dbId = RequestId.toString reqId
+        match! Request.tryById reqId userId with
+        | Some req ->
+            do! Update.partialById Table.Request dbId
+                                   {| History = (hist :: req.History) |> List.sortByDescending (fun it -> it.AsOf) |}
+        | None -> invalidOp $"Request ID {dbId} not found"
+    }
 
 
-/// Retrieve a request, including its history and notes, by its ID and user ID
-let tryFullRequestById reqId userId (db : LiteDatabase) = backgroundTask {
-    let! req = db.Requests.Find (Query.EQ ("_id", RequestId.toString reqId)) |> firstAsync
-    return match box req with null -> None | _ when req.UserId = userId -> Some req | _ -> None
-}
+/// Data access functions for journal-style requests
+[<RequireQualifiedAccess>]
+module Journal =
 
-/// Add a history entry
-let addHistory reqId userId hist db = backgroundTask {
-    match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with History = Array.append [| hist |] req.History }
-    | None     -> invalidOp $"{RequestId.toString reqId} not found"
-}
+    /// Retrieve a user's answered requests
+    let answered (userId : UserId) = backgroundTask {
+        let! reqs =
+            Custom.list
+                $"""{Query.Find.byContains Table.Request} AND {Query.whereJsonPathMatches "@stat"}"""
+                [   "@criteria", Query.jsonbDocParam {| UserId = userId |}
+                    "@stat",     Sql.string """$.history[0].status ? (@ == "Answered")"""
+                ] fromData<Request>
+        return
+            reqs
+            |> Seq.ofList
+            |> Seq.map JournalRequest.ofRequestLite
+            |> Seq.filter (fun it -> it.LastStatus = Answered)
+            |> Seq.sortByDescending (fun it -> it.AsOf)
+            |> List.ofSeq
+    }
 
-/// Add a note
-let addNote reqId userId note db = backgroundTask {
-    match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with Notes = Array.append [| note |] req.Notes }
-    | None     -> invalidOp $"{RequestId.toString reqId} not found"
-}
+    /// Retrieve a user's current prayer journal (includes snoozed and non-immediate recurrence)
+    let forUser (userId : UserId) = backgroundTask {
+        let! reqs =
+            Custom.list
+                $"""{Query.Find.byContains Table.Request} AND {Query.whereJsonPathMatches "@stat"}"""
+                [   "@criteria", Query.jsonbDocParam {| UserId = userId |}
+                    "@stat",     Sql.string """$.history[0].status ? (@ <> "Answered")"""
+                ] fromData<Request>
+        return
+            reqs
+            |> Seq.ofList
+            |> Seq.map JournalRequest.ofRequestLite
+            |> Seq.filter (fun it -> it.LastStatus <> Answered)
+            |> Seq.sortBy (fun it -> it.AsOf)
+            |> List.ofSeq
+    }
 
-/// Add a request
-let addRequest (req : Request) (db : LiteDatabase) =
-    db.Requests.Insert req |> ignore
+    /// Does the user's journal have any snoozed requests?
+    let hasSnoozed userId now = backgroundTask {
+        let! jrnl = forUser userId
+        return jrnl |> List.exists (fun r -> defaultArg (r.SnoozedUntil |> Option.map (fun it -> it > now)) false)
+    }
 
-/// Find all requests for the given user
-let private getRequestsForUser (userId : UserId) (db : LiteDatabase) = backgroundTask {
-    return! db.Requests.Find (Query.EQ (nameof Request.empty.UserId, Mapping.UserId.toBson userId)) |> toListAsync
-}
+    let tryById reqId userId = backgroundTask {
+        let! req = Request.tryById reqId userId
+        return req |> Option.map JournalRequest.ofRequestLite
+    }
 
-/// Retrieve all answered requests for the given user
-let answeredRequests userId db = backgroundTask {
-    let! reqs = getRequestsForUser userId db
-    return
-        reqs
-        |> Seq.map JournalRequest.ofRequestFull
-        |> Seq.filter (fun it -> it.LastStatus = Answered)
-        |> Seq.sortByDescending (fun it -> it.AsOf)
-        |> List.ofSeq
-}
 
-/// Retrieve the user's current journal
-let journalByUserId userId db = backgroundTask {
-    let! reqs = getRequestsForUser userId db
-    return
-        reqs
-        |> Seq.map JournalRequest.ofRequestLite
-        |> Seq.filter (fun it -> it.LastStatus <> Answered)
-        |> Seq.sortBy (fun it -> it.AsOf)
-        |> List.ofSeq
-}
+/// Specific manipulation of note entries
+[<RequireQualifiedAccess>]
+module Note =
 
-/// Does the user have any snoozed requests?
-let hasSnoozed userId now (db : LiteDatabase) = backgroundTask {
-    let! jrnl = journalByUserId userId db
-    return jrnl |> List.exists (fun r -> defaultArg (r.SnoozedUntil |> Option.map (fun it -> it > now)) false)
-}
+    /// Add a note
+    let add reqId userId note = backgroundTask {
+        let dbId = RequestId.toString reqId
+        match! Request.tryById reqId userId with
+        | Some req ->
+            do! Update.partialById Table.Request dbId
+                                   {| Notes = (note :: req.Notes) |> List.sortByDescending (fun it -> it.AsOf) |}
+        | None -> invalidOp $"Request ID {dbId} not found"
+    }
 
-/// Retrieve a request by its ID and user ID (without notes and history)
-let tryRequestById reqId userId db = backgroundTask {
-    let! req = tryFullRequestById reqId userId db
-    return req |> Option.map (fun r -> { r with History = [||]; Notes = [||] })
-}
-
-/// Retrieve notes for a request by its ID and user ID
-let notesById reqId userId (db : LiteDatabase) = backgroundTask {
-    match! tryFullRequestById reqId userId db with | Some req -> return req.Notes | None -> return [||]
-}
-    
-/// Retrieve a journal request by its ID and user ID
-let tryJournalById reqId userId (db : LiteDatabase) = backgroundTask {
-    let! req = tryFullRequestById reqId userId db
-    return req |> Option.map JournalRequest.ofRequestLite
-}
-    
-/// Update the recurrence for a request
-let updateRecurrence reqId userId recurType db = backgroundTask {
-    match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with Recurrence = recurType }
-    | None     -> invalidOp $"{RequestId.toString reqId} not found"
-}
-
-/// Update a snoozed request
-let updateSnoozed reqId userId until db = backgroundTask {
-    match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with SnoozedUntil = until; ShowAfter = until }
-    | None     -> invalidOp $"{RequestId.toString reqId} not found"
-}
-
-/// Update the "show after" timestamp for a request
-let updateShowAfter reqId userId showAfter db = backgroundTask {
-    match! tryFullRequestById reqId userId db with
-    | Some req -> do! doUpdate db { req with ShowAfter = showAfter }
-    | None     -> invalidOp $"{RequestId.toString reqId} not found"
-}
+    /// Retrieve notes for a request by the request ID
+    let byRequestId reqId userId = backgroundTask {
+        match! Request.tryById reqId userId with Some req -> return req.Notes | None -> return []
+    }

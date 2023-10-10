@@ -1,11 +1,11 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MyPrayerJournal", "MyPrayerJournal\MyPrayerJournal.fsproj", "{6BD5A3C8-F859-42A0-ACD7-A5819385E828}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MyPrayerJournal.ConvertRecurrence", "MyPrayerJournal.ConvertRecurrence\MyPrayerJournal.ConvertRecurrence.fsproj", "{72B57736-8721-4636-A309-49FA4222416E}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MyPrayerJournal.ToPostgres", "MyPrayerJournal.ToPostgres\MyPrayerJournal.ToPostgres.fsproj", "{3114B8F4-E388-4804-94D3-A2F4D42797C6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +24,9 @@ Global
 		{72B57736-8721-4636-A309-49FA4222416E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72B57736-8721-4636-A309-49FA4222416E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72B57736-8721-4636-A309-49FA4222416E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3114B8F4-E388-4804-94D3-A2F4D42797C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3114B8F4-E388-4804-94D3-A2F4D42797C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3114B8F4-E388-4804-94D3-A2F4D42797C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3114B8F4-E388-4804-94D3-A2F4D42797C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
