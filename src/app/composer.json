@@ -1,23 +1,29 @@
 {
+    "name": "bitbadger/my-prayer-journal",
+    "description": "Minimalist prayer journal to enhance your prayer life",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MyPrayerJournal\\": "lib/",
+            "MyPrayerJournal\\Domain\\": "lib/domain/",
+            "BitBadger\\PgDocuments\\": "lib/documents/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Daniel J. Summers",
+            "email": "daniel@bitbadger.solutions"
+        }
+    ],
     "require": {
-        "leafs/leaf": "^3.0",
-        "leafs/bareui": "^1.1",
-        "leafs/db": "^2.1",
         "netresearch/jsonmapper": "^4.2",
-        "visus/cuid2": "^3.0",
         "guzzlehttp/guzzle": "^7.8",
         "guzzlehttp/psr7": "^2.6",
         "http-interop/http-factory-guzzle": "^1.2",
-        "auth0/auth0-php": "^8.7",
+        "auth0/auth0-php": "^8.8",
         "vlucas/phpdotenv": "^5.5",
-        "leafs/form": "^2.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "BitBadger\\PgSQL\\Documents\\": [ "./documents" ],
-            "MyPrayerJournal\\": [ "." ],
-            "MyPrayerJournal\\Domain\\": [ "./domain" ]
-        }
+        "visus/cuid2": "^4.0"
     },
     "config": {
         "allow-plugins": {
