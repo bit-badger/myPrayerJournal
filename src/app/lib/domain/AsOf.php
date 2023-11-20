@@ -5,7 +5,7 @@ namespace MyPrayerJournal\Domain;
 
 use DateTimeImmutable;
 
-trait AsOf
+class AsOf
 {
     /** The "as of" date/time */
     public DateTimeImmutable $asOf;

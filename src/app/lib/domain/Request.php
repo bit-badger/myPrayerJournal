@@ -46,7 +46,7 @@ class Request
 
     public function __construct()
     {
-        $this->id = new Cuid2();
-        $this->enteredOn = new DateTimeImmutable('1/1/1970', new DateTimeZone('Etc/UTC'));
+        $this->id = (new Cuid2())->toString();
+        $this->enteredOn = unix_epoch();
     }
 }

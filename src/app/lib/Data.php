@@ -9,7 +9,7 @@ use MyPrayerJournal\Domain\{ History, JournalRequest, Note, Request, RequestActi
 class Data
 {
     /** The prayer request table */
-    const REQ_TABLE = 'prayer_request';
+    const REQ_TABLE = 'mpj.request';
 
     /**
      * Ensure the table and index exist
@@ -94,11 +94,11 @@ class Data
      */
     private static function getJournalByAnswered(string $userId, string $op): array
     {
-        $sql = Query::selectFromTable(self::REQ_TABLE)
-            . ' WHERE ' . Query::whereDataContains('$1') . ' AND ' . Query::whereJsonPathMatches('$2');
+        $sql = sprintf('%s WHERE %s AND %s', Query::selectFromTable(self::REQ_TABLE), Query::whereDataContains('$1'),
+            Query::whereJsonPathMatches('$2'));
         $params = [
             Query::jsonbDocParam([ 'userId' => $userId ]),
-            sprintf("$.history[*].action ? (@ $op \"%s\")", RequestAction::Answered->name)
+            sprintf("$.history[0].status ? (@ $op \"%s\")", RequestAction::Answered->name)
         ];
         return self::mapToJournalRequest(
             Document::customList($sql, $params, Request::class, Document::mapFromJson(...)), true);

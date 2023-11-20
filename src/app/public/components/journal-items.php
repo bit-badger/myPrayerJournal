@@ -40,11 +40,9 @@ end_request();
  */
 function format_activity(string $activity, DateTimeImmutable $asOf)
 {
-    echo sprintf('last %s <span title="%s">%s</span>', [
-        $activity,
+    echo sprintf('last %s <span title="%s">%s</span>', $activity,
         $asOf->setTimezone($_REQUEST[Constants::TIME_ZONE])->format('l, F jS, Y/g:ia T'),
-        Dates::formatDistance(Dates::now(), $asOf)
-    ]);
+        Dates::formatDistance(Dates::now(), $asOf));
 } 
 
 /**

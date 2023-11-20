@@ -8,15 +8,13 @@ use DateTimeImmutable, DateTimeZone;
 /**
  * A note entered on a prayer request
  */
-class Note
+class Note extends AsOf
 {
-    use AsOf;
-
     /** The note */
     public string $notes = '';
 
     public function __construct()
     {
-        $this->asOf = new DateTimeImmutable('1/1/1970', new DateTimeZone('Etc/UTC'));
+        $this->asOf = unix_epoch();
     }
 }

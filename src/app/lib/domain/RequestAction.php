@@ -8,19 +8,19 @@ use JsonSerializable;
 /**
  * An action that was taken on a request
  */
-enum RequestAction implements JsonSerializable
+enum RequestAction: string implements JsonSerializable
 {
     /** The request was entered */
-    case Created;
+    case Created = 'Created';
 
     /** Prayer was recorded for the request */
-    case Prayed;
+    case Prayed = 'Prayed';
 
     /** The request was updated */
-    case Updated;
+    case Updated = 'Updated';
 
     /** The request was marked as answered */
-    case Answered;
+    case Answered = 'Answered';
 
     /**
      * Serialize this enum using its name

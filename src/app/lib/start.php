@@ -55,7 +55,7 @@ function require_user(bool $fail = false)
         if ($fail) {
             http_response_code(403);
         } else {
-            header("Location: /user/log-on?{${Constants::RETURN_URL}}={$_SERVER[Constants::REQUEST_URI]}");
+            header(sprintf('Location: /user/log-on?%s=%s', Constants::RETURN_URL, $_SERVER[Constants::REQUEST_URI]));
         }
         exit;
     }
@@ -83,7 +83,7 @@ function page_link(string $url, array $classNames = [], bool $checkActive = fals
         array_push($classNames, 'is-active-route');
     }
     if (!empty($classNames)) {
-        echo ' class="' . implode(' ', $classNames) . '"';
+        echo sprintf(' class="%s"', implode(' ', $classNames));
     }
     echo ' hx-target="#top" hx-swap="innerHTML" hx-push-url="true"';
 }
@@ -95,4 +95,14 @@ function end_request()
 {
     Configuration::closeConn();
     echo '</body></html>';
+}
+
+/**
+ * Create a new instance of the Unix epoch
+ * 
+ * @return DateTimeImmutable An immutable date/time as of the Unix epoch
+ */
+function unix_epoch(): DateTimeImmutable
+{
+    return new DateTimeImmutable('1/1/1970', new DateTimeZone('Etc/UTC'));
 }

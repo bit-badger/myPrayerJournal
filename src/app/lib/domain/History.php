@@ -8,33 +8,31 @@ use DateTimeImmutable, DateTimeZone;
 /**
  * A record of action taken on a prayer request, including updates to its text
  */
-class History
+class History extends AsOf
 {
-    use AsOf;
-
     /** The action taken that generated this history entry */
-    public RequestAction $action = RequestAction::Created;
+    public RequestAction $status = RequestAction::Created;
 
     /** The text of the update, if applicable */
     public ?string $text = null;
 
     public function __construct()
     {
-        $this->asOf = new DateTimeImmutable('1/1/1970', new DateTimeZone('Etc/UTC'));
+        $this->asOf = unix_epoch();
     }
 
     public function isCreated(): bool
     {
-        return $this->action == RequestAction::Created;
+        return $this->status == RequestAction::Created;
     }
 
     public function isPrayed(): bool
     {
-        return $this->action == RequestAction::Prayed;
+        return $this->status == RequestAction::Prayed;
     }
 
     public function isAnswered(): bool
     {
-        return $this->action == RequestAction::Answered;
+        return $this->status == RequestAction::Answered;
     }
 }

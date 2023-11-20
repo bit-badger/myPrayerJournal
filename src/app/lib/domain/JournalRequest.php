@@ -8,10 +8,8 @@ use DateTimeImmutable, DateTimeZone;
 /**
  * A prayer request, along with calculated fields, for use in displaying journal lists
  */
-class JournalRequest
+class JournalRequest extends AsOf
 {
-    use AsOf;
-
     /** The ID of the prayer request */
     public string $id = '';
 
@@ -22,7 +20,7 @@ class JournalRequest
     public string $text = '';
 
     /** The date/time this request was last marked as prayed */
-    public DateTimeImmutable $lastPrayed;
+    public ?DateTimeImmutable $lastPrayed = null;
 
     /** The last action taken on this request */
     public RequestAction $lastAction = RequestAction::Created;
@@ -60,8 +58,8 @@ class JournalRequest
     public function __construct(?Request $req = null, bool $full = false)
     {
         if (is_null($req)) {
-            $this->asOf       = new DateTimeImmutable('1/1/1970', new DateTimeZone('Etc/UTC'));
-            $this->lastPrayed = new DateTimeImmutable('1/1/1970', new DateTimeZone('Etc/UTC'));
+            $this->asOf       = unix_epoch();
+            $this->lastPrayed = null;
         } else {
             $this->id             = $req->id;
             $this->userId         = $req->userId;
@@ -71,9 +69,11 @@ class JournalRequest
             $this->recurrence     = $req->recurrence;
 
             usort($req->history, AsOf::newestToOldest(...));
-            $this->asOf       = $req->history[0]->asOf;
-            $this->lastPrayed = array_values(
-                array_filter($req->history, fn (History $it) => $it->isPrayed()))[0]?->asOf;
+            $this->asOf = $req->history[array_key_first($req->history)]->asOf;
+            $lastText = array_filter($req->history, fn (History $it) => !is_null($it->text));
+            $this->text = $lastText[array_key_first($lastText)]->text;
+            $lastPrayed = array_filter($req->history, fn (History $it) => $it->isPrayed());
+            if ($lastPrayed) $this->lastPrayed = $lastPrayed[array_key_first($lastPrayed)]->asOf;
             
             if ($full) {
                 usort($req->notes, AsOf::newestToOldest(...));

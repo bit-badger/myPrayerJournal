@@ -32,19 +32,19 @@ enum DistanceFormat
     public static function format(DistanceFormat $it, bool $singular = false): string
     {
         return match ($it) {
-            self::LessThanXMinutes => $singular ? 'less than a minute' : 'less than %i minutes',
-            self::XMinutes         => $singular ? 'a minute'           : '%i minutes',
-            self::AboutXHours      => $singular ? 'about an hour'      : 'about %i hours',
-            self::XHours           => $singular ? 'an hour'            : '%i hours',
-            self::XDays            => $singular ? 'a day'              : '%i days',
-            self::AboutXWeeks      => $singular ? 'about a week'       : 'about %i weeks',
-            self::XWeeks           => $singular ? 'a week'             : '%i weeks',
-            self::AboutXMonths     => $singular ? 'about a month'      : 'about %i months',
-            self::XMonths          => $singular ? 'a month'            : '%i months',
-            self::AboutXYears      => $singular ? 'about a year'       : 'about %i years',
-            self::XYears           => $singular ? 'a year'             : '%i years',
-            self::OverXYears       => $singular ? 'over a year'        : 'over %i years',
-            self::AlmostXYears     => $singular ? 'almost a year'      : 'almost %i years',
+            self::LessThanXMinutes => $singular ? 'less than a minute' : 'less than %d minutes',
+            self::XMinutes         => $singular ? 'a minute'           : '%d minutes',
+            self::AboutXHours      => $singular ? 'about an hour'      : 'about %d hours',
+            self::XHours           => $singular ? 'an hour'            : '%d hours',
+            self::XDays            => $singular ? 'a day'              : '%d days',
+            self::AboutXWeeks      => $singular ? 'about a week'       : 'about %d weeks',
+            self::XWeeks           => $singular ? 'a week'             : '%d weeks',
+            self::AboutXMonths     => $singular ? 'about a month'      : 'about %d months',
+            self::XMonths          => $singular ? 'a month'            : '%d months',
+            self::AboutXYears      => $singular ? 'about a year'       : 'about %d years',
+            self::XYears           => $singular ? 'a year'             : '%d years',
+            self::OverXYears       => $singular ? 'over a year'        : 'over %d years',
+            self::AlmostXYears     => $singular ? 'almost a year'      : 'almost %d years',
         };
     }
 }
