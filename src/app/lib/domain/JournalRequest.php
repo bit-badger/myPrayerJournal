@@ -28,7 +28,7 @@ class JournalRequest extends AsOf
     /** When this request will be shown again after having been snoozed */
     public ?DateTimeImmutable $snoozedUntil = null;
 
-    /** When this request will be show agains after a non-immediate recurrence */
+    /** When this request will be show again after a non-immediate recurrence */
     public ?DateTimeImmutable $showAfter = null;
 
     /** The type of recurrence for this request */

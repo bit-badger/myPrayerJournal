@@ -50,9 +50,9 @@ class Document
      * @param string $docId The ID of the document on which action should be taken
      * @param array|object $document The array or object representing the document
      */
-    private static function executeNonQuery(string $query, string $docId, array|object $document)
+    private static function executeNonQuery(string $query, string $docId, array|object $document): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $query, [ $docId, Query::jsonbDocParam($document) ]);
         if ($result) pg_free_result($result);
     }
@@ -64,7 +64,7 @@ class Document
      * @param string $docId The ID of the document to be inserted
      * @param array|object $document The array or object representing the document
      */
-    public static function insert(string $tableName, string $docId, array|object $document)
+    public static function insert(string $tableName, string $docId, array|object $document): void
     {
         self::executeNonQuery(Query::insert($tableName), $docId, $document);
     }
@@ -76,7 +76,7 @@ class Document
      * @param string $docId The ID of the document to be inserted
      * @param array|object $document The array or object representing the document
      */
-    public static function save(string $tableName, string $docId, array|object $document)
+    public static function save(string $tableName, string $docId, array|object $document): void
     {
         self::executeNonQuery(Query::save($tableName), $docId, $document);
     }
@@ -90,7 +90,7 @@ class Document
      */
     private static function runCount(string $sql, array $params): int
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $sql, $params);
         if (!$result) return -1;
         $count = intval(pg_fetch_assoc($result)['it']);
@@ -142,9 +142,9 @@ class Document
      */
     private static function runExists(string $sql, array $params): bool
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $sql, $params);
-        if (!$result) return -1;
+        if (!$result) return false;
         $exists = boolval(pg_fetch_assoc($result)['it']);
         pg_free_result($result);
         return $exists;
@@ -167,7 +167,7 @@ class Document
      * 
      * @param string $tableName The name of the table in which existence should be checked
      * @param array|object $criteria The criteria for the JSON containment query
-     * @return int True if any documents in the table match the JSON containment query, false if not
+     * @return bool True if any documents in the table match the JSON containment query, false if not
      */
     public static function existsByContains(string $tableName, array|object $criteria): bool
     {
@@ -179,7 +179,7 @@ class Document
      * 
      * @param string $tableName The name of the table in which existence should be checked
      * @param string $jsonPath The JSON Path to be matched
-     * @return int True if any documents in the table match the JSON Path, false if not
+     * @return bool True if any documents in the table match the JSON Path, false if not
      */
     public static function existsByJsonPath(string $tableName, string $jsonPath): bool
     {
@@ -196,7 +196,7 @@ class Document
      */
     private static function runListQuery(string $sql, array $params, string $className): array
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $sql, $params);
         try {
             if (!$result || pg_result_status($result) == PGSQL_EMPTY_QUERY) return [];
@@ -294,7 +294,7 @@ class Document
      * @param string $docId The ID of the document to be updated
      * @param array|object $document The document to be updated
      */
-    public static function updateFull(string $tableName, string $docId, array|object $document)
+    public static function updateFull(string $tableName, string $docId, array|object $document): void
     {
         self::executeNonQuery(Query::updateFull($tableName), $docId, $document);
     }
@@ -306,7 +306,7 @@ class Document
      * @param string $docId The ID of the document to be updated
      * @param array|object $document The partial document to be updated
      */
-    public static function updatePartialById(string $tableName, string $docId, array|object $document)
+    public static function updatePartialById(string $tableName, string $docId, array|object $document): void
     {
         self::executeNonQuery(Query::updatePartialById($tableName), $docId, $document);
     }
@@ -318,9 +318,9 @@ class Document
      * @param array|object $criteria The JSON containment criteria
      * @param array|object $document The document to be updated
      */
-    public static function updatePartialByContains(string $tableName, array|object $criteria, array|object $document)
+    public static function updatePartialByContains(string $tableName, array|object $criteria, array|object $document): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), Query::updatePartialByContains($tableName),
             [ Query::jsonbDocParam($criteria), Query::jsonbDocParam($document) ]);
         if ($result) pg_free_result($result);
@@ -333,9 +333,9 @@ class Document
      * @param string $jsonPath The JSON Path to be matched
      * @param array|object $document The document to be updated
      */
-    public static function updatePartialByJsonPath(string $tableName, string $jsonPath, array|object $document)
+    public static function updatePartialByJsonPath(string $tableName, string $jsonPath, array|object $document): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), Query::updatePartialByContains($tableName),
             [ $jsonPath, Query::jsonbDocParam($document) ]);
         if ($result) pg_free_result($result);
@@ -347,7 +347,7 @@ class Document
      * @param string $tableName The table from which a document should be deleted
      * @param string $docId The ID of the document to be deleted
      */
-    public static function deleteById(string $tableName, string $docId)
+    public static function deleteById(string $tableName, string $docId): void
     {
         self::executeNonQuery(Query::deleteById($tableName), $docId, []);
     }
@@ -358,9 +358,9 @@ class Document
      * @param string $tableName The table from which documents should be deleted
      * @param array|object $criteria The criteria for the JSON containment query
      */
-    public static function deleteByContains(string $tableName, array|object $criteria)
+    public static function deleteByContains(string $tableName, array|object $criteria): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), Query::deleteByContains($tableName), [ Query::jsonbDocParam($criteria) ]);
         if ($result) pg_free_result($result);
     }
@@ -371,9 +371,9 @@ class Document
      * @param string $tableName The table from which documents should be deleted
      * @param string $jsonPath The JSON Path expression to be matched
      */
-    public static function deleteByJsonPath(string $tableName, string $jsonPath)
+    public static function deleteByJsonPath(string $tableName, string $jsonPath): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), Query::deleteByJsonPath($tableName), [ $jsonPath ]);
         if ($result) pg_free_result($result);
     }
@@ -389,7 +389,7 @@ class Document
      */
     public static function customList(string $sql, array $params, string $className, callable $mapFunc): array
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $sql, $params);
         try {
             if (!$result || pg_result_status($result) == PGSQL_EMPTY_QUERY) return [];
@@ -420,9 +420,9 @@ class Document
      * @param string $sql The SQL query to execute
      * @param array $params A positional array of parameters for the SQL query
      */
-    public static function customNonQuery(string $sql, array $params)
+    public static function customNonQuery(string $sql, array $params): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $sql, $params);
         if ($result) pg_free_result($result);
     }

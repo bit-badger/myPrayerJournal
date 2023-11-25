@@ -39,7 +39,7 @@ Configuration::$startUp = '\MyPrayerJournal\Data::startUp';
 /**
  * Bring in a template
  */
-function template(string $name)
+function template(string $name): void
 {
     require_once __DIR__ . "/../templates/$name.php";
 }
@@ -49,7 +49,7 @@ function template(string $name)
  * 
  * @param bool $fail Whether to fail the request (true) or redirect to log on (false - optional, default)
  */
-function require_user(bool $fail = false)
+function require_user(bool $fail = false): void
 {
     if (!array_key_exists(Constants::USER_ID, $_REQUEST)) {
         if ($fail) {
@@ -64,7 +64,7 @@ function require_user(bool $fail = false)
 /**
  * Write a bare header for a component result
  */
-function bare_header()
+function bare_header(): void
 {
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf8"><title></title></head><body>';
 }
@@ -76,11 +76,11 @@ function bare_header()
  * @param array $classNames CSS class names to be applied to the link (optional, default none)
  * @param bool $checkActive Whether to apply an active class if the route matches (optional, default false)
  */
-function page_link(string $url, array $classNames = [], bool $checkActive = false)
+function page_link(string $url, array $classNames = [], bool $checkActive = false): void
 {
     echo 'href="'. $url . '" hx-get="' . $url . '"';
     if ($checkActive && str_starts_with($_SERVER[Constants::REQUEST_URI], $url)) {
-        array_push($classNames, 'is-active-route');
+        $classNames[] = 'is-active-route';
     }
     if (!empty($classNames)) {
         echo sprintf(' class="%s"', implode(' ', $classNames));
@@ -91,7 +91,7 @@ function page_link(string $url, array $classNames = [], bool $checkActive = fals
 /**
  * Close any open database connection; close the `body` and `html` tags
  */
-function end_request()
+function end_request(): void
 {
     Configuration::closeConn();
     echo '</body></html>';
@@ -99,7 +99,7 @@ function end_request()
 
 /**
  * Create a new instance of the Unix epoch
- * 
+ *
  * @return DateTimeImmutable An immutable date/time as of the Unix epoch
  */
 function unix_epoch(): DateTimeImmutable

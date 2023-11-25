@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 require_once '../../lib/start.php';
 
-use DateTimeImmutable;
 use MyPrayerJournal\{ Constants, Data, Dates };
 use MyPrayerJournal\Domain\JournalRequest;
 
@@ -38,7 +37,7 @@ end_request();
  * @param string $activity The activity performed (activity or prayed)
  * @param DateTimeImmutable $asOf The date/time the activity was performed
  */
-function format_activity(string $activity, DateTimeImmutable $asOf)
+function format_activity(string $activity, DateTimeImmutable $asOf): void
 {
     echo sprintf('last %s <span title="%s">%s</span>', $activity,
         $asOf->setTimezone($_REQUEST[Constants::TIME_ZONE])->format('l, F jS, Y/g:ia T'),
@@ -50,13 +49,13 @@ function format_activity(string $activity, DateTimeImmutable $asOf)
  * 
  * @param JournalRequest $req The request for which a card should be generated
  */
-function journal_card(JournalRequest $req)
+function journal_card(JournalRequest $req): void
 {
     $spacer = '<span>&nbsp;</span>'; ?>
     <div class="col">
         <div class="card h-100">
-            <div class="card-header p-0 d-flex" role="tool-bar">
-                <a <?php page_link("/request/{$req->id}/edit"); ?> class="btn btn-secondary" title="Edit Request">
+            <div class="card-header p-0 d-flex" role="toolbar">
+                <a <?php page_link("/request/edit?{$req->id}"); ?> class="button btn-secondary" title="Edit Request">
                     <span class="material-icons">edit</span>
                 </a><?php echo $spacer; ?>
                 <button type="button" class="btn btn-secondary" title="Add Notes" data-bs-toggle="modal"
@@ -70,10 +69,10 @@ function journal_card(JournalRequest $req)
                     <span class="material-icons">schedule</span>
                 </button>
                 <div class="flex-grow-1"></div>
-                <button type="button" class="btn btn-success w-25" hx-patch="/request/<?php echo $req->id; ?>/prayed"
-                        title="Mark as Prayed">
+                <a href="/request/prayed?<?php echo $req->id; ?>" class="button btn-success w-25"
+                   hx-patch="/request/prayed?<?php echo $req->id; ?>" title="Mark as Prayed">
                     <span class="material-icons">done</span>
-                </button>
+                </a>
             </div>
             <div class="card-body">
                 <p class="request-text"><?php echo htmlentities($req->text); ?></p>

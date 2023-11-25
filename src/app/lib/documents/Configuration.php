@@ -13,16 +13,16 @@ class Configuration
     /** @var string $connectionString The connection string to use when establishing a database connection */
     public static string $connectionString = "";
 
-    /** @var Connection $pgConn The active connection */
+    /** @var ?Connection $pgConn The active connection */
     private static ?Connection $pgConn = null;
 
     /** @var ?string $startUp The name of a function to run on first connection to the database */
     public static ?string $startUp = null;
 
     /**
-     * Ensure that the connection string is set, either explicity, by environment variables, or with defaults
+     * Ensure that the connection string is set, either explicitly, by environment variables, or with defaults
      */
-    private static function ensureConnectionString()
+    private static function ensureConnectionString(): void
     {
         if (self::$connectionString == "") {
             $host = $_ENV['PGDOC_HOST'] ?? 'localhost';
@@ -58,7 +58,7 @@ class Configuration
     /**
      * Close the PostgreSQL connection if it is open
      */
-    public static function closeConn()
+    public static function closeConn(): void
     {
         if (!is_null(self::$pgConn)) {
             pg_close(self::$pgConn);

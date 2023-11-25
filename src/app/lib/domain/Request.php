@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace MyPrayerJournal\Domain;
 
-use DateTimeImmutable, DateTimeZone;
+use DateTimeImmutable;
 use Visus\Cuid2\Cuid2;
 
 /**

@@ -14,7 +14,7 @@ class Data
     /**
      * Ensure the table and index exist
      */
-    public static function startUp()
+    public static function startUp(): void
     {
         Definition::ensureTable(self::REQ_TABLE);
         Definition::ensureIndex(self::REQ_TABLE, DocumentIndex::Optimized);

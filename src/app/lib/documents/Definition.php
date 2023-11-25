@@ -41,9 +41,9 @@ class Definition
      * 
      * @param string $name The name of the table
      */
-    public static function ensureTable(string $name)
+    public static function ensureTable(string $name): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query(pg_conn(), self::createTable($name));
         if ($result) pg_free_result($result);
     }
@@ -54,9 +54,9 @@ class Definition
      * @param string $name The name of the table for which the index should be created
      * @param DocumentIndex $type The type of index to create
      */
-    public static function ensureIndex(string $name, DocumentIndex $type)
+    public static function ensureIndex(string $name, DocumentIndex $type): void
     {
-        /** @var Result|bool */
+        /** @var Result|bool $result */
         $result = pg_query(pg_conn(), self::createIndex($name, $type));
         if ($result) pg_free_result($result);
     }

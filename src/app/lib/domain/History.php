@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace MyPrayerJournal\Domain;
 
-use DateTimeImmutable, DateTimeZone;
-
 /**
  * A record of action taken on a prayer request, including updates to its text
  */
