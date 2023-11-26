@@ -11,13 +11,16 @@ use PgSql\Connection;
 class Configuration
 {
     /** @var string $connectionString The connection string to use when establishing a database connection */
-    public static string $connectionString = "";
+    public static string $connectionString = '';
 
     /** @var ?Connection $pgConn The active connection */
     private static ?Connection $pgConn = null;
 
     /** @var ?string $startUp The name of a function to run on first connection to the database */
     public static ?string $startUp = null;
+
+    /** @var string $keyName The key name for document IDs (default "id") */
+    public static string $keyName = 'id';
 
     /**
      * Ensure that the connection string is set, either explicitly, by environment variables, or with defaults

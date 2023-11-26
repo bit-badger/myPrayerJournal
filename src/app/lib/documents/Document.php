@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BitBadger\PgDocuments;
 
+use Exception;
 use JsonMapper;
 use PgSql\Result;
 
@@ -45,13 +46,17 @@ class Document
 
     /**
      * Execute a document-focused statement that does not return results
-     * 
+     *
      * @param string $query The query to be executed
-     * @param string $docId The ID of the document on which action should be taken
      * @param array|object $document The array or object representing the document
+     * @throws Exception If the document's ID is null
      */
-    private static function executeNonQuery(string $query, string $docId, array|object $document): void
+    private static function executeNonQuery(string $query, array|object $document): void
     {
+        $docId = is_array($document)
+            ? $document[Configuration::$keyName]
+            : get_object_vars($document)[Configuration::$keyName];
+        if (is_null($docId)) throw new Exception('PgDocument: ID cannot be NULL');
         /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), $query, [ $docId, Query::jsonbDocParam($document) ]);
         if ($result) pg_free_result($result);
@@ -61,24 +66,22 @@ class Document
      * Insert a document
      * 
      * @param string $tableName The name of the table into which a document should be inserted
-     * @param string $docId The ID of the document to be inserted
      * @param array|object $document The array or object representing the document
      */
-    public static function insert(string $tableName, string $docId, array|object $document): void
+    public static function insert(string $tableName, array|object $document): void
     {
-        self::executeNonQuery(Query::insert($tableName), $docId, $document);
+        self::executeNonQuery(Query::insert($tableName), $document);
     }
 
     /**
      * Save (upsert) a document
      * 
      * @param string $tableName The name of the table into which a document should be inserted
-     * @param string $docId The ID of the document to be inserted
      * @param array|object $document The array or object representing the document
      */
-    public static function save(string $tableName, string $docId, array|object $document): void
+    public static function save(string $tableName, array|object $document): void
     {
-        self::executeNonQuery(Query::save($tableName), $docId, $document);
+        self::executeNonQuery(Query::save($tableName), $document);
     }
 
     /**
@@ -291,24 +294,22 @@ class Document
      * Update a full document
      * 
      * @param string $tableName The table in which the document should be updated
-     * @param string $docId The ID of the document to be updated
      * @param array|object $document The document to be updated
      */
-    public static function updateFull(string $tableName, string $docId, array|object $document): void
+    public static function updateFull(string $tableName, array|object $document): void
     {
-        self::executeNonQuery(Query::updateFull($tableName), $docId, $document);
+        self::executeNonQuery(Query::updateFull($tableName), $document);
     }
 
     /**
      * Update a partial document by its ID
      * 
      * @param string $tableName The table in which the document should be updated
-     * @param string $docId The ID of the document to be updated
      * @param array|object $document The partial document to be updated
      */
-    public static function updatePartialById(string $tableName, string $docId, array|object $document): void
+    public static function updatePartialById(string $tableName, array|object $document): void
     {
-        self::executeNonQuery(Query::updatePartialById($tableName), $docId, $document);
+        self::executeNonQuery(Query::updatePartialById($tableName), $document);
     }
 
     /**
@@ -318,7 +319,8 @@ class Document
      * @param array|object $criteria The JSON containment criteria
      * @param array|object $document The document to be updated
      */
-    public static function updatePartialByContains(string $tableName, array|object $criteria, array|object $document): void
+    public static function updatePartialByContains(string $tableName, array|object $criteria,
+                                                   array|object $document): void
     {
         /** @var Result|bool $result */
         $result = pg_query_params(pg_conn(), Query::updatePartialByContains($tableName),
@@ -336,7 +338,7 @@ class Document
     public static function updatePartialByJsonPath(string $tableName, string $jsonPath, array|object $document): void
     {
         /** @var Result|bool $result */
-        $result = pg_query_params(pg_conn(), Query::updatePartialByContains($tableName),
+        $result = pg_query_params(pg_conn(), Query::updatePartialByJsonPath($tableName),
             [ $jsonPath, Query::jsonbDocParam($document) ]);
         if ($result) pg_free_result($result);
     }
@@ -349,7 +351,7 @@ class Document
      */
     public static function deleteById(string $tableName, string $docId): void
     {
-        self::executeNonQuery(Query::deleteById($tableName), $docId, []);
+        self::executeNonQuery(Query::deleteById($tableName), [ Configuration::$keyName => $docId ]);
     }
 
     /**

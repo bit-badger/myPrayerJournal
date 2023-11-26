@@ -16,7 +16,18 @@ class Query
     {
         return "SELECT data FROM $tableName";
     }
-    
+
+    /**
+     * Create a `WHERE` clause fragment to implement a key check condition
+     *
+     * @param string $paramName The name of the parameter to be replaced when the query is executed
+     * @return string A `WHERE` clause fragment with the named key and parameter
+     */
+    public static function whereById(string $paramName): string
+    {
+        return sprintf("data -> '%s' = %s", Configuration::$keyName, $paramName);
+    }
+
     /**
      * Create a `WHERE` clause fragment to implement a @> (JSON contains) condition
      * 
@@ -50,33 +61,41 @@ class Query
         return json_encode($it);
     }
 
-    /// Create ID and data parameters for a query
-    /* let docParameters<'T> docId (doc : 'T) =
-        [ "@id", Sql.string docId; "@data", jsonbDocParam doc ]
-    */
     /**
      * Query to insert a document
      * 
      * @param string $tableName The name of the table into which the document will be inserted
-     * @return string The `INSERT` statement (with `@id` and `@data` parameters defined)
+     * @return string The `INSERT` statement (with `$1` parameter defined for the document)
      */
     public static function insert(string $tableName): string
     {
-        return "INSERT INTO $tableName (id, data) VALUES ($1, $2)";
+        return sprintf('INSERT INTO %s (data) VALUES ($1)', $tableName);
     }
 
     /**
      * Query to save a document, inserting it if it does not exist and updating it if it does (AKA "upsert")
      * 
      * @param string $tableName The name of the table into which the document will be saved
-     * @return string The `INSERT`/`ON CONFLICT DO UPDATE` statement (with `@id` and `@data` parameters defined)
+     * @return string The `INSERT`/`ON CONFLICT DO UPDATE` statement (with `$1` parameter defined for the document)
      */
     public static function save(string $tableName): string
     {
-        return "INSERT INTO $tableName (id, data) VALUES ($1, $2)
-                  ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data";
+        return sprintf('INSERT INTO %s (data) VALUES ($1) ON CONFLICT (data) DO UPDATE SET data = EXCLUDED.data',
+            $tableName);
     }
-    
+
+    /**
+     * Query to count documents in a table
+     *
+     * @param string $tableName The name of the table for which documents should be counted
+     * @param string $where The condition for which documents should be counted
+     * @return string A `SELECT` statement to obtain the count of documents for the given table
+     */
+    private static function countQuery(string $tableName, string $where): string
+    {
+        return "SELECT COUNT(*) AS it FROM $tableName WHERE $where";
+    }
+
     /**
      * Query to count all documents in a table
      * 
@@ -85,7 +104,7 @@ class Query
      */
     public static function countAll(string $tableName): string
     {
-        return "SELECT COUNT(id) AS it FROM $tableName";
+        return self::countQuery($tableName, '1 = 1');
     }
     
     /**
@@ -96,7 +115,7 @@ class Query
      */
     public static function countByContains(string $tableName): string
     {
-        return "SELECT COUNT(id) AS it FROM $tableName WHERE " . self::whereDataContains('$1');
+        return self::countQuery($tableName, self::whereDataContains('$1'));
     }
     
     /**
@@ -107,9 +126,20 @@ class Query
      */
     public static function countByJsonPath(string $tableName): string
     {
-        return "SELECT COUNT(id) AS it FROM $tableName WHERE " . self::whereJsonPathMatches('$1');
+        return self::countQuery($tableName, self::whereJsonPathMatches('$1'));
     }
-    
+
+    /**
+     * Query to check document existence
+     *
+     * @param string $tableName The name of the table in which document existence should be checked
+     * @param string $where The criteria for which document existence should be checked
+     * @return string A `SELECT` statement to check document existence for the given criteria
+     */
+    private static function existsQuery(string $tableName, string $where): string
+    {
+        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE $where) AS it";
+    }
     /**
      * Query to determine if a document exists for the given ID
      * 
@@ -118,7 +148,7 @@ class Query
      */
     public static function existsById(string $tableName): string
     {
-        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE id = $1) AS it";
+        return self::existsQuery($tableName, self::whereById('$1'));
     }
 
     /**
@@ -129,7 +159,7 @@ class Query
      */
     public static function existsByContains(string $tableName): string
     {
-        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE " . self::whereDataContains('$1') . ' AS it';
+        return self::existsQuery($tableName, self::whereDataContains('$1'));
     }
     
     /**
@@ -140,7 +170,7 @@ class Query
      */
     public static function existsByJsonPath(string $tableName): string
     {
-        return "SELECT EXISTS (SELECT 1 FROM $tableName WHERE " . self::whereJsonPathMatches('$1') . ' AS it';
+        return self::existsQuery($tableName, self::whereJsonPathMatches('$1'));
     }
     
     /**
@@ -151,7 +181,7 @@ class Query
      */
     public static function findById(string $tableName): string
     {
-        return self::selectFromTable($tableName) . ' WHERE id = $1';
+        return sprintf('%s WHERE %s', self::selectFromTable($tableName), self::whereById('$1'));
     }
     
     /**
@@ -162,7 +192,7 @@ class Query
      */
     public static function findByContains(string $tableName): string
     {
-        return self::selectFromTable($tableName) . ' WHERE ' . self::whereDataContains('$1');
+        return sprintf('%s WHERE %s', self::selectFromTable($tableName), self::whereDataContains('$1'));
     }
     
     /**
@@ -173,7 +203,7 @@ class Query
      */
     public static function findByJsonPath(string $tableName): string
     {
-        return self::selectFromTable($tableName) . ' WHERE ' . self::whereJsonPathMatches('$1');
+        return sprintf('%s WHERE %s', self::selectFromTable($tableName), self::whereJsonPathMatches('$1'));
     }
     
     /**
@@ -184,7 +214,19 @@ class Query
      */
     public static function updateFull(string $tableName): string
     {
-        return "UPDATE $tableName SET data = $2 WHERE id = $1";
+        return sprintf('UPDATE %s SET data = $2 WHERE %s', $tableName, self::whereById('$1'));
+    }
+
+    /**
+     * Query to apply a partial update to a document
+     *
+     * @param string $tableName The name of the table in which documents should be updated
+     * @param string $where The `WHERE` clause specifying which documents should be updated
+     * @return string An `UPDATE` statement to update a partial document ($1 is ID, $2 is document)
+     */
+    private static function updatePartial(string $tableName, string $where): string
+    {
+        return sprintf('UPDATE %s SET data = data || $2 WHERE %s', $tableName, $where);
     }
 
     /**
@@ -195,7 +237,7 @@ class Query
      */
     public static function updatePartialById(string $tableName): string
     {
-        return "UPDATE $tableName SET data = data || $2 WHERE id = $1";
+        return self::updatePartial($tableName, self::whereById('$1'));
     }
     
     /**
@@ -206,7 +248,7 @@ class Query
      */
     public static function updatePartialByContains(string $tableName): string
     {
-        return "UPDATE $tableName SET data = data || $2 WHERE " . self::whereDataContains('$1');
+        return self::updatePartial($tableName, self::whereDataContains('$1'));
     }
 
     /**
@@ -217,7 +259,19 @@ class Query
      */
     public static function updatePartialByJsonPath(string $tableName): string
     {
-        return "UPDATE $tableName SET data = data || $2 WHERE " . self::whereJsonPathMatches('$1');
+        return self::updatePartial($tableName, self::whereJsonPathMatches('$1'));
+    }
+
+    /**
+     * Query to delete documents
+     *
+     * @param string $tableName The name of the table from which documents should be deleted
+     * @param string $where The criteria by which documents should be deleted
+     * @return string A `DELETE` statement to delete documents in the specified table
+     */
+    private static function deleteQuery(string $tableName, string $where): string
+    {
+        return "DELETE FROM $tableName WHERE $where";
     }
 
     /**
@@ -228,7 +282,7 @@ class Query
      */
     public static function deleteById(string $tableName): string
     {
-        return "DELETE FROM $tableName WHERE id = $1";
+        return self::deleteQuery($tableName, self::whereById('$1'));
     }
 
     /**
@@ -239,7 +293,7 @@ class Query
      */
     public static function deleteByContains(string $tableName): string
     {
-        return "DELETE FROM $tableName WHERE " . self::whereDataContains('$1');
+        return self::deleteQuery($tableName, self::whereDataContains('$1'));
     }
 
     /**
@@ -250,6 +304,6 @@ class Query
      */
     public static function deleteByJsonPath(string $tableName): string
     {
-        return "DELETE FROM $tableName WHERE " . self::whereJsonPathMatches('$1');
+        return self::deleteQuery($tableName, self::whereJsonPathMatches('$1'));
     }
 }

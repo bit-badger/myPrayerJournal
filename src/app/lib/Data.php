@@ -98,7 +98,7 @@ class Data
             Query::whereJsonPathMatches('$2'));
         $params = [
             Query::jsonbDocParam([ 'userId' => $userId ]),
-            sprintf("$.history[0].status ? (@ $op \"%s\")", RequestAction::Answered->name)
+            sprintf('$.history[0].status ? (@ %s "%s")', $op, RequestAction::Answered->name)
         ];
         return self::mapToJournalRequest(
             Document::customList($sql, $params, Request::class, Document::mapFromJson(...)), true);
